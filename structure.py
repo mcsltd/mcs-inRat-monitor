@@ -47,3 +47,6 @@ class Event(ctypes.Structure):
         ("Counter", ctypes.c_uint32),
         ("Data", ctypes.c_int32),
     ]
+
+if __name__ == "__main__":
+    print(ctypes.sizeof(Event))

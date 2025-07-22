@@ -23,14 +23,13 @@ class Command(Enum):
     Deactivate = 6
 
 
-# ToDo: lower case
 class EventType(Enum):
-    BUTTON = 0
-    ACTIVITY = 1
-    FREEFALL = 2
-    ORIENTATION = 3
-    START = 4
-    CHARGE = 5
+    ButtonPress = 0
+    Activity = 1
+    Freefall = 2
+    Orientation = 3
+    Start = 4
+    Charge = 5
 
 UUID_TEMPLATE = "0000{:0>4x}-0000-1000-8000-00805f9b34fb"
 
