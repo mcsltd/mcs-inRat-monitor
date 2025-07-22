@@ -2,6 +2,7 @@ import asyncio
 import ctypes
 import logging
 import struct
+from typing import Optional
 
 import numpy as np
 from bleak import BleakClient
@@ -24,18 +25,21 @@ class RatSens(BleakClient):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    async def setup(self, cmd: Command, settings):
+    async def setup(self, cmd: Command, settings: Optional[Settings] = None):
+        if settings is None:
+            settings = b''
         data = cmd.value.to_bytes() + bytes(settings)
         data += get_control_sum(data=data, key=BLE_KEY)
         await self.write_gatt_char(char_specifier=RatSens.UUID_CHARACTERISTIC_CONTROL, data=data)
 
     async def get_device_name(self):
         name = await self.read_gatt_char(RatSens.UUID_CHARACTERISTIC_DEVICE_NAME)
-        return name
+        return name.decode()
 
-    async def get_ecg(self):
+    async def get_ecg(self, ecg_queue: Optional[asyncio.Queue] = None):
         async def ecg_handler(_, raw_data: bytearray):
             nonlocal prev
+            logger.debug(f"get raw data: {raw_data}")
 
             offset = 2
             counter = struct.unpack('H', raw_data[:offset])[0]
@@ -55,6 +59,10 @@ class RatSens(BleakClient):
                 prev = ecg[i]
 
             ecg *= 2.42 * 1e6 / 171 / 0xFFFF # in μV
+
+            if ecg_queue is not None:
+                logger.debug("Put ecg in queue.")
+                await ecg_queue.put({"ecg": ecg})
 
         prev = 0
         await self.setup(
@@ -117,6 +125,9 @@ class RatSens(BleakClient):
             )
         )
         await self.start_notify(RatSens.UUID_CHARACTERISTIC_EVENT, event_handler)
+
+    async def stop(self):
+        await self.setup(cmd=Command.AcquisitionStop)
 
 
 async def main():
