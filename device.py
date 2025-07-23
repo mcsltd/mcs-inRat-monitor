@@ -43,7 +43,9 @@ class RatSens(BleakClient):
 
             offset = 2
             counter = struct.unpack('H', raw_data[:offset])[0]
+
             code = raw_data[offset]
+            offset += 4
 
             ecg = np.zeros(Pkt.SamplesCountECG, dtype=np.float64)
             for i in range(Pkt.SamplesCountECG):
@@ -59,10 +61,13 @@ class RatSens(BleakClient):
                 prev = ecg[i]
 
             ecg *= 2.42 * 1e6 / 171 / 0xFFFF # in μV
+            # ecg *= Const.EcgResolution
 
+            logger.debug(f"counter: {counter}; ecg: {ecg.tolist()}")
             if ecg_queue is not None:
                 logger.debug("Put ecg in queue.")
-                await ecg_queue.put({"ecg": ecg})
+
+                await ecg_queue.put({"counter": counter, "ecg": ecg})
 
         prev = 0
         await self.setup(
@@ -78,8 +83,8 @@ class RatSens(BleakClient):
         )
         await self.start_notify(RatSens.UUID_CHARACTERISTIC_DATA_ECG, ecg_handler)
 
-    async def get_event(self):
-        def event_handler(_, raw_event):
+    async def get_event(self, event_queue: Optional[asyncio.Queue] = None):
+        async def event_handler(_, raw_event):
             cnt = len(raw_event) // ctypes.sizeof(Event)
 
             idx_last = 0
@@ -110,7 +115,15 @@ class RatSens(BleakClient):
                     dict_ev["Type"] = "Orientation"
                 if ev.Type == EventType.Freefall.value:
                     dict_ev["Type"] = "Freefall"
+
                 dict_ev["Acceleration"] = [ax, ay, az]
+                dict_ev["Number"] = ev.Number
+                dict_ev["Counter"] = ev.Counter
+                dict_ev["Data"] = ev.Data
+                dict_ev["Value"] = ev.Data
+
+                if event_queue is not None:
+                    await event_queue.put(dict_ev)
                 print(dict_ev)
 
         await self.setup(
@@ -139,7 +152,7 @@ async def main():
     await client.connect()
 
     # await client.get_event()
-    # await client.get_ecg()
+    await client.get_ecg()
 
     await asyncio.sleep(10)
     await client.disconnect()
