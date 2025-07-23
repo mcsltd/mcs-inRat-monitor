@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file '.\ui\main_window.ui'
+# Form implementation generated from reading ui file '.\ui\.\main_window.ui'
 #
 # Created by: PyQt6 UI code generator 6.6.0
 #
@@ -12,7 +12,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(800, 600)
+        MainWindow.resize(796, 592)
         self.centralwidget = QtWidgets.QWidget(parent=MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.gridLayout = QtWidgets.QGridLayout(self.centralwidget)
@@ -34,12 +34,27 @@ class Ui_MainWindow(object):
         self.pushButtonStop = QtWidgets.QPushButton(parent=self.centralwidget)
         self.pushButtonStop.setObjectName("pushButtonStop")
         self.verticalLayout.addWidget(self.pushButtonStop)
+        self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+        self.label = QtWidgets.QLabel(parent=self.centralwidget)
+        self.label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.label.setObjectName("label")
+        self.horizontalLayout_2.addWidget(self.label)
+        self.comboBoxFormat = QtWidgets.QComboBox(parent=self.centralwidget)
+        self.comboBoxFormat.setObjectName("comboBoxFormat")
+        self.comboBoxFormat.addItem("")
+        self.comboBoxFormat.addItem("")
+        self.horizontalLayout_2.addWidget(self.comboBoxFormat)
+        self.verticalLayout.addLayout(self.horizontalLayout_2)
+        self.pushButtonRecording = QtWidgets.QPushButton(parent=self.centralwidget)
+        self.pushButtonRecording.setObjectName("pushButtonRecording")
+        self.verticalLayout.addWidget(self.pushButtonRecording)
         spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding)
         self.verticalLayout.addItem(spacerItem)
         self.gridLayout.addLayout(self.verticalLayout, 0, 1, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(parent=MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 25))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 796, 22))
         self.menubar.setObjectName("menubar")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(parent=MainWindow)
@@ -55,4 +70,8 @@ class Ui_MainWindow(object):
         self.pushButtonFind.setText(_translate("MainWindow", "Find"))
         self.pushButtonStart.setText(_translate("MainWindow", "Start"))
         self.pushButtonStop.setText(_translate("MainWindow", "Stop"))
+        self.label.setText(_translate("MainWindow", "Format:"))
+        self.comboBoxFormat.setItemText(0, _translate("MainWindow", "WFDB"))
+        self.comboBoxFormat.setItemText(1, _translate("MainWindow", "EDF"))
+        self.pushButtonRecording.setText(_translate("MainWindow", "Start Recording"))
 from pyqtgraph import PlotWidget
