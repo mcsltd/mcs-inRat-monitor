@@ -22,6 +22,9 @@ class Storage:
         """ Save in select format """
         logger.debug(f"ECG buffer size: {self.ecg.shape}")
 
+        if self.ecg.shape[0] == 0:
+            return
+
         if self._format == "WFDB":
             self._to_wfdb()
 

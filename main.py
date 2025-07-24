@@ -61,6 +61,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.pushButtonRecording.setText("Start Recording")
             self.comboBoxFormat.setEnabled(True)
             logger.debug("Select stop recording ECG.")
+
+            # check if device running when change button state (when press stop recording)
+            if self.device.is_running:
+                self.storage.save()
+
         elif self.is_save_ecg is None or not self.is_save_ecg:
             self.is_save_ecg = True
 

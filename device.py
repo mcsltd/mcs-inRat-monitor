@@ -25,6 +25,8 @@ class RatSens(BleakClient):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.is_running = False
+
     async def setup(self, cmd: Command, settings: Optional[Settings] = None):
         if settings is None:
             settings = b''
@@ -81,6 +83,7 @@ class RatSens(BleakClient):
                 ActivityThreshold=2
             )
         )
+        self.is_running = True
         await self.start_notify(RatSens.UUID_CHARACTERISTIC_DATA_ECG, ecg_handler)
 
     async def get_event(self, event_queue: Optional[asyncio.Queue] = None):
@@ -140,6 +143,7 @@ class RatSens(BleakClient):
         await self.start_notify(RatSens.UUID_CHARACTERISTIC_EVENT, event_handler)
 
     async def stop(self):
+        self.is_running = False
         await self.setup(cmd=Command.AcquisitionStop)
 
 
