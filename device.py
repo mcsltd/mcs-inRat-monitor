@@ -39,7 +39,7 @@ class RatSens(BleakClient):
     async def get_ecg(self, ecg_queue: Optional[asyncio.Queue] = None):
         async def ecg_handler(_, raw_data: bytearray):
             nonlocal prev
-            logger.debug(f"get raw data: {raw_data}")
+            # logger.debug(f"get raw data: {raw_data}")
 
             offset = 2
             counter = struct.unpack('H', raw_data[:offset])[0]
@@ -63,9 +63,9 @@ class RatSens(BleakClient):
             ecg *= 2.42 * 1e6 / 171 / 0xFFFF # in μV
             # ecg *= Const.EcgResolution
 
-            logger.debug(f"counter: {counter}; ecg: {ecg.tolist()}")
+            # logger.debug(f"counter: {counter}; ecg: {ecg.tolist()}")
             if ecg_queue is not None:
-                logger.debug("Put ecg in queue.")
+                # logger.debug("Put ecg in queue.")
 
                 await ecg_queue.put({"counter": counter, "ecg": ecg})
 
