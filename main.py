@@ -29,7 +29,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.ecg_queue = asyncio.Queue()
 
         self.is_save_ecg = None
-        self.storage = None # Storage()
+        self.storage = Storage()
 
         self.pushButtonFind.clicked.connect(lambda: asyncio.ensure_future(self.find_device()))
         self.pushButtonStart.clicked.connect(lambda: asyncio.ensure_future(self.start_device()))
@@ -122,9 +122,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.storage.save()
             self.change_recording()
 
-        # activate and disable btn when ыещз device
+        # activate and disable btn when stop device
         self.pushButtonStop.setEnabled(False)
         self.pushButtonStart.setEnabled(True)
+        self.pushButtonRecording.setEnabled(False)
+        self.comboBoxFormat.setEnabled(False)
 
 
 if __name__ == "__main__":
