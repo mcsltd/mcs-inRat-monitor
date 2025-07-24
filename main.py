@@ -7,7 +7,7 @@ from PySide6 import QtAsyncio
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QMainWindow, QApplication
 
-
+from config import DATA_PATH
 from device import RatSens
 from storage import Storage
 from ui.main_window import Ui_MainWindow
