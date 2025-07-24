@@ -5,6 +5,7 @@ from typing import Optional
 
 import numpy as np
 import wfdb
+from pyedflib import EdfWriter
 
 from config import DATA_PATH
 
@@ -49,8 +50,9 @@ class Storage:
         if self._format == "WFDB":
             self._to_wfdb(record_name=filename, write_dir=write_dir)
 
+        filename = f"{write_dir}\\{filename}.edf"
         if self._format == "EDF":
-            self._to_edf()
+            self._to_edf(filename)
 
         self.ecg = np.array([])
         self._saving_start_time = None
@@ -68,9 +70,20 @@ class Storage:
             sig_name=sig_name, write_dir=write_dir
         )
 
-    def _to_edf(self,):
+    def _to_edf(
+        self,
+        filename:str, units: str = "μV", fs: int = 500
+    ):
         logger.debug("Save ecg in EDF format.")
-        ...
+        writer = EdfWriter(n_channels=1, file_name=filename)
+        channel_info = {
+            'label': 'ch0',
+            'dimension': units,
+            'sample_frequency': fs,
+        }
+        writer.setSignalHeader(0, channel_info)
+        writer.writeSamples(self.ecg[np.newaxis])  # reshape для совместимости
+        writer.close()
 
     def __call__(self, ecg):
         if self.ecg.shape[0] == 0:
