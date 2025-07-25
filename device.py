@@ -67,8 +67,7 @@ class RatSens(BleakClient):
 
             # logger.debug(f"counter: {counter}; ecg: {ecg.tolist()}")
             if ecg_queue is not None:
-                # logger.debug("Put ecg in queue.")
-
+                logger.debug("Put ecg in queue.")
                 await ecg_queue.put({"counter": counter, "ecg": ecg})
 
         prev = 0
@@ -85,6 +84,7 @@ class RatSens(BleakClient):
         )
         self.is_running = True
         await self.start_notify(RatSens.UUID_CHARACTERISTIC_DATA_ECG, ecg_handler)
+
 
     async def get_event(self, event_queue: Optional[asyncio.Queue] = None):
         async def event_handler(_, raw_event):
@@ -144,6 +144,7 @@ class RatSens(BleakClient):
 
     async def stop(self):
         self.is_running = False
+        await self.stop_notify(RatSens.UUID_CHARACTERISTIC_DATA_ECG) # need stop notify
         await self.setup(cmd=Command.AcquisitionStop)
 
 

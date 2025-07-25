@@ -17,7 +17,7 @@ from utils.scanner import find_device
 logger = logging.getLogger(__name__)
 
 
-SEC_SLIDE_WINDOW = 3
+SEC_SLIDE_WINDOW = 10
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -33,6 +33,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.device: RatSens = device
         self.ecg_queue = asyncio.Queue()
+        self._last_counter = 0
 
         self.is_save_ecg = None
         self.storage = Storage()
@@ -133,6 +134,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     async def updatePlot(self):
         ecg = await self.ecg_queue.get()
         self.ecg = np.append(self.ecg, ecg["ecg"])
+        self.ecg_queue.task_done()
+
+        logger.debug(f"Current {ecg['counter']=}")
 
         # calculate time
         if len(self.time) == 0:
@@ -143,6 +147,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # check shape ecg and time
         if self.ecg.shape != self.time.shape:
             raise ValueError("shapes ecg and t is not same!!!")
+
 
         self.plot_ecg.setData(self.time, self.ecg)
         self.plotWidget.setXRange(max(0, self.time[-1] - SEC_SLIDE_WINDOW), self.time[-1])
@@ -156,6 +161,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         logger.debug("Stop device")
         await self.device.stop()
         self.timer.stop()
+
+        # self.ecg_queue.task_done()
+        # # reset queue
+        # if not self.ecg_queue.empty():
+        #     self.ecg_queue.clear()
 
         if self.is_save_ecg:
             self.storage.save()
