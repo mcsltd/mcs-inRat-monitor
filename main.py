@@ -3,7 +3,7 @@ import logging
 import pyqtgraph as pg
 
 import numpy as np
-from PySide6 import QtAsyncio
+from PySide6 import QtAsyncio, QtCore
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QMainWindow, QApplication
 
@@ -14,6 +14,9 @@ from ui.main_window import Ui_MainWindow
 from utils.scanner import find_device
 
 logger = logging.getLogger(__name__)
+
+
+SEC_SLIDE_WINDOW = 3
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -37,18 +40,37 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.pushButtonRecording.clicked.connect(self.change_recording)
         self.comboBoxFormat.currentTextChanged.connect(self.storage.set_format)
 
-        # set plot
+        # setup plot
         pen = pg.mkPen(color=(255, 0, 0))
         self.plot_ecg = self.plotWidget.plot(self.time, self.ecg, pen=pen)
-        self.plotWidget.setLabel("left", "ECG (μV)", )
-        self.plotWidget.setLabel("bottom", "Time (sec)", )
+        self.plotWidget.setLabel("left", "ECG (μV)", pen=pg.mkPen(color='k'))
+        self.plotWidget.getAxis("left").setPen(pg.mkPen(color='k'))
+        self.plotWidget.getAxis("left").setTextPen(pg.mkPen(color='k'))
+        self.plotWidget.setLabel("bottom", "Time (sec)", pen=pg.mkPen(color='k'))
+        self.plotWidget.getAxis("bottom").setPen(pg.mkPen(color='k'))
+        self.plotWidget.getAxis("bottom").setTextPen(pg.mkPen(color='k'))
         self.plotWidget.addLegend()
+        self.plotWidget.setBackground("w")
+        self.plotWidget.setDownsampling(auto=True, mode='peak')
 
         # timer for get ecg from device and draw plot
         self.time_update = 1
         self.timer = QTimer()
         self.timer.setInterval(self.time_update)
         self.timer.timeout.connect(lambda: asyncio.ensure_future(self.updatePlot()))
+
+
+    def add_marker(self, pos, text:str="event"):
+        """ Add vertical line and text"""
+        line = pg.InfiniteLine(
+            pos=pos,
+            angle=90,
+            pen=pg.mkPen('gray', width=1, style=QtCore.Qt.PenStyle.DashLine),
+            movable=False,
+            label=text,
+            labelOpts={'color': 'k', 'position': 0.1}
+        )
+        self.plotWidget.addItem(line)
 
 
     def change_recording(self):
@@ -66,12 +88,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if self.device.is_running:
                 self.storage.save()
 
+                self.add_marker(pos=self.time[-1], text="Stop recording")
+
         elif self.is_save_ecg is None or not self.is_save_ecg:
             self.is_save_ecg = True
 
             self.pushButtonRecording.setText("Stop Recording")
             self.comboBoxFormat.setEnabled(False)
             logger.debug("Select start recording ECG.")
+
+            self.add_marker(pos=self.time[-1], text="Start recording")
 
 
     async def find_device(self):
@@ -97,6 +123,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.pushButtonStop.setEnabled(True)
         self.comboBoxFormat.setEnabled(True)
 
+        # when draw signal in online - disable mouse
+        self.plotWidget.setMouseEnabled(x=False, y=False)
+
+
     async def updatePlot(self):
         ecg = await self.ecg_queue.get()
         self.ecg = np.append(self.ecg, ecg["ecg"])
@@ -112,6 +142,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             raise ValueError("shapes ecg and t is not same!!!")
 
         self.plot_ecg.setData(self.time, self.ecg)
+        self.plotWidget.setXRange(max(0, self.time[-1] - SEC_SLIDE_WINDOW), self.time[-1])
 
         # buffer ecg in storage
         if self.is_save_ecg:
@@ -125,6 +156,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         if self.is_save_ecg:
             self.storage.save()
+            self.add_marker(pos=self.time[-1], text="Stop recording")
             self.change_recording()
 
         # activate and disable btn when stop device
@@ -132,6 +164,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.pushButtonStart.setEnabled(True)
         self.pushButtonRecording.setEnabled(False)
         self.comboBoxFormat.setEnabled(False)
+
+        # when stop device - activate mouse
+        self.plotWidget.setMouseEnabled(x=True, y=True)
 
 
 if __name__ == "__main__":
