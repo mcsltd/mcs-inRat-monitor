@@ -3,7 +3,7 @@ import logging
 import pyqtgraph as pg
 
 import numpy as np
-from PySide6 import QtAsyncio
+from PySide6 import QtAsyncio, QtCore
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QMainWindow, QApplication
 
@@ -51,7 +51,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.plotWidget.getAxis("bottom").setPen(pg.mkPen(color='k'))
         self.plotWidget.getAxis("bottom").setTextPen(pg.mkPen(color='k'))
 
-
         self.plotWidget.addLegend()
         self.plotWidget.setBackground("w")
         self.plotWidget.setDownsampling(auto=True, mode='peak')
@@ -61,6 +60,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.timer = QTimer()
         self.timer.setInterval(self.time_update)
         self.timer.timeout.connect(lambda: asyncio.ensure_future(self.updatePlot()))
+
+
+    def add_marker(self, pos, text:str="event"):
+        """ Add vertical line and text"""
+        line = pg.InfiniteLine(
+            pos=pos,
+            angle=90,
+            pen=pg.mkPen('gray', width=1, style=QtCore.Qt.PenStyle.DashLine),
+            movable=False,
+            label=text,
+            labelOpts={'color': 'k', 'position': 0.1}
+        )
+        self.plotWidget.addItem(line)
 
 
     def change_recording(self):
@@ -78,12 +90,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if self.device.is_running:
                 self.storage.save()
 
+                print(f"{self.time[-1]=}")
+                self.add_marker(pos=self.time[-1], text="Stop recording")
+
         elif self.is_save_ecg is None or not self.is_save_ecg:
             self.is_save_ecg = True
 
             self.pushButtonRecording.setText("Stop Recording")
             self.comboBoxFormat.setEnabled(False)
             logger.debug("Select start recording ECG.")
+
+            print(f"{self.time[-1]=}")
+            self.add_marker(pos=self.time[-1], text="Start recording")
 
 
     async def find_device(self):
@@ -111,6 +129,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # when draw signal in online - disable mouse
         self.plotWidget.setMouseEnabled(x=False, y=False)
+
+        # self.add_marker(pos=self.time[-1] if len(self.time) != 0 else 0 , text="start device")
+
 
     async def updatePlot(self):
         ecg = await self.ecg_queue.get()
