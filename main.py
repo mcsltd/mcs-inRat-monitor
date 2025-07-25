@@ -90,7 +90,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if self.device.is_running:
                 self.storage.save()
 
-                print(f"{self.time[-1]=}")
                 self.add_marker(pos=self.time[-1], text="Stop recording")
 
         elif self.is_save_ecg is None or not self.is_save_ecg:
@@ -100,7 +99,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.comboBoxFormat.setEnabled(False)
             logger.debug("Select start recording ECG.")
 
-            print(f"{self.time[-1]=}")
             self.add_marker(pos=self.time[-1], text="Start recording")
 
 
@@ -129,8 +127,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # when draw signal in online - disable mouse
         self.plotWidget.setMouseEnabled(x=False, y=False)
-
-        # self.add_marker(pos=self.time[-1] if len(self.time) != 0 else 0 , text="start device")
 
 
     async def updatePlot(self):
@@ -162,6 +158,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         if self.is_save_ecg:
             self.storage.save()
+            self.add_marker(pos=self.time[-1], text="Stop recording")
             self.change_recording()
 
         # activate and disable btn when stop device
