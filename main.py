@@ -46,11 +46,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.plotWidget.setLabel("left", "ECG (μV)", pen=pg.mkPen(color='k'))
         self.plotWidget.getAxis("left").setPen(pg.mkPen(color='k'))
         self.plotWidget.getAxis("left").setTextPen(pg.mkPen(color='k'))
-
         self.plotWidget.setLabel("bottom", "Time (sec)", pen=pg.mkPen(color='k'))
         self.plotWidget.getAxis("bottom").setPen(pg.mkPen(color='k'))
         self.plotWidget.getAxis("bottom").setTextPen(pg.mkPen(color='k'))
-
         self.plotWidget.addLegend()
         self.plotWidget.setBackground("w")
         self.plotWidget.setDownsampling(auto=True, mode='peak')
