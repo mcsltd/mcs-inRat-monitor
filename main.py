@@ -16,6 +16,9 @@ from utils.scanner import find_device
 logger = logging.getLogger(__name__)
 
 
+SEC_SLIDE_WINDOW = 3
+
+
 class MainWindow(QMainWindow, Ui_MainWindow):
 
     def __init__(self, device, *args, **kwargs):
@@ -124,7 +127,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             raise ValueError("shapes ecg and t is not same!!!")
 
         self.plot_ecg.setData(self.time, self.ecg)
-        self.plotWidget.setXRange(max(0, self.time[-1] - 5), self.time[-1])
+        self.plotWidget.setXRange(max(0, self.time[-1] - SEC_SLIDE_WINDOW), self.time[-1])
 
         # buffer ecg in storage
         if self.is_save_ecg:
