@@ -5,6 +5,7 @@ import pyqtgraph as pg
 import numpy as np
 from PySide6 import QtAsyncio, QtCore
 from PySide6.QtCore import QTimer
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QMainWindow, QApplication
 
 from config import DATA_PATH
@@ -24,6 +25,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, device, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
+        self.setWindowTitle("InRat monitor")
+        self.setWindowIcon(QIcon("./ui/iconMCS.ico"))
 
         self.ecg = np.array([])
         self.time = np.array([])
