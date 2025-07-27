@@ -8,7 +8,7 @@ import numpy as np
 from bleak import BleakClient
 
 from config import BLE_KEY
-from constants import Command, DeviceInformationService, DataRateEcg, FullScaleAccelerometer, EnabledChannels, \
+from constants import Command, DataRateEcg, FullScaleAccelerometer, EnabledChannels, \
     EventType, Const, Pkt
 from structure import Settings, Event
 from utils.crypt import get_control_sum
@@ -127,7 +127,6 @@ class RatSens(BleakClient):
 
                 if event_queue is not None:
                     await event_queue.put(dict_ev)
-                print(dict_ev)
 
         await self.setup(
             cmd=Command.AcquisitionStart,

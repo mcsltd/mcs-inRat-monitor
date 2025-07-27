@@ -4,9 +4,9 @@ import pyqtgraph as pg
 
 import numpy as np
 from PySide6 import QtAsyncio, QtCore
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QTimer, Qt
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QMainWindow, QApplication
+from PySide6.QtWidgets import QMainWindow, QApplication, QDialog, QVBoxLayout, QLabel, QProgressBar
 
 from config import DATA_PATH
 from device import RatSens
@@ -38,7 +38,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.is_save_ecg = None
         self.storage = Storage()
 
-        self.pushButtonFind.clicked.connect(lambda: asyncio.ensure_future(self.find_device()))
+        self.pushButtonManage.clicked.connect(lambda: asyncio.ensure_future(self.connect_device()))
         self.pushButtonStart.clicked.connect(lambda: asyncio.ensure_future(self.start_device()))
         self.pushButtonStop.clicked.connect(lambda: asyncio.ensure_future(self.stop_device()))
         self.pushButtonRecording.clicked.connect(self.change_recording)
@@ -104,16 +104,27 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.add_marker(pos=self.time[-1], text="Start recording")
 
 
-    async def find_device(self):
-        device, _ = await find_device()
+    async def connect_device(self):
+        ev_stop_find = asyncio.Event()
+
+        # raise waiting dialog
+        dlg = WaitingDialog(event_stop=ev_stop_find, parent=self)
+        dlg.show()
+
+        device, _ = await find_device(event_stop_find=ev_stop_find)
+
+        if device is None:
+            return
+
         self.device = RatSens(device)
         await self.device.connect()
-        # device_name = await self.device.get_device_name()
 
         # disable and activate btn state when find device
         if self.device.is_connected:
             self.pushButtonStart.setEnabled(True)
-            self.pushButtonFind.setEnabled(False)
+            self.pushButtonManage.setEnabled(False)
+
+            dlg.close()
 
 
     async def start_device(self):
@@ -181,6 +192,33 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # when stop device - activate mouse
         self.plotWidget.setMouseEnabled(x=True, y=True)
 
+
+class WaitingDialog(QDialog):
+
+    def __init__(self, event_stop: asyncio.Event, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Waiting for connection")
+
+        self.setFixedSize(300, 150)
+
+        layout = QVBoxLayout()
+
+        self.event_stop = event_stop
+        self.label = QLabel("Please wait for the device to connect...")
+        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.progress = QProgressBar()
+        self.progress.setRange(0, 0)
+
+        layout.addWidget(self.label)
+        layout.addWidget(self.progress)
+
+        self.setLayout(layout)
+
+        self.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, True)
+
+    def closeEvent(self, arg__1, /):
+        self.event_stop.set()
 
 if __name__ == "__main__":
     logging.basicConfig(

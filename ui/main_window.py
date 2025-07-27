@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'main_windowDdXqbP.ui'
+## Form generated from reading UI file 'main_windowpstHjO.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -43,10 +43,10 @@ class Ui_MainWindow(object):
 
         self.verticalLayout = QVBoxLayout()
         self.verticalLayout.setObjectName(u"verticalLayout")
-        self.pushButtonFind = QPushButton(self.centralwidget)
-        self.pushButtonFind.setObjectName(u"pushButtonFind")
+        self.pushButtonManage = QPushButton(self.centralwidget)
+        self.pushButtonManage.setObjectName(u"pushButtonManage")
 
-        self.verticalLayout.addWidget(self.pushButtonFind)
+        self.verticalLayout.addWidget(self.pushButtonManage)
 
         self.pushButtonStart = QPushButton(self.centralwidget)
         self.pushButtonStart.setObjectName(u"pushButtonStart")
@@ -122,7 +122,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"MainWindow", None))
-        self.pushButtonFind.setText(QCoreApplication.translate("MainWindow", u"Find", None))
+        self.pushButtonManage.setText(QCoreApplication.translate("MainWindow", u"Find", None))
         self.pushButtonStart.setText(QCoreApplication.translate("MainWindow", u"Start", None))
         self.pushButtonStop.setText(QCoreApplication.translate("MainWindow", u"Stop", None))
         self.label.setText(QCoreApplication.translate("MainWindow", u"Format:", None))
@@ -131,3 +131,4 @@ class Ui_MainWindow(object):
 
         self.pushButtonRecording.setText(QCoreApplication.translate("MainWindow", u"Start Recording", None))
     # retranslateUi
+
