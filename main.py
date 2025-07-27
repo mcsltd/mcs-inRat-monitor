@@ -6,7 +6,7 @@ import numpy as np
 from PySide6 import QtAsyncio, QtCore
 from PySide6.QtCore import QTimer, Qt
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QMainWindow, QApplication, QDialog, QVBoxLayout, QLabel, QProgressBar
+from PySide6.QtWidgets import QMainWindow, QApplication, QDialog, QVBoxLayout, QLabel, QProgressBar, QMessageBox
 
 from config import DATA_PATH
 from device import RatSens
@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 SEC_SLIDE_WINDOW = 10
+
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -33,7 +34,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.device: RatSens = device
         self.ecg_queue = asyncio.Queue()
-        self._last_counter = 0
 
         self.is_save_ecg = None
         self.storage = Storage()
@@ -105,17 +105,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 
     async def connect_device(self):
-        ev_stop_find = asyncio.Event()
-
         # raise waiting dialog
-        dlg = WaitingDialog(event_stop=ev_stop_find, parent=self)
+        dlg = WaitingDialog(parent=self)
         dlg.show()
 
-        device, _ = await find_device(event_stop_find=ev_stop_find)
-
-        if device is None:
-            return
-
+        device, _ = await find_device()
         self.device = RatSens(device)
         await self.device.connect()
 
@@ -129,17 +123,26 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     async def start_device(self):
         logger.debug("Start device")
-        await self.device.get_ecg(ecg_queue=self.ecg_queue)
-        self.timer.start()
 
-        # activate and disable btn when start device
-        self.pushButtonStart.setEnabled(False)
-        self.pushButtonRecording.setEnabled(True)
-        self.pushButtonStop.setEnabled(True)
-        self.comboBoxFormat.setEnabled(True)
+        try:
+            await self.device.get_ecg(ecg_queue=self.ecg_queue)
+        except Exception as exc:
+            dlg = QMessageBox.information(
+                self, "Start error",
+                f"An error occurred while starting the device\n\nInfo:\n{exc}\n\nPlease, restart application!",
+                QMessageBox.StandardButton.Ok
+            )
+        else:
+            self.timer.start()
 
-        # when draw signal in online - disable mouse
-        self.plotWidget.setMouseEnabled(x=False, y=False)
+            # activate and disable btn when start device
+            self.pushButtonStart.setEnabled(False)
+            self.pushButtonRecording.setEnabled(True)
+            self.pushButtonStop.setEnabled(True)
+            self.comboBoxFormat.setEnabled(True)
+
+            # when draw signal in online - disable mouse
+            self.plotWidget.setMouseEnabled(x=False, y=False)
 
 
     async def updatePlot(self):
@@ -173,11 +176,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         await self.device.stop()
         self.timer.stop()
 
-        # self.ecg_queue.task_done()
-        # # reset queue
-        # if not self.ecg_queue.empty():
-        #     self.ecg_queue.clear()
-
         if self.is_save_ecg:
             self.storage.save()
             self.add_marker(pos=self.time[-1], text="Stop recording")
@@ -193,17 +191,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.plotWidget.setMouseEnabled(x=True, y=True)
 
 
+
 class WaitingDialog(QDialog):
 
-    def __init__(self, event_stop: asyncio.Event, parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Waiting for connection")
+        self.setWindowModality(Qt.WindowModality.ApplicationModal)
 
         self.setFixedSize(300, 150)
 
         layout = QVBoxLayout()
 
-        self.event_stop = event_stop
         self.label = QLabel("Please wait for the device to connect...")
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -215,10 +214,7 @@ class WaitingDialog(QDialog):
 
         self.setLayout(layout)
 
-        self.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, True)
-
-    def closeEvent(self, arg__1, /):
-        self.event_stop.set()
+        # self.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, True)
 
 if __name__ == "__main__":
     logging.basicConfig(
@@ -227,7 +223,6 @@ if __name__ == "__main__":
     )
 
     app = QApplication([])
-
     window = MainWindow(device=None)
     window.show()
 

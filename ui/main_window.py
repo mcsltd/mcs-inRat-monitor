@@ -122,7 +122,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"MainWindow", None))
-        self.pushButtonManage.setText(QCoreApplication.translate("MainWindow", u"Find", None))
+        self.pushButtonManage.setText(QCoreApplication.translate("MainWindow", u"Connect", None))
         self.pushButtonStart.setText(QCoreApplication.translate("MainWindow", u"Start", None))
         self.pushButtonStop.setText(QCoreApplication.translate("MainWindow", u"Stop", None))
         self.label.setText(QCoreApplication.translate("MainWindow", u"Format:", None))
