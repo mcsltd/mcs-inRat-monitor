@@ -27,7 +27,7 @@
       <item>
        <widget class="QPushButton" name="pushButtonManage">
         <property name="text">
-         <string>Find</string>
+         <string>Connect</string>
         </property>
        </widget>
       </item>
@@ -105,6 +105,73 @@
          <enum>Qt::Orientation::Horizontal</enum>
         </property>
        </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="labelDeviceInformation">
+        <property name="text">
+         <string>Device Information</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <layout class="QGridLayout" name="gridLayout_3">
+        <item row="3" column="0">
+         <widget class="QLabel" name="labelStatus">
+          <property name="text">
+           <string>Status:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QLabel" name="labelSerialNumberValue">
+          <property name="text">
+           <string>None</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="labelSerialNumber">
+          <property name="text">
+           <string>Serial:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="1">
+         <widget class="QLabel" name="labelStatusValue">
+          <property name="text">
+           <string>Not connected</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QLabel" name="labelModel">
+          <property name="text">
+           <string>Model:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="1">
+         <widget class="QLabel" name="labelModelValue">
+          <property name="text">
+           <string>None</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="0">
+         <widget class="QLabel" name="labelName">
+          <property name="text">
+           <string>Name:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QLabel" name="labelNameValue">
+          <property name="text">
+           <string>None</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
       <item>
        <spacer name="verticalSpacer">

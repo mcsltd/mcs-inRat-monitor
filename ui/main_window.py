@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'main_windowpstHjO.ui'
+## Form generated from reading UI file 'main_windoweNiSRi.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -99,6 +99,56 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.addWidget(self.line_2)
 
+        self.labelDeviceInformation = QLabel(self.centralwidget)
+        self.labelDeviceInformation.setObjectName(u"labelDeviceInformation")
+
+        self.verticalLayout.addWidget(self.labelDeviceInformation)
+
+        self.gridLayout_3 = QGridLayout()
+        self.gridLayout_3.setObjectName(u"gridLayout_3")
+        self.labelStatus = QLabel(self.centralwidget)
+        self.labelStatus.setObjectName(u"labelStatus")
+
+        self.gridLayout_3.addWidget(self.labelStatus, 3, 0, 1, 1)
+
+        self.labelSerialNumberValue = QLabel(self.centralwidget)
+        self.labelSerialNumberValue.setObjectName(u"labelSerialNumberValue")
+
+        self.gridLayout_3.addWidget(self.labelSerialNumberValue, 1, 1, 1, 1)
+
+        self.labelSerialNumber = QLabel(self.centralwidget)
+        self.labelSerialNumber.setObjectName(u"labelSerialNumber")
+
+        self.gridLayout_3.addWidget(self.labelSerialNumber, 1, 0, 1, 1)
+
+        self.labelStatusValue = QLabel(self.centralwidget)
+        self.labelStatusValue.setObjectName(u"labelStatusValue")
+
+        self.gridLayout_3.addWidget(self.labelStatusValue, 3, 1, 1, 1)
+
+        self.labelModel = QLabel(self.centralwidget)
+        self.labelModel.setObjectName(u"labelModel")
+
+        self.gridLayout_3.addWidget(self.labelModel, 2, 0, 1, 1)
+
+        self.labelModelValue = QLabel(self.centralwidget)
+        self.labelModelValue.setObjectName(u"labelModelValue")
+
+        self.gridLayout_3.addWidget(self.labelModelValue, 2, 1, 1, 1)
+
+        self.labelName = QLabel(self.centralwidget)
+        self.labelName.setObjectName(u"labelName")
+
+        self.gridLayout_3.addWidget(self.labelName, 0, 0, 1, 1)
+
+        self.labelNameValue = QLabel(self.centralwidget)
+        self.labelNameValue.setObjectName(u"labelNameValue")
+
+        self.gridLayout_3.addWidget(self.labelNameValue, 0, 1, 1, 1)
+
+
+        self.verticalLayout.addLayout(self.gridLayout_3)
+
         self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout.addItem(self.verticalSpacer)
@@ -130,5 +180,14 @@ class Ui_MainWindow(object):
         self.comboBoxFormat.setItemText(1, QCoreApplication.translate("MainWindow", u"EDF", None))
 
         self.pushButtonRecording.setText(QCoreApplication.translate("MainWindow", u"Start Recording", None))
+        self.labelDeviceInformation.setText(QCoreApplication.translate("MainWindow", u"Device Information", None))
+        self.labelStatus.setText(QCoreApplication.translate("MainWindow", u"Status:", None))
+        self.labelSerialNumberValue.setText(QCoreApplication.translate("MainWindow", u"None", None))
+        self.labelSerialNumber.setText(QCoreApplication.translate("MainWindow", u"Serial:", None))
+        self.labelStatusValue.setText(QCoreApplication.translate("MainWindow", u"Not connected", None))
+        self.labelModel.setText(QCoreApplication.translate("MainWindow", u"Model:", None))
+        self.labelModelValue.setText(QCoreApplication.translate("MainWindow", u"None", None))
+        self.labelName.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
+        self.labelNameValue.setText(QCoreApplication.translate("MainWindow", u"None", None))
     # retranslateUi
 

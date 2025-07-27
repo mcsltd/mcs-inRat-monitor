@@ -17,7 +17,7 @@ from utils.scanner import find_device
 logger = logging.getLogger(__name__)
 
 
-SEC_SLIDE_WINDOW = 10
+SEC_SLIDE_WINDOW = 2
 
 
 
@@ -109,17 +109,32 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         dlg = WaitingDialog(parent=self)
         dlg.show()
 
-        device, _ = await find_device()
-        self.device = RatSens(device)
-        await self.device.connect()
-
-        # disable and activate btn state when find device
-        if self.device.is_connected:
-            self.pushButtonStart.setEnabled(True)
-            self.pushButtonManage.setEnabled(False)
-
+        try:
+            device, _ = await find_device()
+            self.device = RatSens(device)
+            await self.device.connect()
+            d_info = await self.device.get_device_information()
+        except Exception as exc:
+            info = QMessageBox.information(
+                self, "Connect error",
+                f"An error occurred while connect to the device\n\nInfo:\n{exc}\n\nPlease, restart application!",
+                QMessageBox.StandardButton.Ok
+            )
+        else:
+            # disable and activate btn state when find device
+            if self.device.is_connected:
+                self.pushButtonStart.setEnabled(True)
+                self.pushButtonManage.setEnabled(False)
+                self.set_device_information(d_info)
+                dlg.close()
+        finally:
             dlg.close()
 
+    def set_device_information(self, device_information: dict):
+        self.labelModelValue.setText(device_information["model"])
+        self.labelSerialNumberValue.setText(device_information["serial"])
+        self.labelStatusValue.setText(device_information["status"])
+        self.labelNameValue.setText(device_information["name"])
 
     async def start_device(self):
         logger.debug("Start device")
@@ -127,7 +142,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         try:
             await self.device.get_ecg(ecg_queue=self.ecg_queue)
         except Exception as exc:
-            dlg = QMessageBox.information(
+            info = QMessageBox.information(
                 self, "Start error",
                 f"An error occurred while starting the device\n\nInfo:\n{exc}\n\nPlease, restart application!",
                 QMessageBox.StandardButton.Ok
@@ -162,7 +177,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.ecg.shape != self.time.shape:
             raise ValueError("shapes ecg and t is not same!!!")
 
-
         self.plot_ecg.setData(self.time, self.ecg)
         self.plotWidget.setXRange(max(0, self.time[-1] - SEC_SLIDE_WINDOW), self.time[-1])
 
@@ -173,22 +187,31 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     async def stop_device(self):
         logger.debug("Stop device")
-        await self.device.stop()
-        self.timer.stop()
 
-        if self.is_save_ecg:
-            self.storage.save()
-            self.add_marker(pos=self.time[-1], text="Stop recording")
-            self.change_recording()
+        try:
+            await self.device.stop()
+        except Exception as exc:
+            info = QMessageBox.information(
+                self, "Stop error",
+                f"An error occurred while stoping the device\n\nInfo:\n{exc}\n\nPlease, restart application!",
+                QMessageBox.StandardButton.Ok
+            )
+        finally:
+            self.timer.stop()
 
-        # activate and disable btn when stop device
-        self.pushButtonStop.setEnabled(False)
-        self.pushButtonStart.setEnabled(True)
-        self.pushButtonRecording.setEnabled(False)
-        self.comboBoxFormat.setEnabled(False)
+            if self.is_save_ecg:
+                self.storage.save()
+                self.add_marker(pos=self.time[-1], text="Stop recording")
+                self.change_recording()
 
-        # when stop device - activate mouse
-        self.plotWidget.setMouseEnabled(x=True, y=True)
+            # activate and disable btn when stop device
+            self.pushButtonStop.setEnabled(False)
+            self.pushButtonStart.setEnabled(True)
+            self.pushButtonRecording.setEnabled(False)
+            self.comboBoxFormat.setEnabled(False)
+
+            # when stop device - activate mouse
+            self.plotWidget.setMouseEnabled(x=True, y=True)
 
 
 
