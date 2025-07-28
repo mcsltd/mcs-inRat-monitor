@@ -1,5 +1,5 @@
 # mcs-inRat-monitor
-Show signal from inRat monitor
+Application for viewing and saving signals from InRat.
 
 ## Functional
 
