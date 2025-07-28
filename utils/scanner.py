@@ -2,7 +2,9 @@ import asyncio
 import logging
 import contextlib
 
-from bleak import AdvertisementData, BLEDevice, BleakScanner
+from bleak import AdvertisementData, BLEDevice, BleakScanner, BleakClient
+
+from constants import DeviceInformationService
 
 DEFAULT_TIMEOUT = 30
 
@@ -18,7 +20,7 @@ logging.basicConfig(
 async def find_device(
         timeout: int | None = None,
         template: str = NAME_TEMPLATE,
-        # event_stop_find: asyncio.Event = None
+        event_stop_scanning: asyncio.Event = None
 ) -> tuple[BLEDevice, AdvertisementData] | tuple[None, None]:
     """
     Find ble device on template.
@@ -35,9 +37,9 @@ async def find_device(
 
                 async for device, advertisement in scanner.advertisement_data():
 
-                    # # stop scanning
-                    # if event_stop_find is not None and event_stop_find.is_set():
-                    #     return None, None
+                    # stop scanning
+                    if event_stop_scanning is not None and event_stop_scanning.is_set():
+                        return None, None
 
                     if device is not None and device.name is not None and device.name.startswith(template):
                         return device, advertisement
