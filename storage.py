@@ -41,6 +41,9 @@ class Storage:
         if self.ecg.shape[0] == 0:
             return
 
+        # check if dir is exists
+        os.makedirs(DATA_PATH, exist_ok=True)
+
         filename = self.get_file_name()
         write_dir = f"{DATA_PATH}\\{self._format.lower()}_{filename}"
 
