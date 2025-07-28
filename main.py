@@ -77,16 +77,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def enter_device_info(self):
         serial = None
-        model = None
 
         # check if device info already exists
         if self.device_info is not None:
             serial=self.device_info["serial"]
-            model=self.device_info["model"]
 
         dlg = EnterDeviceInfoDialog(
             self,
-            serial=serial, model=model
+            serial=serial
         )
         dlg.signal_save.connect(self.save_preferences)
         dlg.signal_connect.connect(self.set_device_info_and_connect)
@@ -103,20 +101,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         config.read(self.preferences)
         if not (
                 config.has_option("Settings", "serial")
-                and config.has_option("Settings", "model")
         ):
-            logger.info(f"Trouble with field serial or model!")
+            logger.info(f"Trouble with field serial!")
             return
 
         logger.info(
             f"Set device info: "
-            f"serial={config.get('Settings', 'serial')},"
-            f"model={config.get("Settings", "model")}"
+            f"serial={config.get('Settings', 'serial')}"
         )
-        return {
-            "serial": config.get("Settings", "serial"),
-            "model": config.get("Settings", "model")
-        }
+        return {"serial": config.get("Settings", "serial")}
 
     def save_preferences(self, device_info: dict):
         # set device info
@@ -131,14 +124,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # check file exists
         if (os.path.exists(self.preferences)
                 and config.has_option("Settings", "serial")
-                and config.has_option("Settings", "model")
         ):
             config.set("Settings", "serial", self.device_info["serial"])
-            config.set("Settings", "model", self.device_info["model"])
         else:
             config.add_section("Settings")
             config.set("Settings", "serial", self.device_info["serial"])
-            config.set("Settings", "model", self.device_info["model"])
 
         with open(self.preferences, "w") as config_file:
             config.write(config_file)

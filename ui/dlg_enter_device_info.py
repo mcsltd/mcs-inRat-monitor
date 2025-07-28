@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'dlg_enter_device_infotrGVQo.ui'
+## Form generated from reading UI file 'dlg_enter_device_infoaECyXW.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -22,21 +22,16 @@ class Ui_Form(object):
     def setupUi(self, Form):
         if not Form.objectName():
             Form.setObjectName(u"Form")
-        Form.resize(375, 190)
+        Form.resize(375, 150)
         self.label = QLabel(Form)
         self.label.setObjectName(u"label")
         self.label.setGeometry(QRect(20, 20, 291, 16))
         self.gridLayoutWidget = QWidget(Form)
         self.gridLayoutWidget.setObjectName(u"gridLayoutWidget")
-        self.gridLayoutWidget.setGeometry(QRect(30, 60, 311, 76))
+        self.gridLayoutWidget.setGeometry(QRect(30, 60, 311, 41))
         self.gridLayout = QGridLayout(self.gridLayoutWidget)
         self.gridLayout.setObjectName(u"gridLayout")
         self.gridLayout.setContentsMargins(0, 0, 0, 0)
-        self.lineEditModelValue = QLineEdit(self.gridLayoutWidget)
-        self.lineEditModelValue.setObjectName(u"lineEditModelValue")
-
-        self.gridLayout.addWidget(self.lineEditModelValue, 1, 1, 1, 1)
-
         self.labelSN = QLabel(self.gridLayoutWidget)
         self.labelSN.setObjectName(u"labelSN")
 
@@ -47,17 +42,12 @@ class Ui_Form(object):
 
         self.gridLayout.addWidget(self.lineEditSNValue, 0, 1, 1, 1)
 
-        self.labelModel = QLabel(self.gridLayoutWidget)
-        self.labelModel.setObjectName(u"labelModel")
-
-        self.gridLayout.addWidget(self.labelModel, 1, 0, 1, 1)
-
         self.pushButtonConnect = QPushButton(Form)
         self.pushButtonConnect.setObjectName(u"pushButtonConnect")
-        self.pushButtonConnect.setGeometry(QRect(270, 150, 75, 24))
+        self.pushButtonConnect.setGeometry(QRect(270, 110, 75, 24))
         self.pushButtonSave = QPushButton(Form)
         self.pushButtonSave.setObjectName(u"pushButtonSave")
-        self.pushButtonSave.setGeometry(QRect(190, 150, 75, 24))
+        self.pushButtonSave.setGeometry(QRect(190, 110, 75, 24))
 
         self.retranslateUi(Form)
 
@@ -68,7 +58,6 @@ class Ui_Form(object):
         Form.setWindowTitle(QCoreApplication.translate("Form", u"Form", None))
         self.label.setText(QCoreApplication.translate("Form", u"Please, enter device information:", None))
         self.labelSN.setText(QCoreApplication.translate("Form", u"Serial Number", None))
-        self.labelModel.setText(QCoreApplication.translate("Form", u"Model", None))
         self.pushButtonConnect.setText(QCoreApplication.translate("Form", u"Connect", None))
         self.pushButtonSave.setText(QCoreApplication.translate("Form", u"Save", None))
     # retranslateUi

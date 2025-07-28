@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>375</width>
-    <height>190</height>
+    <height>150</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -32,13 +32,10 @@
      <x>30</x>
      <y>60</y>
      <width>311</width>
-     <height>76</height>
+     <height>41</height>
     </rect>
    </property>
    <layout class="QGridLayout" name="gridLayout">
-    <item row="1" column="1">
-     <widget class="QLineEdit" name="lineEditModelValue"/>
-    </item>
     <item row="0" column="0">
      <widget class="QLabel" name="labelSN">
       <property name="text">
@@ -49,20 +46,13 @@
     <item row="0" column="1">
      <widget class="QLineEdit" name="lineEditSNValue"/>
     </item>
-    <item row="1" column="0">
-     <widget class="QLabel" name="labelModel">
-      <property name="text">
-       <string>Model</string>
-      </property>
-     </widget>
-    </item>
    </layout>
   </widget>
   <widget class="QPushButton" name="pushButtonConnect">
    <property name="geometry">
     <rect>
      <x>270</x>
-     <y>150</y>
+     <y>110</y>
      <width>75</width>
      <height>24</height>
     </rect>
@@ -75,7 +65,7 @@
    <property name="geometry">
     <rect>
      <x>190</x>
-     <y>150</y>
+     <y>110</y>
      <width>75</width>
      <height>24</height>
     </rect>

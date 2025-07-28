@@ -19,15 +19,14 @@ class EnterDeviceInfoDialog(QDialog, Ui_Form):
 
     def __init__(
             self, parent=None,
-            serial=None, model=None, # from initial settings if it set
+            serial=None, # from initial settings if it set
             *args, **kwargs
     ):
         super().__init__(parent, *args, **kwargs)
         self.setupUi(self)
         self.setWindowModality(Qt.WindowModality.ApplicationModal)
 
-        if serial is not None and model is not None:
-            self.lineEditModelValue.setText(str(model))
+        if serial is not None:
             self.lineEditSNValue.setText(str(serial))
 
         self.pushButtonSave.clicked.connect(self.save_device_info)
@@ -35,13 +34,13 @@ class EnterDeviceInfoDialog(QDialog, Ui_Form):
 
     def connect_to_device(self):
         device_info = self.get_device_info()
-        if device_info["serial"] is not None and device_info["model"] is not None:
+        if device_info["serial"] is not None:
             self.signal_connect.emit(device_info)
         self.close()
 
     def save_device_info(self):
         device_info = self.get_device_info()
-        if device_info["serial"] is not None and device_info["model"] is not None:
+        if device_info["serial"] is not None:
             self.signal_save.emit(device_info)
 
 
@@ -50,7 +49,7 @@ class EnterDeviceInfoDialog(QDialog, Ui_Form):
         Get device info from line edit
         :return:
         """
-        device_info = {"serial": None, "model": None}
+        device_info = {"serial": None}
 
         sn = self.lineEditSNValue.text()
         if sn == "":
@@ -61,17 +60,7 @@ class EnterDeviceInfoDialog(QDialog, Ui_Form):
             )
             return device_info
 
-        model = self.lineEditModelValue.text()
-        if model == "":
-            info = QMessageBox.information(
-                self, "Warning!",
-                f"Empty Model field!",
-                QMessageBox.StandardButton.Ok
-            )
-            return device_info
-
         device_info["serial"] = sn
-        device_info["model"] = model
 
         return device_info
 
