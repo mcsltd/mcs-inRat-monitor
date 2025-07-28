@@ -172,6 +172,12 @@ class RatSens(BleakClient):
         await self.stop_notify(RatSens.UUID_CHARACTERISTIC_DATA_ECG) # need stop notify
         await self.setup(cmd=Command.AcquisitionStop)
 
+    async def close(self):
+        logger.debug("Close connection to the BLE device")
+        await self.setup(cmd=Command.ConnectionClose)
+        await self.disconnect()
+
+
 
 async def main():
     from utils.scanner import find_device
