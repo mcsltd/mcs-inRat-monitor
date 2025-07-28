@@ -16,7 +16,7 @@ def parse_ble_key(key: str):
 
 
 BLE_KEY = parse_ble_key(os.getenv('BLE_KEY'))
-DATA_PATH = os.path.abspath(os.getenv("DATA_PATH"))
+DATA_PATH = r".\data"
 
 if not os.path.exists(DATA_PATH):
     os.mkdir(DATA_PATH)

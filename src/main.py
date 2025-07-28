@@ -8,13 +8,12 @@ import pyqtgraph as pg
 
 import numpy as np
 from PySide6 import QtAsyncio, QtCore
-from PySide6.QtCore import QTimer, Qt, Signal
+from PySide6.QtCore import QTimer, Signal
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QMainWindow, QApplication, QDialog, QVBoxLayout, QLabel, QProgressBar, QMessageBox
+from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox
 
 from device import RatSens
 from storage import Storage
-from ui.dlg_enter_device_info import Ui_Form
 from ui.main_window import Ui_MainWindow
 from utils.scanner import find_device
 from widget import EnterDeviceInfoDialog, WaitingDialog
