@@ -41,6 +41,9 @@ class Storage:
         if self.ecg.shape[0] == 0:
             return
 
+        # check if dir is exists
+        os.makedirs(DATA_PATH, exist_ok=True)
+
         filename = self.get_file_name()
         write_dir = f"{DATA_PATH}\\{self._format.lower()}_{filename}"
 
@@ -50,7 +53,8 @@ class Storage:
         if self._format == "WFDB":
             self._to_wfdb(record_name=filename, write_dir=write_dir)
 
-        filename = f"{write_dir}\\{filename}.edf"
+        # filename = f"{write_dir}\\{filename}.edf"
+        filename = f"{write_dir}\\file.edf"
         if self._format == "EDF":
             self._to_edf(filename)
 
@@ -65,24 +69,36 @@ class Storage:
     ):
         logger.debug("Save ecg in WFDB format.")
         wfdb.io.wrsamp(
-            record_name=record_name,
+            record_name="file",
             fs=self.fs, units=units, p_signal=self.ecg[np.newaxis].T,
             sig_name=sig_name, write_dir=write_dir
         )
 
     def _to_edf(
         self,
-        filename:str, units: str = "μV", fs: int = 500
+        filename:str, units: str = "uV", fs: int = 500
     ):
         logger.debug("Save ecg in EDF format.")
         writer = EdfWriter(n_channels=1, file_name=filename)
+        self.ecg = np.round(self.ecg, decimals=3)
+
+        margin = 0.15
+        signal_max = np.max(self.ecg)
+        signal_min = np.min(self.ecg)
+        physical_max = np.round(signal_max * (1 + margin) if signal_max > 0 else signal_max * (1 - margin), decimals=3)
+        physical_min = np.round(signal_min * (1 - margin) if signal_min > 0 else signal_min * (1 + margin), decimals=3)
+
         channel_info = {
             'label': 'ch0',
             'dimension': units,
             'sample_frequency': fs,
+            'physical_max': physical_max,
+            'physical_min': physical_min,
+            'digital_max': 32767,
+            'digital_min': -32768,
         }
         writer.setSignalHeader(0, channel_info)
-        writer.writeSamples(self.ecg[np.newaxis])  # reshape для совместимости
+        writer.writeSamples(self.ecg[np.newaxis])
         writer.close()
 
     def __call__(self, ecg):

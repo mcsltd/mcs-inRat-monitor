@@ -4,8 +4,9 @@ import pyqtgraph as pg
 
 import numpy as np
 from PySide6 import QtAsyncio, QtCore
-from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import QMainWindow, QApplication
+from PySide6.QtCore import QTimer, Qt
+from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import QMainWindow, QApplication, QDialog, QVBoxLayout, QLabel, QProgressBar, QMessageBox
 
 from config import DATA_PATH
 from device import RatSens
@@ -16,7 +17,8 @@ from utils.scanner import find_device
 logger = logging.getLogger(__name__)
 
 
-SEC_SLIDE_WINDOW = 3
+SEC_SLIDE_WINDOW = 2
+
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -24,6 +26,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, device, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
+        self.setWindowTitle("InRat monitor")
+        self.setWindowIcon(QIcon("./ui/iconMCS.ico"))
 
         self.ecg = np.array([])
         self.time = np.array([])
@@ -34,7 +38,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.is_save_ecg = None
         self.storage = Storage()
 
-        self.pushButtonFind.clicked.connect(lambda: asyncio.ensure_future(self.find_device()))
+        self.pushButtonManage.clicked.connect(lambda: asyncio.ensure_future(self.connect_device()))
         self.pushButtonStart.clicked.connect(lambda: asyncio.ensure_future(self.start_device()))
         self.pushButtonStop.clicked.connect(lambda: asyncio.ensure_future(self.stop_device()))
         self.pushButtonRecording.clicked.connect(self.change_recording)
@@ -100,36 +104,68 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.add_marker(pos=self.time[-1], text="Start recording")
 
 
-    async def find_device(self):
-        device, _ = await find_device()
-        self.device = RatSens(device)
-        await self.device.connect()
-        # device_name = await self.device.get_device_name()
+    async def connect_device(self):
+        # raise waiting dialog
+        dlg = WaitingDialog(parent=self)
+        dlg.show()
 
-        # disable and activate btn state when find device
-        if self.device.is_connected:
-            self.pushButtonStart.setEnabled(True)
-            self.pushButtonFind.setEnabled(False)
+        try:
+            device, _ = await find_device()
+            self.device = RatSens(device)
+            await self.device.connect()
+            d_info = await self.device.get_device_information()
+        except Exception as exc:
+            info = QMessageBox.information(
+                self, "Connect error",
+                f"An error occurred while connect to the device\n\nInfo:\n{exc}\n\nPlease, restart application!",
+                QMessageBox.StandardButton.Ok
+            )
+        else:
+            # disable and activate btn state when find device
+            if self.device.is_connected:
+                self.pushButtonStart.setEnabled(True)
+                self.pushButtonManage.setEnabled(False)
+                self.set_device_information(d_info)
+                dlg.close()
+        finally:
+            dlg.close()
 
+    def set_device_information(self, device_information: dict):
+        self.labelModelValue.setText(device_information["model"])
+        self.labelSerialNumberValue.setText(device_information["serial"])
+        self.labelStatusValue.setText(device_information["status"])
+        self.labelNameValue.setText(device_information["name"])
 
     async def start_device(self):
         logger.debug("Start device")
-        await self.device.get_ecg(ecg_queue=self.ecg_queue)
-        self.timer.start()
 
-        # activate and disable btn when start device
-        self.pushButtonStart.setEnabled(False)
-        self.pushButtonRecording.setEnabled(True)
-        self.pushButtonStop.setEnabled(True)
-        self.comboBoxFormat.setEnabled(True)
+        try:
+            await self.device.get_ecg(ecg_queue=self.ecg_queue)
+        except Exception as exc:
+            info = QMessageBox.information(
+                self, "Start error",
+                f"An error occurred while starting the device\n\nInfo:\n{exc}\n\nPlease, restart application!",
+                QMessageBox.StandardButton.Ok
+            )
+        else:
+            self.timer.start()
 
-        # when draw signal in online - disable mouse
-        self.plotWidget.setMouseEnabled(x=False, y=False)
+            # activate and disable btn when start device
+            self.pushButtonStart.setEnabled(False)
+            self.pushButtonRecording.setEnabled(True)
+            self.pushButtonStop.setEnabled(True)
+            self.comboBoxFormat.setEnabled(True)
+
+            # when draw signal in online - disable mouse
+            self.plotWidget.setMouseEnabled(x=False, y=False)
 
 
     async def updatePlot(self):
         ecg = await self.ecg_queue.get()
         self.ecg = np.append(self.ecg, ecg["ecg"])
+        self.ecg_queue.task_done()
+
+        logger.debug(f"Current {ecg['counter']=}")
 
         # calculate time
         if len(self.time) == 0:
@@ -151,22 +187,55 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     async def stop_device(self):
         logger.debug("Stop device")
-        await self.device.stop()
-        self.timer.stop()
 
-        if self.is_save_ecg:
-            self.storage.save()
-            self.add_marker(pos=self.time[-1], text="Stop recording")
-            self.change_recording()
+        try:
+            await self.device.stop()
+        except Exception as exc:
+            info = QMessageBox.information(
+                self, "Stop error",
+                f"An error occurred while stoping the device\n\nInfo:\n{exc}\n\nPlease, restart application!",
+                QMessageBox.StandardButton.Ok
+            )
+        finally:
+            self.timer.stop()
 
-        # activate and disable btn when stop device
-        self.pushButtonStop.setEnabled(False)
-        self.pushButtonStart.setEnabled(True)
-        self.pushButtonRecording.setEnabled(False)
-        self.comboBoxFormat.setEnabled(False)
+            if self.is_save_ecg:
+                self.storage.save()
+                self.add_marker(pos=self.time[-1], text="Stop recording")
+                self.change_recording()
 
-        # when stop device - activate mouse
-        self.plotWidget.setMouseEnabled(x=True, y=True)
+            # activate and disable btn when stop device
+            self.pushButtonStop.setEnabled(False)
+            self.pushButtonStart.setEnabled(True)
+            self.pushButtonRecording.setEnabled(False)
+            self.comboBoxFormat.setEnabled(False)
+
+            # when stop device - activate mouse
+            self.plotWidget.setMouseEnabled(x=True, y=True)
+
+
+
+class WaitingDialog(QDialog):
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Waiting for connection")
+        self.setWindowModality(Qt.WindowModality.ApplicationModal)
+
+        self.setFixedSize(300, 150)
+
+        layout = QVBoxLayout()
+
+        self.label = QLabel("Please wait for the device to connect...")
+        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.progress = QProgressBar()
+        self.progress.setRange(0, 0)
+
+        layout.addWidget(self.label)
+        layout.addWidget(self.progress)
+
+        self.setLayout(layout)
 
 
 if __name__ == "__main__":
@@ -176,7 +245,6 @@ if __name__ == "__main__":
     )
 
     app = QApplication([])
-
     window = MainWindow(device=None)
     window.show()
 

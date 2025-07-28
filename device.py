@@ -8,8 +8,8 @@ import numpy as np
 from bleak import BleakClient
 
 from config import BLE_KEY
-from constants import Command, DeviceInformationService, DataRateEcg, FullScaleAccelerometer, EnabledChannels, \
-    EventType, Const, Pkt
+from constants import Command, DataRateEcg, FullScaleAccelerometer, EnabledChannels, \
+    EventType, Const, Pkt, DeviceInformationService
 from structure import Settings, Event
 from utils.crypt import get_control_sum
 
@@ -27,16 +27,41 @@ class RatSens(BleakClient):
 
         self.is_running = False
 
-    async def setup(self, cmd: Command, settings: Optional[Settings] = None):
-        if settings is None:
-            settings = b''
-        data = cmd.value.to_bytes() + bytes(settings)
-        data += get_control_sum(data=data, key=BLE_KEY)
-        await self.write_gatt_char(char_specifier=RatSens.UUID_CHARACTERISTIC_CONTROL, data=data)
+        # set lock
+        self._connect_lock = asyncio.Lock()
+        self._operation_lock = asyncio.Lock()
 
-    async def get_device_name(self):
-        name = await self.read_gatt_char(RatSens.UUID_CHARACTERISTIC_DEVICE_NAME)
-        return name.decode()
+    def _check_operation_lock(self) -> None:
+        """ Check and print message if lock occupied. """
+        if self._operation_lock.locked():
+            logger.debug("Operation already in progress... Waiting for it to complete.")
+
+    async def setup(self, cmd: Command, settings: Optional[Settings] = None):
+        logger.debug("Set settings to the BLE device.")
+        self._check_operation_lock()
+
+        async with self._operation_lock:
+            if settings is None:
+                settings = b''
+            data = cmd.value.to_bytes() + bytes(settings)
+            data += get_control_sum(data=data, key=BLE_KEY)
+            await self.write_gatt_char(char_specifier=RatSens.UUID_CHARACTERISTIC_CONTROL, data=data)
+
+    async def get_device_information(self):
+        logger.debug("Get device information.")
+        self._check_operation_lock()
+
+        async with self._operation_lock:
+
+            info = {"name": None, "model": None, "serial": None, "status": "Connected"}
+            name = await self.read_gatt_char(RatSens.UUID_CHARACTERISTIC_DEVICE_NAME)
+            info["name"] = name.decode()
+            model = await self.read_gatt_char(str(DeviceInformationService.MODEL))
+            info["model"] = model.decode()
+            sn = await self.read_gatt_char(str(DeviceInformationService.SERIAL))
+            info["serial"] = sn.decode()
+
+            return info
 
     async def get_ecg(self, ecg_queue: Optional[asyncio.Queue] = None):
         async def ecg_handler(_, raw_data: bytearray):
@@ -67,8 +92,7 @@ class RatSens(BleakClient):
 
             # logger.debug(f"counter: {counter}; ecg: {ecg.tolist()}")
             if ecg_queue is not None:
-                # logger.debug("Put ecg in queue.")
-
+                logger.debug("Put ecg in queue.")
                 await ecg_queue.put({"counter": counter, "ecg": ecg})
 
         prev = 0
@@ -85,6 +109,7 @@ class RatSens(BleakClient):
         )
         self.is_running = True
         await self.start_notify(RatSens.UUID_CHARACTERISTIC_DATA_ECG, ecg_handler)
+
 
     async def get_event(self, event_queue: Optional[asyncio.Queue] = None):
         async def event_handler(_, raw_event):
@@ -127,7 +152,6 @@ class RatSens(BleakClient):
 
                 if event_queue is not None:
                     await event_queue.put(dict_ev)
-                print(dict_ev)
 
         await self.setup(
             cmd=Command.AcquisitionStart,
@@ -143,7 +167,9 @@ class RatSens(BleakClient):
         await self.start_notify(RatSens.UUID_CHARACTERISTIC_EVENT, event_handler)
 
     async def stop(self):
+        logger.debug("Set settings to the BLE device.")
         self.is_running = False
+        await self.stop_notify(RatSens.UUID_CHARACTERISTIC_DATA_ECG) # need stop notify
         await self.setup(cmd=Command.AcquisitionStop)
 
 
