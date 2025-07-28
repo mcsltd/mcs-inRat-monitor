@@ -1,0 +1,99 @@
+from typing import Optional
+
+from PySide6.QtCore import Signal
+from PySide6.QtGui import Qt
+from PySide6.QtWidgets import QDialog, QMessageBox, QVBoxLayout, QLabel, QProgressBar
+
+from ui.dlg_enter_device_info import Ui_Form
+
+
+class EnterDeviceInfoDialog(QDialog, Ui_Form):
+
+    """
+    Dialog box for entering information about the device.
+    """
+
+    signal_connect = Signal(dict)
+    signal_save = Signal(dict)
+
+    def __init__(
+            self, parent=None,
+            serial=None, model=None, # from initial settings if it set
+            *args, **kwargs
+    ):
+        super().__init__(parent, *args, **kwargs)
+        self.setupUi(self)
+        self.setWindowModality(Qt.WindowModality.ApplicationModal)
+
+        if serial is not None and model is not None:
+            self.lineEditModelValue.setText(str(model))
+            self.lineEditSNValue.setText(str(serial))
+
+        self.pushButtonSave.clicked.connect(self.save_device_info)
+        self.pushButtonConnect.clicked.connect(self.connect_to_device)
+
+    def connect_to_device(self):
+        device_info = self.get_device_info()
+        if device_info["serial"] is not None and device_info["model"] is not None:
+            self.signal_connect.emit(device_info)
+        self.close()
+
+    def save_device_info(self):
+        device_info = self.get_device_info()
+        if device_info["serial"] is not None and device_info["model"] is not None:
+            self.signal_save.emit(device_info)
+
+
+    def get_device_info(self) -> dict:
+        """
+        Get device info from line edit
+        :return:
+        """
+        device_info = {"serial": None, "model": None}
+
+        sn = self.lineEditSNValue.text()
+        if sn == "":
+            info = QMessageBox.information(
+                self, "Warning!",
+                f"Empty Serial Number field!",
+                QMessageBox.StandardButton.Ok
+            )
+            return device_info
+
+        model = self.lineEditModelValue.text()
+        if model == "":
+            info = QMessageBox.information(
+                self, "Warning!",
+                f"Empty Model field!",
+                QMessageBox.StandardButton.Ok
+            )
+            return device_info
+
+        device_info["serial"] = sn
+        device_info["model"] = model
+
+        return device_info
+
+
+
+class WaitingDialog(QDialog):
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Waiting for connection")
+        self.setWindowModality(Qt.WindowModality.ApplicationModal)
+
+        self.setFixedSize(300, 150)
+
+        layout = QVBoxLayout()
+
+        self.label = QLabel("Please wait for the device to connect...")
+        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.progress = QProgressBar()
+        self.progress.setRange(0, 0)
+
+        layout.addWidget(self.label)
+        layout.addWidget(self.progress)
+
+        self.setLayout(layout)
