@@ -3,8 +3,10 @@ Application for viewing and saving signals from InRat.
 
 ## Functional
 
-`InRat monitor` supports the following functions\:
-2. Show real-time signal from InRat
+`InRat monitor` supports the following functions:
+
+1.Show real-time signal from InRat
+
 2. Save signal from InRat in two data format: edf, wfdb
 
 
@@ -15,6 +17,7 @@ You can launch the application in two ways:
 ### First way (easy)
 
 0. Download `InRat monitor.exe`
+
 1. Create `.env` file in dir when you start application and fill in the fields
 ```.env
 BLE_KEY=...
