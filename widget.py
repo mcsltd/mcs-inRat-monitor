@@ -1,3 +1,4 @@
+import asyncio
 from typing import Optional
 
 from PySide6.QtCore import Signal
@@ -78,13 +79,13 @@ class EnterDeviceInfoDialog(QDialog, Ui_Form):
 
 class WaitingDialog(QDialog):
 
-    def __init__(self, parent=None):
+    def __init__(self, event_scanning: Optional[asyncio.Event]=None, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Waiting for connection")
         self.setWindowModality(Qt.WindowModality.ApplicationModal)
 
         self.setFixedSize(300, 150)
-
+        self.event_scanning = event_scanning
         layout = QVBoxLayout()
 
         self.label = QLabel("Please wait for the device to connect...")
@@ -97,3 +98,7 @@ class WaitingDialog(QDialog):
         layout.addWidget(self.progress)
 
         self.setLayout(layout)
+
+    def closeEvent(self, event):
+        if self.event_scanning is not None:
+            self.event_scanning.set()
