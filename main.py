@@ -237,7 +237,6 @@ class WaitingDialog(QDialog):
 
         self.setLayout(layout)
 
-        # self.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, True)
 
 if __name__ == "__main__":
     logging.basicConfig(
