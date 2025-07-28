@@ -75,7 +75,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.enter_device_info()
 
-
     def enter_device_info(self):
         serial = None
         model = None
@@ -202,9 +201,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.device = None
             self.device_info = None
             self.pushButtonStart.setEnabled(False)
-            # ToDo: add reset data on plot
+            self.reset()
             self.enter_device_info()
-            self.set_device_information()
             return
 
         event_stop_scanning = asyncio.Event()
@@ -330,6 +328,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             # when stop device - activate mouse
             self.plotWidget.setMouseEnabled(x=True, y=True)
+
+    def reset(self):
+        self.ecg = np.array([])
+        self.time = np.array([])
+        self.plot_ecg.setData(self.time, self.ecg)
+        self.set_device_information()
 
 
 
