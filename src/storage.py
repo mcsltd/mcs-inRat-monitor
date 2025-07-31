@@ -79,7 +79,11 @@ class Storage:
         filename:str, units: str = "uV", fs: int = 500
     ):
         logger.debug("Save ecg in EDF format.")
-        writer = EdfWriter(n_channels=1, file_name=filename)
+        writer = EdfWriter(
+            n_channels=1,
+            file_name=filename,
+            # ToDo: file_type=... + add additional information
+        )
         self.ecg = np.round(self.ecg, decimals=3)
 
         margin = 0.15

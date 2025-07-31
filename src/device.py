@@ -10,6 +10,7 @@ from bleak import BleakClient
 from config import BLE_KEY
 from constants import Command, DataRateEcg, FullScaleAccelerometer, EnabledChannels, \
     EventType, Const, Pkt, DeviceInformationService
+from src.decoder import Decoder
 from structure import Settings, Event
 from utils.crypt import get_control_sum
 
@@ -26,6 +27,7 @@ class RatSens(BleakClient):
         super().__init__(*args, **kwargs)
 
         self.is_running = False
+        self.decoder = Decoder()
 
         # set lock
         self._connect_lock = asyncio.Lock()
@@ -64,38 +66,15 @@ class RatSens(BleakClient):
             return info
 
     async def get_ecg(self, ecg_queue: Optional[asyncio.Queue] = None):
+
         async def ecg_handler(_, raw_data: bytearray):
-            nonlocal prev
-            # logger.debug(f"get raw data: {raw_data}")
+            counter, ecg = self.decoder.decode(raw_data)
+            ecg *= Const.EcgResolution * 1e6  # in μV
 
-            offset = 2
-            counter = struct.unpack('H', raw_data[:offset])[0]
-
-            code = raw_data[offset]
-            offset += 4
-
-            ecg = np.zeros(Pkt.SamplesCountECG, dtype=np.float64)
-            for i in range(Pkt.SamplesCountECG):
-
-                if (code >> i) & 0x1 == 0x0:
-                    ecg[i] = prev + int.from_bytes([raw_data[offset]], byteorder='little', signed=True)
-                    offset += 1
-
-                if (code >> i) & 0x1 == 0x1:
-                    ecg[i] = int.from_bytes(raw_data[offset:offset + 2], byteorder='little', signed=True)
-                    offset += 2
-
-                prev = ecg[i]
-
-            ecg *= 2.42 * 1e6 / 171 / 0xFFFF # in μV
-            # ecg *= Const.EcgResolution
-
-            # logger.debug(f"counter: {counter}; ecg: {ecg.tolist()}")
             if ecg_queue is not None:
                 logger.debug("Put ecg in queue.")
                 await ecg_queue.put({"counter": counter, "ecg": ecg})
 
-        prev = 0
         await self.setup(
             cmd=Command.AcquisitionStart,
             settings=Settings(
@@ -109,7 +88,6 @@ class RatSens(BleakClient):
         )
         self.is_running = True
         await self.start_notify(RatSens.UUID_CHARACTERISTIC_DATA_ECG, ecg_handler)
-
 
     async def get_event(self, event_queue: Optional[asyncio.Queue] = None):
         async def event_handler(_, raw_event):
