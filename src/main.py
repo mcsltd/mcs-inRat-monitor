@@ -11,6 +11,7 @@ from PySide6 import QtAsyncio, QtCore
 from PySide6.QtCore import QTimer, Signal
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox
+from pyqtgraph import LegendItem
 
 from device import RatSens
 from storage import Storage
@@ -42,6 +43,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.device: Optional[RatSens] = None
         self.device_info: Optional[dict] = self.get_preferences()
 
+        # build queue
         self.ecg_queue = asyncio.Queue()
 
         self.is_save_ecg = None
@@ -54,8 +56,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.comboBoxFormat.currentTextChanged.connect(self.storage.set_format)
 
         # setup plot
-        pen = pg.mkPen(color=(255, 0, 0))
-        self.plot_ecg = self.plotWidget.plot(self.time, self.ecg, pen=pen)
+        red = pg.mkPen(color=(255, 0, 0))
+        green = pg.mkPen(color=(0, 255, 0))
+
+        self.plot_ecg = self.plotWidget.plot(self.time, self.ecg, pen=red)
+
         self.plotWidget.setLabel("left", "ECG (μV)", pen=pg.mkPen(color='k'))
         self.plotWidget.getAxis("left").setPen(pg.mkPen(color='k'))
         self.plotWidget.getAxis("left").setTextPen(pg.mkPen(color='k'))
@@ -282,7 +287,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.ecg.shape != self.time.shape:
             raise ValueError("shapes ecg and t is not same!!!")
 
+        # add data in plot
         self.plot_ecg.setData(self.time, self.ecg)
+
         self.plotWidget.setXRange(max(0, self.time[-1] - SEC_SLIDE_WINDOW), self.time[-1])
 
         # buffer ecg in storage
