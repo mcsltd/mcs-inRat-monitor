@@ -17,7 +17,12 @@ class Decoder:
         self.last_counter = 0
         self.errors_count = 0
 
-    def decode(self, raw_data) -> (int, np.ndarray):
+    def decode(self, raw_data: bytearray) -> (int, np.ndarray):
+        """
+        Decode signal.
+        :param raw_data: bytearray
+        :return: (int, np.ndarray)
+        """
         # read counter
         offset = 2
         counter = struct.unpack('<H', raw_data[:offset])[0]
@@ -48,32 +53,5 @@ class Decoder:
 
             self.prev = ecg[i]
 
-        ecg *= Const.EcgResolution * 1e6  # in μV
+        ecg *= Const.EcgResolution # in V
         return counter, ecg
-
-
-    # def old_decode(self, raw_data) -> (int, np.ndarray):
-    #     self.old_prev = 0
-    #
-    #     # read counter
-    #     offset = 2
-    #     counter = struct.unpack('H', raw_data[:offset])[0]
-    #
-    #     # read code
-    #     code = raw_data[offset]
-    #     offset += 4
-    #
-    #     ecg = np.zeros(Pkt.SamplesCountECG, dtype=np.float64)
-    #     for i in range(Pkt.SamplesCountECG):
-    #         if (code >> i) & 0x1 == 0x0:
-    #             ecg[i] = self.old_prev + int.from_bytes([raw_data[offset]], byteorder='little', signed=True)
-    #             offset += 1
-    #
-    #         if (code >> i) & 0x1 == 0x1:
-    #             ecg[i] = int.from_bytes(raw_data[offset:offset + 2], byteorder='little', signed=True)
-    #             offset += 2
-    #
-    #         self.old_prev = ecg[i]
-    #
-    #     ecg *= Const.EcgResolution * 1e6 # in μV
-    #     return counter, ecg
