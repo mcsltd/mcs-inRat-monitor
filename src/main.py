@@ -1,7 +1,5 @@
 import asyncio
 import logging
-import os
-from configparser import ConfigParser
 from typing import Optional
 
 import pyqtgraph as pg
@@ -10,14 +8,14 @@ import numpy as np
 from PySide6 import QtAsyncio, QtCore
 from PySide6.QtCore import QTimer, Signal
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox
-from pyqtgraph import LegendItem
+from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QComboBox
+from bleak import BLEDevice, BleakScanner
 
 from device import RatSens
+from src.scanner import BLEScannerWorker
 from storage import Storage
 from ui.main_window import Ui_MainWindow
-from utils.scanner import find_device
-from widget import EnterDeviceInfoDialog, WaitingDialog
+from widget import WaitingDialog
 
 logger = logging.getLogger(__name__)
 
@@ -25,23 +23,23 @@ logger = logging.getLogger(__name__)
 SEC_SLIDE_WINDOW = 2
 
 
-
 class MainWindow(QMainWindow, Ui_MainWindow):
     preferences: str = "config.ini"
 
     signal_connect = Signal()
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, qt_loop: QtAsyncio.QAsyncioEventLoop, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
         self.setWindowTitle("InRat monitor")
         self.setWindowIcon(QIcon("./ui/iconMCS.ico"))
 
+        self.qt_loop = qt_loop
+
         self.ecg = np.array([])
         self.time = np.array([])
 
         self.device: Optional[RatSens] = None
-        self.device_info: Optional[dict] = self.get_preferences()
 
         # build queue
         self.ecg_queue = asyncio.Queue()
@@ -49,7 +47,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.is_save_ecg = None
         self.storage = Storage()
 
-        self.pushButtonManage.clicked.connect(lambda: asyncio.ensure_future(self.connect_device()))
+        self.pushButtonConnect.clicked.connect(lambda: asyncio.ensure_future(self.connect_device()))
         self.pushButtonStart.clicked.connect(lambda: asyncio.ensure_future(self.start_device()))
         self.pushButtonStop.clicked.connect(lambda: asyncio.ensure_future(self.stop_device()))
         self.pushButtonRecording.clicked.connect(self.change_recording)
@@ -58,9 +56,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # setup plot
         red = pg.mkPen(color=(255, 0, 0))
         green = pg.mkPen(color=(0, 255, 0))
-
         self.plot_ecg = self.plotWidget.plot(self.time, self.ecg, pen=red)
-
         self.plotWidget.setLabel("left", "ECG (μV)", pen=pg.mkPen(color='k'))
         self.plotWidget.getAxis("left").setPen(pg.mkPen(color='k'))
         self.plotWidget.getAxis("left").setTextPen(pg.mkPen(color='k'))
@@ -77,88 +73,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.timer.setInterval(self.time_update)
         self.timer.timeout.connect(lambda: asyncio.ensure_future(self.updatePlot()))
 
-        self.enter_device_info()
+        # create scanner and run it
+        self.scanner = BLEScannerWorker()
+        self.scanner.run(self.qt_loop)
+        self.scanner.signal_found.connect(self.set_combobox_items)
+        self.pushButtonConnect.setEnabled(False)
 
-    def enter_device_info(self):
-        serial = None
+        # setup combobox
+        self.comboBoxDevice.setDuplicatesEnabled(False)
+        self.comboBoxDevice.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
 
-        # check if device info already exists
-        if self.device_info is not None:
-            serial=self.device_info["serial"]
+    def set_combobox_items(self, devices: set[BLEDevice]):
+        for device in devices:
+            if self.comboBoxDevice.findText(device.name) == -1:
+                self.comboBoxDevice.addItem(device.name, userData=device)
+        if self.comboBoxDevice.count() != 0:
+            self.pushButtonConnect.setEnabled(True)
 
-        dlg = EnterDeviceInfoDialog(
-            self,
-            serial=serial
-        )
-        dlg.signal_save.connect(self.save_preferences)
-        dlg.signal_connect.connect(self.set_device_info_and_connect)
-        dlg.show()
-
-    def get_preferences(self) -> Optional[dict]:
-        config = ConfigParser()
-
-        # check file exists
-        if not os.path.exists(self.preferences):
-            logger.info(f"File {self.preferences} is not exists!")
-            return None
-
-        config.read(self.preferences)
-        if not (
-                config.has_option("Settings", "serial")
-        ):
-            logger.info(f"Trouble with field serial!")
-            return
-
-        logger.info(
-            f"Set device info: "
-            f"serial={config.get('Settings', 'serial')}"
-        )
-        return {"serial": config.get("Settings", "serial")}
-
-    def save_preferences(self, device_info: dict):
-        # set device info
-        if None in device_info.values():
-            return
-        self.device_info = device_info
-        logger.info(f"Set device info {self.device_info}")
-
-        # save device info
-        config = ConfigParser()
-
-        # check file exists
-        if (os.path.exists(self.preferences)
-                and config.has_option("Settings", "serial")
-        ):
-            config.set("Settings", "serial", self.device_info["serial"])
-        else:
-            config.add_section("Settings")
-            config.set("Settings", "serial", self.device_info["serial"])
-
-        with open(self.preferences, "w") as config_file:
-            config.write(config_file)
-
-    def set_device_info_and_connect(self, device_info: dict):
-        # set device info
-        if None in device_info.values():
-            return
-        logger.info(f"Set device info {self.device_info}")
-        self.device_info = device_info
-        # simulate button click for connect device
-        self.pushButtonManage.click()
-
-    def add_marker(self, pos, text:str="event"):
-        """ Add vertical line and text"""
-        line = pg.InfiniteLine(
-            pos=pos,
-            angle=90,
-            pen=pg.mkPen('gray', width=1, style=QtCore.Qt.PenStyle.DashLine),
-            movable=False,
-            label=text,
-            labelOpts={'color': 'k', 'position': 0.1}
-        )
-        self.plotWidget.addItem(line)
-
-    def change_recording(self):
+    def change_recording(self): # ToDo: rename method
         """
         Change state recording.
         """
@@ -185,54 +117,51 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.add_marker(pos=self.time[-1], text="Start recording")
 
     async def connect_device(self):
-        if self.device_info is None:
-            self.enter_device_info()
-            return
-
-        # when user want reset connection
-        if self.device is not None and self.device.is_connected:
-            await self.device.close()
-            self.device = None
-            self.device_info = None
-            self.pushButtonStart.setEnabled(False)
-            self.reset()
-            self.enter_device_info()
-            return
-
-        event_stop_scanning = asyncio.Event()
-
         # raise waiting dialog
-        dlg = WaitingDialog(parent=self, event_scanning=event_stop_scanning)
+        dlg = WaitingDialog(parent=self)
         dlg.show()
 
+        device = self.comboBoxDevice.currentData()
+        idx_device = self.comboBoxDevice.currentIndex()
+        logger.debug(f"Select device with name: {device.name}.")
+
+        # if already device is select and connected
+        if self.device is not None and device.name == self.device.name:
+            return
+
+        # disconnect old ble device
+        if self.device is not None and self.device.is_connected:
+            await self.device.close()
+
         try:
-            device, _ = await find_device(
-                template=f"inRat-1-{self.device_info['serial']}",
-                event_stop_scanning=event_stop_scanning
-            )
-
-            if device is None:
-                self.device_info = None
-                return
-
             self.device = RatSens(device)
             await self.device.connect()
+
+            # set device info
             d_info = await self.device.get_device_information()
         except Exception as exc:
+
+            # remove device in combobox if not connected
+            self.comboBoxDevice.removeItem(idx_device)
+
+            if self.comboBoxDevice.count() == 0:
+                self.pushButtonConnect.setEnabled(False)
+
             info = QMessageBox.information(
                 self, "Connect error",
                 f"An error occurred while connect to the device\n\nInfo:\n{exc}\n\nPlease, restart application!",
                 QMessageBox.StandardButton.Ok
             )
+
         else:
             # disable and activate btn state when find device
             if self.device.is_connected:
                 self.pushButtonStart.setEnabled(True)
-                # self.pushButtonManage.setEnabled(False)
                 self.set_device_information(d_info)
                 dlg.close()
         finally:
             dlg.close()
+
 
     def set_device_information(self, device_information: Optional[dict] = None):
         if device_information is not None:
@@ -249,6 +178,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     async def start_device(self):
         logger.debug("Start device")
 
+        # stop scanning
+        self.scanner.stop()
+
         try:
             await self.device.get_ecg(ecg_queue=self.ecg_queue)
         except Exception as exc:
@@ -261,7 +193,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.timer.start()
 
             # activate and disable btn when start device
-            self.pushButtonManage.setEnabled(False)
+            self.pushButtonConnect.setEnabled(False)
+            self.comboBoxDevice.setEnabled(False)
             self.pushButtonStart.setEnabled(False)
             self.pushButtonRecording.setEnabled(True)
             self.pushButtonStop.setEnabled(True)
@@ -275,6 +208,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.ecg = np.append(self.ecg, ecg["ecg"])
         self.ecg_queue.task_done()
 
+        # ToDo: check device connection
         logger.debug(f"Current {ecg['counter']=}")
 
         # calculate time
@@ -299,6 +233,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     async def stop_device(self):
         logger.debug("Stop device")
 
+        # start scanning
+        self.scanner.run(self.qt_loop)
+
         try:
             await self.device.stop()
         except Exception as exc:
@@ -317,7 +254,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             # activate and disable btn when stop device
             self.pushButtonStop.setEnabled(False)
-            self.pushButtonManage.setEnabled(True)
+            self.pushButtonConnect.setEnabled(True)
+            self.comboBoxDevice.setEnabled(True)
             self.pushButtonStart.setEnabled(True)
             self.pushButtonRecording.setEnabled(False)
             self.comboBoxFormat.setEnabled(False)
@@ -325,12 +263,30 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # when stop device - activate mouse
             self.plotWidget.setMouseEnabled(x=True, y=True)
 
-    def reset(self):
+    def reset(self) -> None:
+        """
+        Reset master data.
+        :return: None
+        """
         self.ecg = np.array([])
         self.time = np.array([])
         self.plot_ecg.setData(self.time, self.ecg)
         self.set_device_information()
 
+    def add_marker(self, pos, text:str="event"):
+        """ Add vertical line and text on the plot."""
+        line = pg.InfiniteLine(
+            pos=pos,
+            angle=90,
+            pen=pg.mkPen('gray', width=1, style=QtCore.Qt.PenStyle.DashLine),
+            movable=False,
+            label=text,
+            labelOpts={'color': 'k', 'position': 0.1}
+        )
+        self.plotWidget.addItem(line)
+
+    def closeEvent(self, event):
+        self.scanner.stop()
 
 
 
@@ -341,7 +297,12 @@ if __name__ == "__main__":
     )
 
     app = QApplication([])
-    window = MainWindow()
-    window.showMaximized()
+    loop = QtAsyncio.QAsyncioEventLoop(application=app)
 
-    QtAsyncio.run(handle_sigint=True, debug=True)
+    window = MainWindow(loop)
+
+    window.show()
+    # window.showMaximized()
+
+    loop.run_forever()
+    # QtAsyncio.run(handle_sigint=True, debug=True)

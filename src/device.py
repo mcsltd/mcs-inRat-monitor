@@ -26,6 +26,7 @@ class RatSens(BleakClient):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.name = args[0]
         self.is_running = False
         self.decoder = Decoder()
 
@@ -69,7 +70,7 @@ class RatSens(BleakClient):
 
         async def ecg_handler(_, raw_data: bytearray):
             counter, ecg = self.decoder.decode(raw_data)
-            ecg *= Const.EcgResolution * 1e6  # in μV
+            ecg *= 1e6  # in μV
 
             if ecg_queue is not None:
                 logger.debug("Put ecg in queue.")

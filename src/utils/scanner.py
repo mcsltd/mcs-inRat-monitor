@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import contextlib
+from typing import Any, AsyncGenerator
 
 from bleak import AdvertisementData, BLEDevice, BleakScanner, BleakClient
 
@@ -30,20 +31,31 @@ async def find_device(
     :return: BLEDevice, AdvertisementData
     """
     async with BleakScanner() as scanner:
-
         with contextlib.suppress(asyncio.TimeoutError):
-
             async with asyncio.timeout(timeout):
-
                 async for device, advertisement in scanner.advertisement_data():
-
                     # stop scanning
                     if event_stop_scanning is not None and event_stop_scanning.is_set():
                         return None, None
-
                     if device is not None and device.name is not None and device.name.startswith(template):
                         return device, advertisement
     return None, None
+
+
+async def get_device_name(
+        template: str = NAME_TEMPLATE
+) -> AsyncGenerator[tuple[BLEDevice, AdvertisementData] | tuple[BLEDevice | None, AdvertisementData], Any]:
+    """
+    Generator, gives device names corresponding to a template
+    :param template:
+    :return:
+    """
+    async with BleakScanner() as scanner:
+        with contextlib.suppress(asyncio.TimeoutError):
+            async for device, advertisement in scanner.advertisement_data():
+                if device is not None and device.name is not None and device.name.startswith(template):
+                    yield device, advertisement
+    yield device, advertisement
 
 
 async def discover(
