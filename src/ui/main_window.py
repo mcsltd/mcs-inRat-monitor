@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'main_windoweNiSRi.ui'
+## Form generated from reading UI file 'main_windowgFvgFi.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -43,10 +43,32 @@ class Ui_MainWindow(object):
 
         self.verticalLayout = QVBoxLayout()
         self.verticalLayout.setObjectName(u"verticalLayout")
-        self.pushButtonManage = QPushButton(self.centralwidget)
-        self.pushButtonManage.setObjectName(u"pushButtonManage")
+        self.horizontalLayout_3 = QHBoxLayout()
+        self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
+        self.labelDevice = QLabel(self.centralwidget)
+        self.labelDevice.setObjectName(u"labelDevice")
 
-        self.verticalLayout.addWidget(self.pushButtonManage)
+        self.horizontalLayout_3.addWidget(self.labelDevice)
+
+        self.comboBoxDevice = QComboBox(self.centralwidget)
+        self.comboBoxDevice.setObjectName(u"comboBoxDevice")
+
+        self.horizontalLayout_3.addWidget(self.comboBoxDevice)
+
+
+        self.verticalLayout.addLayout(self.horizontalLayout_3)
+
+        self.pushButtonConnect = QPushButton(self.centralwidget)
+        self.pushButtonConnect.setObjectName(u"pushButtonConnect")
+
+        self.verticalLayout.addWidget(self.pushButtonConnect)
+
+        self.line_3 = QFrame(self.centralwidget)
+        self.line_3.setObjectName(u"line_3")
+        self.line_3.setFrameShape(QFrame.Shape.HLine)
+        self.line_3.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.verticalLayout.addWidget(self.line_3)
 
         self.pushButtonStart = QPushButton(self.centralwidget)
         self.pushButtonStart.setObjectName(u"pushButtonStart")
@@ -172,7 +194,8 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"MainWindow", None))
-        self.pushButtonManage.setText(QCoreApplication.translate("MainWindow", u"Connect", None))
+        self.labelDevice.setText(QCoreApplication.translate("MainWindow", u"Device:", None))
+        self.pushButtonConnect.setText(QCoreApplication.translate("MainWindow", u"Connect", None))
         self.pushButtonStart.setText(QCoreApplication.translate("MainWindow", u"Start", None))
         self.pushButtonStop.setText(QCoreApplication.translate("MainWindow", u"Stop", None))
         self.label.setText(QCoreApplication.translate("MainWindow", u"Format:", None))
@@ -190,4 +213,5 @@ class Ui_MainWindow(object):
         self.labelName.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
         self.labelNameValue.setText(QCoreApplication.translate("MainWindow", u"None", None))
     # retranslateUi
+
 

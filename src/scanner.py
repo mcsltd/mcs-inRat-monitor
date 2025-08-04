@@ -5,7 +5,6 @@ from typing import Optional
 from PySide6.QtCore import QObject, Signal
 from PySide6 import QtAsyncio
 from bleak import BLEDevice, BleakScanner
-from sqlalchemy.util import await_only
 
 from src.utils.scanner import NAME_TEMPLATE
 

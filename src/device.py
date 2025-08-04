@@ -26,6 +26,7 @@ class RatSens(BleakClient):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.name = args[0]
         self.is_running = False
         self.decoder = Decoder()
 
