@@ -8,7 +8,7 @@ import numpy as np
 from PySide6 import QtAsyncio, QtCore
 from PySide6.QtCore import QTimer, Signal
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox
+from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QComboBox
 from bleak import BLEDevice, BleakScanner
 
 from device import RatSens
@@ -81,7 +81,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # setup combobox
         self.comboBoxDevice.setDuplicatesEnabled(False)
-
+        self.comboBoxDevice.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
 
     def set_combobox_items(self, devices: set[BLEDevice]):
         for device in devices:
