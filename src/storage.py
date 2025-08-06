@@ -74,24 +74,23 @@ class Storage:
             self,
             record_name: str, write_dir: str,
 
-            sig_name:list[str]=["ch0"], units: list[str] = ["μV"], fs: int = 500 # default
+            sig_name:list[str]=["ECG"], units: list[str] = ["uV"], fs: int = 500 # default
     ):
         logger.debug("Save ecg in WFDB format.")
         wfdb.io.wrsamp(
             record_name="file",
             fs=self.fs, units=units, p_signal=self.ecg[np.newaxis].T,
-            sig_name=sig_name, write_dir=write_dir
+            sig_name=sig_name, write_dir=write_dir, base_datetime=self.start_time
         )
 
     def _to_edf(
         self,
-        filename:str, units: str = "uV", fs: int = 500
+        filename:str, units: str = "uV", fs: int = 500, sig_name:str="ECG",
     ):
         logger.debug("Save ecg in EDF format.")
         writer = EdfWriter(
             n_channels=1,
             file_name=filename,
-            # ToDo: file_type=... + add additional information
         )
         self.ecg = np.round(self.ecg, decimals=3)
 
@@ -102,7 +101,7 @@ class Storage:
         physical_min = np.round(signal_min * (1 - margin) if signal_min > 0 else signal_min * (1 + margin), decimals=3)
 
         channel_info = {
-            'label': 'ch0',
+            'label': sig_name,
             'dimension': units,
             'sample_frequency': fs,
             'physical_max': physical_max,
@@ -111,6 +110,7 @@ class Storage:
             'digital_min': -32768,
         }
         writer.setSignalHeader(0, channel_info)
+        writer.setEquipment("inRat")
         writer.writeSamples(self.ecg[np.newaxis])
         writer.close()
 
