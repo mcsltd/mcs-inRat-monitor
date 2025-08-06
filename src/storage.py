@@ -7,16 +7,22 @@ import numpy as np
 import wfdb
 from pyedflib import EdfWriter
 
-from config import DATA_PATH
 
 logger = logging.getLogger(__name__)
 
 class Storage:
-    def __init__(self):
+    def __init__(self, path_to_save: str, fs: int):
         self.ecg = np.array([])
-        self._format = "WFDB"
-        self._saving_start_time: Optional[datetime.datetime] = None
-        self.fs = 500
+
+        self.is_recording = None
+
+        self.path_to_save = os.path.abspath(path_to_save)
+        self.fs = fs
+
+        self._device_name = None
+        self._format = "WFDB" # default format
+        self.start_time: Optional[datetime.datetime] = None
+
 
     def set_format(self, frmt):
         """
@@ -26,9 +32,23 @@ class Storage:
         logger.debug(f"Change format: {self._format} -> {frmt}")
         self._format = frmt
 
+    def set_save_dir(self, path: str):
+        """ Save record in save dir. Raise error if dir is not exists. """
+        if os.path.isdir(path):
+            self.path_to_save = path
+        else:
+            raise ValueError("Dir is not exists!")
+
+    def set_device_name(self, name):
+        self._device_name = name
+
     def get_file_name(self):
-        str_st = str(self._saving_start_time.replace(microsecond=0)).replace(":", "-")
-        dur = int(self.ecg.shape[0] / 500)
+        str_st:str = str(self.start_time.time().replace(microsecond=0))
+        for v in ["h", "m"]:
+            str_st = str_st.replace(":", v, 1)
+        str_st += "s"
+
+        dur = int(self.ecg.shape[0] / self.fs)
         filename = f"{str_st}_dur_{dur}_sec"
         return filename
 
@@ -41,48 +61,51 @@ class Storage:
         if self.ecg.shape[0] == 0:
             return
 
-        # check if dir is exists
-        os.makedirs(DATA_PATH, exist_ok=True)
-
-        filename = self.get_file_name()
-        write_dir = f"{DATA_PATH}\\{self._format.lower()}_{filename}"
+        write_dir = f"{self.path_to_save}\\{self._device_name}\\{self.start_time.date()}\\{self._format.lower()}"
+        # write_dir = f"{self.path_to_save}\\{self._format.lower()}_{filename}"
 
         # create dir for saving files with selected format
-        os.mkdir(path=write_dir)
+        os.makedirs(write_dir, exist_ok=True)
 
+        filename = self.get_file_name()
         if self._format == "WFDB":
             self._to_wfdb(record_name=filename, write_dir=write_dir)
 
         # filename = f"{write_dir}\\{filename}.edf"
-        filename = f"{write_dir}\\file.edf"
+        filename = f"{write_dir}\\{filename}.edf"
         if self._format == "EDF":
             self._to_edf(filename)
 
         self.ecg = np.array([])
-        self._saving_start_time = None
+        self.start_time = None
 
     def _to_wfdb(
             self,
             record_name: str, write_dir: str,
 
-            sig_name:list[str]=["ch0"], units: list[str] = ["μV"], fs: int = 500 # default
+            sig_name:list[str]=["ECG"], units: list[str] = ["uV"], fs: int = 500 # default
     ):
+        """
+        Save data in wfdb format.
+        """
         logger.debug("Save ecg in WFDB format.")
         wfdb.io.wrsamp(
-            record_name="file",
+            record_name=record_name,
             fs=self.fs, units=units, p_signal=self.ecg[np.newaxis].T,
-            sig_name=sig_name, write_dir=write_dir
+            sig_name=sig_name, write_dir=write_dir, base_datetime=self.start_time
         )
 
     def _to_edf(
         self,
-        filename:str, units: str = "uV", fs: int = 500
+        filename:str, units: str = "uV", fs: int = 500, sig_name:str="ECG",
     ):
+        """
+        Save data in edf format.
+        """
         logger.debug("Save ecg in EDF format.")
         writer = EdfWriter(
             n_channels=1,
             file_name=filename,
-            # ToDo: file_type=... + add additional information
         )
         self.ecg = np.round(self.ecg, decimals=3)
 
@@ -93,7 +116,7 @@ class Storage:
         physical_min = np.round(signal_min * (1 - margin) if signal_min > 0 else signal_min * (1 + margin), decimals=3)
 
         channel_info = {
-            'label': 'ch0',
+            'label': sig_name,
             'dimension': units,
             'sample_frequency': fs,
             'physical_max': physical_max,
@@ -102,10 +125,11 @@ class Storage:
             'digital_min': -32768,
         }
         writer.setSignalHeader(0, channel_info)
+        writer.setEquipment("None" if self._device_name is None else self._device_name)
         writer.writeSamples(self.ecg[np.newaxis])
         writer.close()
 
     def __call__(self, ecg):
         if self.ecg.shape[0] == 0:
-            self._saving_start_time = datetime.datetime.now()
+            self.start_time = datetime.datetime.now()
         self.ecg = np.append(self.ecg, ecg)
