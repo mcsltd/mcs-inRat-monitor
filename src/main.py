@@ -160,12 +160,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         try:
             self.device = RatSens(device)
             await self.device.connect()
-
             # set device info
             d_info = await self.device.get_device_information()
 
-        except Exception as exc:
+            # add in storage device name (for write additional info in edf)
+            self.storage.set_device_name(self.device.name)
 
+        except Exception as exc:
             # remove device in combobox if not connected
             self.comboBoxDevice.removeItem(idx_device)
 
@@ -177,7 +178,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 f"An error occurred while connect to the device\n\nInfo:\n{exc}\n\nPlease, restart application!",
                 QMessageBox.StandardButton.Ok
             )
-
         else:
             # disable and activate btn state when connect to device
             if self.device.is_connected:

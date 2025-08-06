@@ -19,6 +19,7 @@ class Storage:
         self.path_to_save = os.path.abspath(path_to_save)
         self.fs = fs
 
+        self._device_name = None
         self._format = "WFDB" # default format
         self.start_time: Optional[datetime.datetime] = None
 
@@ -37,6 +38,9 @@ class Storage:
             self.path_to_save = path
         else:
             raise ValueError("Dir is not exists!")
+
+    def set_device_name(self, name):
+        self._device_name = name
 
     def get_file_name(self):
         str_st = str(self.start_time.replace(microsecond=0)).replace(":", "-")
@@ -110,7 +114,7 @@ class Storage:
             'digital_min': -32768,
         }
         writer.setSignalHeader(0, channel_info)
-        writer.setEquipment("inRat")
+        writer.setEquipment("None" if self._device_name is None else self._device_name)
         writer.writeSamples(self.ecg[np.newaxis])
         writer.close()
 
