@@ -1,5 +1,7 @@
 import asyncio
+import datetime
 import logging
+import os.path
 from typing import Optional
 
 import pyqtgraph as pg
@@ -8,10 +10,11 @@ import numpy as np
 from PySide6 import QtAsyncio, QtCore
 from PySide6.QtCore import QTimer, Signal
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QComboBox
+from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QComboBox, QFileDialog
 from bleak import BLEDevice, BleakScanner
 
 from device import RatSens
+from src.config import DATA_PATH
 from src.scanner import BLEScannerWorker
 from storage import Storage
 from ui.main_window import Ui_MainWindow
@@ -21,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 SEC_SLIDE_WINDOW = 2
-
+HZ = 500
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     preferences: str = "config.ini"
@@ -35,23 +38,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.setWindowIcon(QIcon("./ui/iconMCS.ico"))
 
         self.qt_loop = qt_loop
+        # build queue
+        self.ecg_queue = asyncio.Queue()
 
         self.ecg = np.array([])
         self.time = np.array([])
 
         self.device: Optional[RatSens] = None
-
-        # build queue
-        self.ecg_queue = asyncio.Queue()
-
-        self.is_save_ecg = None
-        self.storage = Storage()
-
-        self.pushButtonConnect.clicked.connect(lambda: asyncio.ensure_future(self.connect_device()))
-        self.pushButtonStart.clicked.connect(lambda: asyncio.ensure_future(self.start_device()))
-        self.pushButtonStop.clicked.connect(lambda: asyncio.ensure_future(self.stop_device()))
-        self.pushButtonRecording.clicked.connect(self.change_recording)
-        self.comboBoxFormat.currentTextChanged.connect(self.storage.set_format)
+        self.storage = Storage(path_to_save=DATA_PATH, fs=500)
 
         # setup plot
         red = pg.mkPen(color=(255, 0, 0))
@@ -83,6 +77,28 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.comboBoxDevice.setDuplicatesEnabled(False)
         self.comboBoxDevice.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
 
+        # connection
+        self.pushButtonConnect.clicked.connect(lambda: asyncio.ensure_future(self.connect_device()))
+        self.pushButtonStart.clicked.connect(lambda: asyncio.ensure_future(self.start_device()))
+        self.pushButtonStop.clicked.connect(lambda: asyncio.ensure_future(self.stop_device()))
+        self.pushButtonRecording.clicked.connect(self.change_recording)
+        self.pushButtonSelectDirSave.clicked.connect(self._set_storage)
+
+        self.lineEditSave.setText(self.storage.path_to_save) # set default folder
+        self.comboBoxFormat.currentTextChanged.connect(self.storage.set_format)
+
+
+    def _set_storage(self):
+        path_to_save = QFileDialog.getExistingDirectory(
+            self,
+            "Select folder",
+            DATA_PATH,
+            QFileDialog.Option.ShowDirsOnly | QFileDialog.Option.DontResolveSymlinks
+        )
+        self.storage.set_save_dir(path_to_save)
+        self.lineEditSave.setText(path_to_save)
+
+
     def set_combobox_items(self, devices: set[BLEDevice]):
         for device in devices:
             if self.comboBoxDevice.findText(device.name) == -1:
@@ -94,24 +110,32 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """
         Change state recording.
         """
-        if self.is_save_ecg:
-            self.is_save_ecg = False
+        if self.storage.is_recording:
+            self.storage.is_recording = False
 
             self.pushButtonRecording.setText("Start Recording")
+
+            # activate elements for setup storage when press "Stop Recording"
             self.comboBoxFormat.setEnabled(True)
+            self.pushButtonSelectDirSave.setEnabled(True)
+
             logger.debug("Select stop recording ECG.")
 
             # check if device running when change button state (when press stop recording)
             if self.device.is_running:
                 self.storage.save()
-
+                self.labelRTvalue.setText(f"[00:00:00]")
                 self.add_marker(pos=self.time[-1], text="Stop recording")
 
-        elif self.is_save_ecg is None or not self.is_save_ecg:
-            self.is_save_ecg = True
+        elif self.storage.is_recording is None or not self.storage.is_recording:
+            self.storage.is_recording = True
 
             self.pushButtonRecording.setText("Stop Recording")
+
+            # deactivate elements when press "Start Recording"
+            self.pushButtonSelectDirSave.setEnabled(False)
             self.comboBoxFormat.setEnabled(False)
+
             logger.debug("Select start recording ECG.")
 
             self.add_marker(pos=self.time[-1], text="Start recording")
@@ -139,6 +163,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             # set device info
             d_info = await self.device.get_device_information()
+
         except Exception as exc:
 
             # remove device in combobox if not connected
@@ -154,14 +179,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             )
 
         else:
-            # disable and activate btn state when find device
+            # disable and activate btn state when connect to device
             if self.device.is_connected:
-                self.pushButtonStart.setEnabled(True)
                 self.set_device_information(d_info)
-                dlg.close()
+
+                # enable settings for storage
+                self.comboBoxFormat.setEnabled(True)
+                self.pushButtonSelectDirSave.setEnabled(True)
+
+                # enable button for start device
+                self.pushButtonStart.setEnabled(True)
         finally:
             dlg.close()
-
 
     def set_device_information(self, device_information: Optional[dict] = None):
         if device_information is not None:
@@ -192,13 +221,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             self.timer.start()
 
-            # activate and disable btn when start device
+            # disable
             self.pushButtonConnect.setEnabled(False)
             self.comboBoxDevice.setEnabled(False)
             self.pushButtonStart.setEnabled(False)
+
+            # enable
             self.pushButtonRecording.setEnabled(True)
             self.pushButtonStop.setEnabled(True)
-            self.comboBoxFormat.setEnabled(True)
 
             # when draw signal in online - disable mouse
             self.plotWidget.setMouseEnabled(x=False, y=False)
@@ -219,16 +249,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # check shape ecg and time
         if self.ecg.shape != self.time.shape:
-            raise ValueError("shapes ecg and t is not same!!!")
+            raise ValueError("Arrays time and ecg have not same shape!")
 
         # add data in plot
         self.plot_ecg.setData(self.time, self.ecg)
 
         self.plotWidget.setXRange(max(0, self.time[-1] - SEC_SLIDE_WINDOW), self.time[-1])
 
-        # buffer ecg in storage
-        if self.is_save_ecg:
-            self.storage(ecg["ecg"])
+        if self.storage.is_recording:
+            self.storage(ecg["ecg"]) # save ecg in storage
+            str_time = str(datetime.datetime.now() - self.storage.start_time).split(".")[0]
+            str_time = "0" + str_time if len(str_time) != 8 else str_time
+            self.labelRTvalue.setText(f"[{str_time}]")
+
 
     async def stop_device(self):
         logger.debug("Stop device")
@@ -247,7 +280,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         finally:
             self.timer.stop()
 
-            if self.is_save_ecg:
+            if self.storage.is_recording:
                 self.storage.save()
                 self.add_marker(pos=self.time[-1], text="Stop recording")
                 self.change_recording()
@@ -258,7 +291,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.comboBoxDevice.setEnabled(True)
             self.pushButtonStart.setEnabled(True)
             self.pushButtonRecording.setEnabled(False)
-            self.comboBoxFormat.setEnabled(False)
+            # self.comboBoxFormat.setEnabled(False)
 
             # when stop device - activate mouse
             self.plotWidget.setMouseEnabled(x=True, y=True)
@@ -287,8 +320,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def closeEvent(self, event):
         self.scanner.stop()
-
-
+        # while not self.scanner.event_stop_scan.is_set():
+        #     ...
 
 if __name__ == "__main__":
     logging.basicConfig(

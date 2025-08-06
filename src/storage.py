@@ -7,16 +7,21 @@ import numpy as np
 import wfdb
 from pyedflib import EdfWriter
 
-from config import DATA_PATH
 
 logger = logging.getLogger(__name__)
 
 class Storage:
-    def __init__(self):
+    def __init__(self, path_to_save: str, fs: int):
         self.ecg = np.array([])
-        self._format = "WFDB"
-        self._saving_start_time: Optional[datetime.datetime] = None
-        self.fs = 500
+
+        self.is_recording = None
+
+        self.path_to_save = os.path.abspath(path_to_save)
+        self.fs = fs
+
+        self._format = "WFDB" # default format
+        self.start_time: Optional[datetime.datetime] = None
+
 
     def set_format(self, frmt):
         """
@@ -26,8 +31,15 @@ class Storage:
         logger.debug(f"Change format: {self._format} -> {frmt}")
         self._format = frmt
 
+    def set_save_dir(self, path: str):
+        """ Save record in save dir. Raise error if dir is not exists. """
+        if os.path.isdir(path):
+            self.path_to_save = path
+        else:
+            raise ValueError("Dir is not exists!")
+
     def get_file_name(self):
-        str_st = str(self._saving_start_time.replace(microsecond=0)).replace(":", "-")
+        str_st = str(self.start_time.replace(microsecond=0)).replace(":", "-")
         dur = int(self.ecg.shape[0] / 500)
         filename = f"{str_st}_dur_{dur}_sec"
         return filename
@@ -41,11 +53,8 @@ class Storage:
         if self.ecg.shape[0] == 0:
             return
 
-        # check if dir is exists
-        os.makedirs(DATA_PATH, exist_ok=True)
-
         filename = self.get_file_name()
-        write_dir = f"{DATA_PATH}\\{self._format.lower()}_{filename}"
+        write_dir = f"{self.path_to_save}\\{self._format.lower()}_{filename}"
 
         # create dir for saving files with selected format
         os.mkdir(path=write_dir)
@@ -59,7 +68,7 @@ class Storage:
             self._to_edf(filename)
 
         self.ecg = np.array([])
-        self._saving_start_time = None
+        self.start_time = None
 
     def _to_wfdb(
             self,
@@ -107,5 +116,5 @@ class Storage:
 
     def __call__(self, ecg):
         if self.ecg.shape[0] == 0:
-            self._saving_start_time = datetime.datetime.now()
+            self.start_time = datetime.datetime.now()
         self.ecg = np.append(self.ecg, ecg)
