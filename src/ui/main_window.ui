@@ -15,13 +15,6 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
-    <item row="0" column="0">
-     <layout class="QHBoxLayout" name="horizontalLayout">
-      <item>
-       <widget class="PlotWidget" name="plotWidget" native="true"/>
-      </item>
-     </layout>
-    </item>
     <item row="0" column="1">
      <layout class="QVBoxLayout" name="verticalLayout">
       <item>
@@ -82,31 +75,100 @@
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout_2">
         <item>
-         <widget class="QLabel" name="label">
-          <property name="text">
-           <string>Format:</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignmentFlag::AlignCenter</set>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QComboBox" name="comboBoxFormat">
-          <property name="enabled">
-           <bool>false</bool>
-          </property>
-          <item>
-           <property name="text">
-            <string>WFDB</string>
-           </property>
+         <layout class="QGridLayout" name="gridLayout_7">
+          <item row="0" column="0">
+           <widget class="QLabel" name="labelDirSave">
+            <property name="text">
+             <string>Save in:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
+            </property>
+           </widget>
           </item>
-          <item>
-           <property name="text">
-            <string>EDF</string>
-           </property>
+          <item row="2" column="0">
+           <widget class="QLabel" name="labelRT">
+            <property name="text">
+             <string>Recording time:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
+            </property>
+           </widget>
           </item>
-         </widget>
+          <item row="1" column="0">
+           <widget class="QLabel" name="labelFormat">
+            <property name="text">
+             <string>Format:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QLabel" name="labelRTvalue">
+            <property name="text">
+             <string>[00:00:00]</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignmentFlag::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QComboBox" name="comboBoxFormat">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <item>
+             <property name="text">
+              <string>WFDB</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>EDF</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLineEdit" name="lineEditSave">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QPushButton" name="pushButtonSelectDirSave">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Minimum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>5</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Change</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
        </layout>
       </item>
@@ -132,10 +194,13 @@
         <property name="text">
          <string>Device Information</string>
         </property>
+        <property name="alignment">
+         <set>Qt::AlignmentFlag::AlignCenter</set>
+        </property>
        </widget>
       </item>
       <item>
-       <layout class="QGridLayout" name="gridLayout_3">
+       <layout class="QGridLayout" name="gridLayout_5">
         <item row="3" column="0">
          <widget class="QLabel" name="labelStatus">
           <property name="text">
@@ -206,6 +271,13 @@
          </size>
         </property>
        </spacer>
+      </item>
+     </layout>
+    </item>
+    <item row="0" column="0">
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="PlotWidget" name="plotWidget" native="true"/>
       </item>
      </layout>
     </item>
