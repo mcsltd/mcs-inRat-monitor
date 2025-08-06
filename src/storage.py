@@ -43,8 +43,12 @@ class Storage:
         self._device_name = name
 
     def get_file_name(self):
-        str_st = str(self.start_time.replace(microsecond=0)).replace(":", "-")
-        dur = int(self.ecg.shape[0] / 500)
+        str_st:str = str(self.start_time.time().replace(microsecond=0))
+        for v in ["h", "m"]:
+            str_st = str_st.replace(":", v, 1)
+        str_st += "s"
+
+        dur = int(self.ecg.shape[0] / self.fs)
         filename = f"{str_st}_dur_{dur}_sec"
         return filename
 
@@ -57,17 +61,18 @@ class Storage:
         if self.ecg.shape[0] == 0:
             return
 
-        filename = self.get_file_name()
-        write_dir = f"{self.path_to_save}\\{self._format.lower()}_{filename}"
+        write_dir = f"{self.path_to_save}\\{self._device_name}\\{self.start_time.date()}\\{self._format.lower()}"
+        # write_dir = f"{self.path_to_save}\\{self._format.lower()}_{filename}"
 
         # create dir for saving files with selected format
-        os.mkdir(path=write_dir)
+        os.makedirs(write_dir, exist_ok=True)
 
+        filename = self.get_file_name()
         if self._format == "WFDB":
             self._to_wfdb(record_name=filename, write_dir=write_dir)
 
         # filename = f"{write_dir}\\{filename}.edf"
-        filename = f"{write_dir}\\file.edf"
+        filename = f"{write_dir}\\{filename}.edf"
         if self._format == "EDF":
             self._to_edf(filename)
 
@@ -80,9 +85,12 @@ class Storage:
 
             sig_name:list[str]=["ECG"], units: list[str] = ["uV"], fs: int = 500 # default
     ):
+        """
+        Save data in wfdb format.
+        """
         logger.debug("Save ecg in WFDB format.")
         wfdb.io.wrsamp(
-            record_name="file",
+            record_name=record_name,
             fs=self.fs, units=units, p_signal=self.ecg[np.newaxis].T,
             sig_name=sig_name, write_dir=write_dir, base_datetime=self.start_time
         )
@@ -91,6 +99,9 @@ class Storage:
         self,
         filename:str, units: str = "uV", fs: int = 500, sig_name:str="ECG",
     ):
+        """
+        Save data in edf format.
+        """
         logger.debug("Save ecg in EDF format.")
         writer = EdfWriter(
             n_channels=1,
