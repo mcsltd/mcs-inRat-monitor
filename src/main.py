@@ -165,16 +165,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # # if already device is select and connected
         # if self.device is not None and device.name == self.device.name:
         #     return
-        # # disconnect old ble device
-        # if self.device is not None and self.device.is_connected:
-        #     await self.device.close()
+
+        # reconnect with new device or old
+        if self.device is not None and not self.device.is_connected:
+            self.device = None
+            self.reset()
 
         try:
-
             self.device = RatSens(device)
             await self.device.connect()
+
             # set device info in label
             d_info = await self.device.get_device_information()
+
             # add in storage device name (for write additional info in edf)
             self.storage.set_device_name(self.device.name)
 
@@ -205,7 +208,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             dlg.close()
 
     def set_device_information(self, device_information: Optional[dict] = None):
-
         if device_information is not None:
             self.labelModelValue.setText(device_information["model"])
             self.labelSerialNumberValue.setText(device_information["serial"])
@@ -220,6 +222,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     async def start_device(self):
         logger.debug("Start device")
+
+        if not self.device.is_connected:
+            info = QMessageBox.information(
+                self, "Lost device connection",
+                f"Lost connection with device {self.device.name}",
+                buttons=QMessageBox.StandardButton.Ok
+            )
+
+            # reset all
+            await self.lost_connection()
+            return
 
         try:
             await self.device.get_ecg(ecg_queue=self.ecg_queue)
@@ -244,30 +257,35 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # when draw signal in online - disable mouse
             self.plotWidget.setMouseEnabled(x=False, y=False)
 
-    # ToDo: add handle for case disconnect
     async def updatePlot(self):
+        # check device connection
+        if not self.device.is_connected:
+            self.timer.stop()  # stop update plot
+
+            info = QMessageBox.information(
+                self, "Lost device connection",
+                f"Lost connection with device {self.device.name}",
+                buttons=QMessageBox.StandardButton.Ok
+            )
+
+            # reset all
+            await self.lost_connection()
+
         ecg = await self.ecg_queue.get()
         self.ecg = np.append(self.ecg, ecg["ecg"])
         self.ecg_queue.task_done()
-
-        # ToDo: check device connection
         logger.debug(f"Current {ecg['counter']=}")
-
         # calculate time
         if len(self.time) == 0:
             self.time = np.arange(1, len(ecg["ecg"]) + 1) * 0.01
         else:
             self.time = np.append(self.time, np.arange(1, len(ecg["ecg"]) + 1) * 1 / 500 + self.time[-1])
-
         # check shape ecg and time
         if self.ecg.shape != self.time.shape:
             raise ValueError("Arrays time and ecg have not same shape!")
-
         # add data in plot
         self.plot_ecg.setData(self.time, self.ecg)
-
         self.plotWidget.setXRange(max(0, self.time[-1] - SEC_SLIDE_WINDOW), self.time[-1])
-
         if self.storage.is_recording:
             self.storage(ecg["ecg"]) # save ecg in storage
             str_time = str(datetime.datetime.now() - self.storage.start_time).split(".")[0]
@@ -301,10 +319,44 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # when stop device - activate mouse
             self.plotWidget.setMouseEnabled(x=True, y=True)
 
+    async def lost_connection(self):
+        """
+        Action when lost connection with device.
+        :return: None
+        """
+        logger.info("Lost device connetion.")
+
+        # delete device information
+        self.set_device_information()
+
+        await self.device.disconnect()
+
+        # save data in storage
+        if self.storage.is_recording:
+            self.storage.save()
+            self.add_marker(pos=self.time[-1], text="Stop recording")
+            self.change_recording()
+
+        # disable button
+        self.pushButtonStop.setEnabled(False)
+        self.pushButtonStart.setEnabled(False)
+        self.pushButtonRecording.setEnabled(False)
+        self.pushButtonSelectDirSave.setEnabled(False)
+        self.comboBoxFormat.setEnabled(False)
+
+        # when lost connection - activate mouse
+        self.plotWidget.setMouseEnabled(x=True, y=True)
+
+        # run scanner
+        self.scanner.run(self.qt_loop)
+
+        # activate combobox
+        self.comboBoxDevice.setEnabled(True)
+
+
     def reset(self) -> None:
         """
-        Reset master data.
-        :return: None
+        Reset data.
         """
         self.ecg = np.array([])
         self.time = np.array([])
