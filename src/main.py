@@ -40,6 +40,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.setWindowTitle("InRat monitor")
         self.setWindowIcon(QIcon("./ui/iconMCS.ico"))
 
+        # hide
+        self.pushButtonDisconnect.hide()
+
         self.qt_loop = qt_loop
 
         # build queue
@@ -87,6 +90,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.pushButtonStop.clicked.connect(lambda: asyncio.ensure_future(self.stop_device()))
         self.pushButtonRecording.clicked.connect(self.change_recording)
         self.pushButtonSelectDirSave.clicked.connect(self._set_storage)
+        self.pushButtonDisconnect.clicked.connect(lambda: asyncio.ensure_future(self.disconnect_device()))
 
         self.lineEditSave.setText(self.storage.path_to_save) # set default folder
         self.comboBoxFormat.currentTextChanged.connect(self.storage.set_format)
@@ -203,8 +207,33 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
                 # enable button for start device
                 self.pushButtonStart.setEnabled(True)
+
+                self.pushButtonDisconnect.show()
+                self.pushButtonConnect.hide()
         finally:
             dlg.close()
+
+    async def disconnect_device(self):
+        self.reset()
+
+        if self.device.is_connected:
+            await self.device.close()
+            self.scanner.run(self.qt_loop)
+
+        else:
+            await self.lost_connection()
+
+        # disable
+        self.pushButtonStart.setEnabled(False)
+        self.pushButtonSelectDirSave.setEnabled(False)
+        self.comboBoxFormat.setEnabled(False)
+
+        # activate
+        self.comboBoxDevice.setEnabled(True)
+
+        self.pushButtonConnect.show()
+        self.pushButtonDisconnect.hide()
+
 
     def set_device_information(self, device_information: Optional[dict] = None):
         if device_information is not None:
@@ -245,7 +274,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.timer.start()
 
             # disable
-            self.pushButtonConnect.setEnabled(False)
+            # self.pushButtonConnect.setEnabled(False)
+            self.pushButtonDisconnect.setEnabled(False)
             self.comboBoxDevice.setEnabled(False)
             self.pushButtonStart.setEnabled(False)
 
@@ -314,6 +344,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.pushButtonStop.setEnabled(False)
             self.pushButtonStart.setEnabled(True)
             self.pushButtonRecording.setEnabled(False)
+            self.pushButtonDisconnect.setEnabled(True)
+
 
             # when stop device - activate mouse
             self.plotWidget.setMouseEnabled(x=True, y=True)
@@ -342,6 +374,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.pushButtonRecording.setEnabled(False)
         self.pushButtonSelectDirSave.setEnabled(False)
         self.comboBoxFormat.setEnabled(False)
+
+        # hide disconnet and hide connect
+        self.pushButtonDisconnect.hide()
+        self.pushButtonConnect.show()
 
         # when lost connection - activate mouse
         self.plotWidget.setMouseEnabled(x=True, y=True)

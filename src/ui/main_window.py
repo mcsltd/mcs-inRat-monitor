@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'main_windowPvuahB.ui'
+## Form generated from reading UI file 'main_windowfqUZiN.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -52,6 +52,11 @@ class Ui_MainWindow(object):
         self.pushButtonConnect.setObjectName(u"pushButtonConnect")
 
         self.verticalLayout.addWidget(self.pushButtonConnect)
+
+        self.pushButtonDisconnect = QPushButton(self.centralwidget)
+        self.pushButtonDisconnect.setObjectName(u"pushButtonDisconnect")
+
+        self.verticalLayout.addWidget(self.pushButtonDisconnect)
 
         self.line_3 = QFrame(self.centralwidget)
         self.line_3.setObjectName(u"line_3")
@@ -243,6 +248,7 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"MainWindow", None))
         self.labelDevice.setText(QCoreApplication.translate("MainWindow", u"Device:", None))
         self.pushButtonConnect.setText(QCoreApplication.translate("MainWindow", u"Connect", None))
+        self.pushButtonDisconnect.setText(QCoreApplication.translate("MainWindow", u"Disconnect", None))
         self.pushButtonStart.setText(QCoreApplication.translate("MainWindow", u"Start", None))
         self.pushButtonStop.setText(QCoreApplication.translate("MainWindow", u"Stop", None))
         self.labelDirSave.setText(QCoreApplication.translate("MainWindow", u"Save in:", None))
