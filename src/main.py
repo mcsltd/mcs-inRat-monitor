@@ -149,39 +149,47 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         dlg = WaitingDialog(parent=self)
         dlg.show()
 
+        # get device name for connection
         device = self.comboBoxDevice.currentData()
         idx_device = self.comboBoxDevice.currentIndex()
         logger.debug(f"Select device with name: {device.name}.")
 
-        # if already device is select and connected
-        if self.device is not None and device.name == self.device.name:
-            return
+        # stop scanner
+        self.scanner.stop()
+        # remove all device in combobox
+        self.comboBoxDevice.clear()
+        # disable combobox and button connect
+        self.comboBoxDevice.setDisabled(True)
+        self.pushButtonConnect.setDisabled(True)
 
-        # disconnect old ble device
-        if self.device is not None and self.device.is_connected:
-            await self.device.close()
+        # # if already device is select and connected
+        # if self.device is not None and device.name == self.device.name:
+        #     return
+        # # disconnect old ble device
+        # if self.device is not None and self.device.is_connected:
+        #     await self.device.close()
 
         try:
+
             self.device = RatSens(device)
             await self.device.connect()
-            # set device info
+            # set device info in label
             d_info = await self.device.get_device_information()
-
             # add in storage device name (for write additional info in edf)
             self.storage.set_device_name(self.device.name)
 
         except Exception as exc:
-            # remove device in combobox if not connected
-            self.comboBoxDevice.removeItem(idx_device)
-
-            if self.comboBoxDevice.count() == 0:
-                self.pushButtonConnect.setEnabled(False)
-
+            self.device = None
             info = QMessageBox.information(
                 self, "Connect error",
-                f"An error occurred while connect to the device\n\nInfo:\n{exc}\n\nPlease, restart application!",
+                f"An error occurred while connect to the device.\nCheck if the device has turned off.",
                 QMessageBox.StandardButton.Ok
             )
+            # remove device in combobox if not connected
+            self.comboBoxDevice.removeItem(idx_device)
+            self.comboBoxDevice.setEnabled(True)
+            # run the scanner if can't connect
+            self.scanner.run(self.qt_loop)
         else:
             # disable and activate btn state when connect to device
             if self.device.is_connected:
@@ -197,11 +205,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             dlg.close()
 
     def set_device_information(self, device_information: Optional[dict] = None):
+
         if device_information is not None:
             self.labelModelValue.setText(device_information["model"])
             self.labelSerialNumberValue.setText(device_information["serial"])
             self.labelStatusValue.setText(device_information["status"])
             self.labelNameValue.setText(device_information["name"])
+
         else:
             self.labelModelValue.setText("None")
             self.labelSerialNumberValue.setText("None")
@@ -210,9 +220,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     async def start_device(self):
         logger.debug("Start device")
-
-        # stop scanning
-        self.scanner.stop()
 
         try:
             await self.device.get_ecg(ecg_queue=self.ecg_queue)
@@ -270,9 +277,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     async def stop_device(self):
         logger.debug("Stop device")
 
-        # start scanning
-        self.scanner.run(self.qt_loop)
-
         try:
             await self.device.stop()
         except Exception as exc:
@@ -291,11 +295,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             # activate and disable btn when stop device
             self.pushButtonStop.setEnabled(False)
-            self.pushButtonConnect.setEnabled(True)
-            self.comboBoxDevice.setEnabled(True)
             self.pushButtonStart.setEnabled(True)
             self.pushButtonRecording.setEnabled(False)
-            # self.comboBoxFormat.setEnabled(False)
 
             # when stop device - activate mouse
             self.plotWidget.setMouseEnabled(x=True, y=True)
