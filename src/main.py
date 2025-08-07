@@ -27,9 +27,10 @@ logger = logging.getLogger(__name__)
 
 SEC_SLIDE_WINDOW = 2
 HZ = 500
+RED = pg.mkPen(color=(255, 0, 0))
+
 
 class MainWindow(QMainWindow, Ui_MainWindow):
-    preferences: str = "config.ini"
 
     signal_connect = Signal()
 
@@ -54,9 +55,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.scanner = BLEScannerWorker()
 
         # setup plot
-        red = pg.mkPen(color=(255, 0, 0))
-        green = pg.mkPen(color=(0, 255, 0))
-        self.plot_ecg = self.plotWidget.plot(self.time, self.ecg, pen=red)
+        self.plot_ecg = self.plotWidget.plot(self.time, self.ecg, pen=RED)
         self.plotWidget.setLabel("left", "ECG (μV)", pen=pg.mkPen(color='k'))
         self.plotWidget.getAxis("left").setPen(pg.mkPen(color='k'))
         self.plotWidget.getAxis("left").setTextPen(pg.mkPen(color='k'))
@@ -358,9 +357,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """
         Reset data.
         """
+        self.plotWidget.clear()
         self.ecg = np.array([])
         self.time = np.array([])
-        self.plot_ecg.setData(self.time, self.ecg)
+        self.plot_ecg = self.plotWidget.plot(self.time, self.ecg, pen=RED)
         self.set_device_information()
 
     def add_marker(self, pos, text:str="event"):
