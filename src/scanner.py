@@ -41,6 +41,7 @@ class BLEScannerWorker(QObject):
     def run(self, qt_loop: QtAsyncio.QAsyncioEventLoop):
         self.timer = 0
         # ToDo: watch another variant
+        self.event_stop_scan.clear()
         asyncio.run_coroutine_threadsafe(self._scanning(), qt_loop)
 
     def stop(self):
