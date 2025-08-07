@@ -9,6 +9,7 @@ import pyqtgraph as pg
 import numpy as np
 from PySide6 import QtAsyncio, QtCore
 from PySide6.QtCore import QTimer, Signal
+from PySide6.QtBluetooth import QBluetooth
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QComboBox, QFileDialog
 from bleak import BLEDevice, BleakScanner
@@ -16,6 +17,7 @@ from bleak import BLEDevice, BleakScanner
 from device import RatSens
 from src.config import DATA_PATH
 from src.scanner import BLEScannerWorker
+from src.utils.check_bluetooth import check_bluetooth_status
 from storage import Storage
 from ui.main_window import Ui_MainWindow
 from widget import WaitingDialog
@@ -38,14 +40,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.setWindowIcon(QIcon("./ui/iconMCS.ico"))
 
         self.qt_loop = qt_loop
+
         # build queue
         self.ecg_queue = asyncio.Queue()
 
+        # data
         self.ecg = np.array([])
         self.time = np.array([])
 
+        # main classes
         self.device: Optional[RatSens] = None
         self.storage = Storage(path_to_save=DATA_PATH, fs=500)
+        self.scanner = BLEScannerWorker()
 
         # setup plot
         red = pg.mkPen(color=(255, 0, 0))
@@ -68,7 +74,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.timer.timeout.connect(lambda: asyncio.ensure_future(self.updatePlot()))
 
         # create scanner and run it
-        self.scanner = BLEScannerWorker()
         self.scanner.run(self.qt_loop)
         self.scanner.signal_found.connect(self.set_combobox_items)
         self.pushButtonConnect.setEnabled(False)
@@ -97,7 +102,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         )
         self.storage.set_save_dir(path_to_save)
         self.lineEditSave.setText(path_to_save)
-
 
     def set_combobox_items(self, devices: set[BLEDevice]):
         for device in devices:
@@ -233,6 +237,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # when draw signal in online - disable mouse
             self.plotWidget.setMouseEnabled(x=False, y=False)
 
+    # ToDo: add handle for case disconnect
     async def updatePlot(self):
         ecg = await self.ecg_queue.get()
         self.ecg = np.append(self.ecg, ecg["ecg"])
@@ -261,7 +266,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             str_time = str(datetime.datetime.now() - self.storage.start_time).split(".")[0]
             str_time = "0" + str_time if len(str_time) != 8 else str_time
             self.labelRTvalue.setText(f"[{str_time}]")
-
 
     async def stop_device(self):
         logger.debug("Stop device")
@@ -332,10 +336,20 @@ if __name__ == "__main__":
     app = QApplication([])
     loop = QtAsyncio.QAsyncioEventLoop(application=app)
 
-    window = MainWindow(loop)
+    try:
+        check_bluetooth_status()
+    except Exception as exc:
+        info = QMessageBox().information(
+            None,
+            "Bluetooth error",
+            f"Bluetooth error\n\nInfo:\n{exc}",
+            QMessageBox.StandardButton.Ok
+        )
+        app.quit()
+    else:
+        window = MainWindow(loop)
+        window.show()
+        # window.showMaximized()
+        loop.run_forever()
 
-    window.show()
-    # window.showMaximized()
-
-    loop.run_forever()
     # QtAsyncio.run(handle_sigint=True, debug=True)
