@@ -1,7 +1,6 @@
 import asyncio
 import datetime
 import logging
-import os.path
 from typing import Optional
 
 import pyqtgraph as pg
@@ -9,13 +8,13 @@ import pyqtgraph as pg
 import numpy as np
 from PySide6 import QtAsyncio, QtCore
 from PySide6.QtCore import QTimer, Signal
-from PySide6.QtBluetooth import QBluetooth
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QComboBox, QFileDialog
-from bleak import BLEDevice, BleakScanner
+from bleak import BLEDevice
 
 from device import RatSens
 from src.config import DATA_PATH
+from src.constants import HZ
 from src.scanner import BLEScannerWorker
 from src.utils.check_bluetooth import check_bluetooth_status
 from storage import Storage
@@ -25,8 +24,8 @@ from widget import WaitingDialog
 logger = logging.getLogger(__name__)
 
 
-SEC_SLIDE_WINDOW = 2
-HZ = 500
+SEC_SLIDE_WINDOW = 5
+
 RED = pg.mkPen(color=(255, 0, 0))
 
 
@@ -54,7 +53,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # main classes
         self.device: Optional[RatSens] = None
-        self.storage = Storage(path_to_save=DATA_PATH, fs=500)
+        self.storage = Storage(path_to_save=DATA_PATH, fs=HZ)
         self.scanner = BLEScannerWorker()
 
         # setup plot
@@ -128,10 +127,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             logger.debug("Select stop recording ECG.")
 
+            self.labelRTvalue.setText(f"[00:00:00]")
             # check if device running when change button state (when press stop recording)
             if self.device.is_running:
                 self.storage.save()
-                self.labelRTvalue.setText(f"[00:00:00]")
                 self.add_marker(pos=self.time[-1], text="Stop recording")
 
         elif self.storage.is_recording is None or not self.storage.is_recording:
@@ -308,7 +307,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if len(self.time) == 0:
             self.time = np.arange(1, len(ecg["ecg"]) + 1) * 0.01
         else:
-            self.time = np.append(self.time, np.arange(1, len(ecg["ecg"]) + 1) * 1 / 500 + self.time[-1])
+            self.time = np.append(self.time, np.arange(1, len(ecg["ecg"]) + 1) * 1 / HZ + self.time[-1])
         # check shape ecg and time
         if self.ecg.shape != self.time.shape:
             raise ValueError("Arrays time and ecg have not same shape!")
