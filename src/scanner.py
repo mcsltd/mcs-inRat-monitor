@@ -46,4 +46,4 @@ class BLEScannerWorker(QObject):
 
     def stop(self):
         self.event_stop_scan.set()
-        time.sleep(0.5)
+        time.sleep(0.7)

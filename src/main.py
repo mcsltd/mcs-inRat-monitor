@@ -240,12 +240,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.labelSerialNumberValue.setText(device_information["serial"])
             self.labelStatusValue.setText(device_information["status"])
             self.labelNameValue.setText(device_information["name"])
+            self.label.setText("1000 Hz")
 
         else:
             self.labelModelValue.setText("None")
             self.labelSerialNumberValue.setText("None")
             self.labelStatusValue.setText("Not connected")
             self.labelNameValue.setText("None")
+            self.label.setText("None")
 
     async def start_device(self):
         logger.debug("Start device")
@@ -412,8 +414,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def closeEvent(self, event):
         self.scanner.stop()
-        # while not self.scanner.event_stop_scan.is_set():
-        #     ...
 
 if __name__ == "__main__":
     logging.basicConfig(
