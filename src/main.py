@@ -11,6 +11,7 @@ from PySide6.QtCore import QTimer, Signal
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QComboBox, QFileDialog
 from bleak import BLEDevice
+from pyqtgraph import ViewBox
 
 from device import RatSens
 from src.config import DATA_PATH
@@ -233,7 +234,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.pushButtonConnect.show()
         self.pushButtonDisconnect.hide()
 
-
     def set_device_information(self, device_information: Optional[dict] = None):
         if device_information is not None:
             self.labelModelValue.setText(device_information["model"])
@@ -313,14 +313,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # check shape ecg and time
         if self.ecg.shape != self.time.shape:
             raise ValueError("Arrays time and ecg have not same shape!")
-        # add data in plot
-        self.plot_ecg.setData(self.time, self.ecg)
-        self.plotWidget.setXRange(max(0, self.time[-1] - SEC_SLIDE_WINDOW), self.time[-1])
+
         if self.storage.is_recording:
             self.storage(ecg["ecg"]) # save ecg in storage
             str_time = str(datetime.datetime.now() - self.storage.start_time).split(".")[0]
             str_time = "0" + str_time if len(str_time) != 8 else str_time
             self.labelRTvalue.setText(f"[{str_time}]")
+
+        # add data in plot
+        self.plot_ecg.setData(self.time, self.ecg)
+        self.plotWidget.setXRange(max(0, self.time[-1] - SEC_SLIDE_WINDOW), self.time[-1])
+
+        slide = self.ecg[len(ecg) - SEC_SLIDE_WINDOW * HZ:]
+        self.plotWidget.setYRange(
+            min(slide), max(slide), # padding=0.15
+        )
 
     async def stop_device(self):
         logger.debug("Stop device")
@@ -436,8 +443,8 @@ if __name__ == "__main__":
         app.quit()
     else:
         window = MainWindow(loop)
-        window.show()
-        # window.showMaximized()
+        # window.show()
+        window.showMaximized()
         loop.run_forever()
 
     # QtAsyncio.run(handle_sigint=True, debug=True)
