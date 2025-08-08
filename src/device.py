@@ -153,6 +153,7 @@ class RatSens(BleakClient):
 
     async def close(self):
         logger.debug("Close connection to the BLE device")
+        self.is_running = False
         await self.setup(cmd=Command.ConnectionClose)
         await self.disconnect()
 

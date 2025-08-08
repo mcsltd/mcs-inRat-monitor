@@ -420,6 +420,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.plotWidget.addItem(line)
 
     def closeEvent(self, event):
+        if self.timer.isActive():
+            self.pushButtonStop.click()
+            self.timer.stop()
+
+        # stop scanner
         self.scanner.stop()
 
 if __name__ == "__main__":
