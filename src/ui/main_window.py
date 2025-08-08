@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'main_windowPvuahB.ui'
+## Form generated from reading UI file 'main_windowxsHwwz.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -52,6 +52,11 @@ class Ui_MainWindow(object):
         self.pushButtonConnect.setObjectName(u"pushButtonConnect")
 
         self.verticalLayout.addWidget(self.pushButtonConnect)
+
+        self.pushButtonDisconnect = QPushButton(self.centralwidget)
+        self.pushButtonDisconnect.setObjectName(u"pushButtonDisconnect")
+
+        self.verticalLayout.addWidget(self.pushButtonDisconnect)
 
         self.line_3 = QFrame(self.centralwidget)
         self.line_3.setObjectName(u"line_3")
@@ -165,15 +170,15 @@ class Ui_MainWindow(object):
 
         self.gridLayout_5 = QGridLayout()
         self.gridLayout_5.setObjectName(u"gridLayout_5")
-        self.labelStatus = QLabel(self.centralwidget)
-        self.labelStatus.setObjectName(u"labelStatus")
+        self.labelNameValue = QLabel(self.centralwidget)
+        self.labelNameValue.setObjectName(u"labelNameValue")
 
-        self.gridLayout_5.addWidget(self.labelStatus, 3, 0, 1, 1)
+        self.gridLayout_5.addWidget(self.labelNameValue, 0, 1, 1, 1)
 
-        self.labelSerialNumberValue = QLabel(self.centralwidget)
-        self.labelSerialNumberValue.setObjectName(u"labelSerialNumberValue")
+        self.labelName = QLabel(self.centralwidget)
+        self.labelName.setObjectName(u"labelName")
 
-        self.gridLayout_5.addWidget(self.labelSerialNumberValue, 1, 1, 1, 1)
+        self.gridLayout_5.addWidget(self.labelName, 0, 0, 1, 1)
 
         self.labelSerialNumber = QLabel(self.centralwidget)
         self.labelSerialNumber.setObjectName(u"labelSerialNumber")
@@ -195,15 +200,25 @@ class Ui_MainWindow(object):
 
         self.gridLayout_5.addWidget(self.labelModelValue, 2, 1, 1, 1)
 
-        self.labelName = QLabel(self.centralwidget)
-        self.labelName.setObjectName(u"labelName")
+        self.labelStatus = QLabel(self.centralwidget)
+        self.labelStatus.setObjectName(u"labelStatus")
 
-        self.gridLayout_5.addWidget(self.labelName, 0, 0, 1, 1)
+        self.gridLayout_5.addWidget(self.labelStatus, 3, 0, 1, 1)
 
-        self.labelNameValue = QLabel(self.centralwidget)
-        self.labelNameValue.setObjectName(u"labelNameValue")
+        self.labelSerialNumberValue = QLabel(self.centralwidget)
+        self.labelSerialNumberValue.setObjectName(u"labelSerialNumberValue")
 
-        self.gridLayout_5.addWidget(self.labelNameValue, 0, 1, 1, 1)
+        self.gridLayout_5.addWidget(self.labelSerialNumberValue, 1, 1, 1, 1)
+
+        self.labelSF = QLabel(self.centralwidget)
+        self.labelSF.setObjectName(u"labelSF")
+
+        self.gridLayout_5.addWidget(self.labelSF, 4, 0, 1, 1)
+
+        self.label = QLabel(self.centralwidget)
+        self.label.setObjectName(u"label")
+
+        self.gridLayout_5.addWidget(self.label, 4, 1, 1, 1)
 
 
         self.verticalLayout.addLayout(self.gridLayout_5)
@@ -243,6 +258,7 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"MainWindow", None))
         self.labelDevice.setText(QCoreApplication.translate("MainWindow", u"Device:", None))
         self.pushButtonConnect.setText(QCoreApplication.translate("MainWindow", u"Connect", None))
+        self.pushButtonDisconnect.setText(QCoreApplication.translate("MainWindow", u"Disconnect", None))
         self.pushButtonStart.setText(QCoreApplication.translate("MainWindow", u"Start", None))
         self.pushButtonStop.setText(QCoreApplication.translate("MainWindow", u"Stop", None))
         self.labelDirSave.setText(QCoreApplication.translate("MainWindow", u"Save in:", None))
@@ -255,13 +271,15 @@ class Ui_MainWindow(object):
         self.pushButtonSelectDirSave.setText(QCoreApplication.translate("MainWindow", u"Change", None))
         self.pushButtonRecording.setText(QCoreApplication.translate("MainWindow", u"Start Recording", None))
         self.labelDeviceInformation.setText(QCoreApplication.translate("MainWindow", u"Device Information", None))
-        self.labelStatus.setText(QCoreApplication.translate("MainWindow", u"Status:", None))
-        self.labelSerialNumberValue.setText(QCoreApplication.translate("MainWindow", u"None", None))
+        self.labelNameValue.setText(QCoreApplication.translate("MainWindow", u"None", None))
+        self.labelName.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
         self.labelSerialNumber.setText(QCoreApplication.translate("MainWindow", u"Serial:", None))
         self.labelStatusValue.setText(QCoreApplication.translate("MainWindow", u"Not connected", None))
         self.labelModel.setText(QCoreApplication.translate("MainWindow", u"Model:", None))
         self.labelModelValue.setText(QCoreApplication.translate("MainWindow", u"None", None))
-        self.labelName.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
-        self.labelNameValue.setText(QCoreApplication.translate("MainWindow", u"None", None))
+        self.labelStatus.setText(QCoreApplication.translate("MainWindow", u"Status:", None))
+        self.labelSerialNumberValue.setText(QCoreApplication.translate("MainWindow", u"None", None))
+        self.labelSF.setText(QCoreApplication.translate("MainWindow", u"Sample Frequency:", None))
+        self.label.setText(QCoreApplication.translate("MainWindow", u"None", None))
     # retranslateUi
 

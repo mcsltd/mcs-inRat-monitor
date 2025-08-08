@@ -83,7 +83,7 @@ class Storage:
             self,
             record_name: str, write_dir: str,
 
-            sig_name:list[str]=["ECG"], units: list[str] = ["uV"], fs: int = 500 # default
+            sig_name:list[str]=["ECG"], units: list[str] = ["uV"],
     ):
         """
         Save data in wfdb format.
@@ -97,7 +97,7 @@ class Storage:
 
     def _to_edf(
         self,
-        filename:str, units: str = "uV", fs: int = 500, sig_name:str="ECG",
+        filename:str, units: str = "uV", sig_name:str="ECG",
     ):
         """
         Save data in edf format.
@@ -118,7 +118,7 @@ class Storage:
         channel_info = {
             'label': sig_name,
             'dimension': units,
-            'sample_frequency': fs,
+            'sample_frequency': self.fs,
             'physical_max': physical_max,
             'physical_min': physical_min,
             'digital_max': 32767,

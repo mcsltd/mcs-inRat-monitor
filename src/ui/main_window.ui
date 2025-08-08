@@ -39,6 +39,13 @@
        </widget>
       </item>
       <item>
+       <widget class="QPushButton" name="pushButtonDisconnect">
+        <property name="text">
+         <string>Disconnect</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="Line" name="line_3">
         <property name="orientation">
          <enum>Qt::Orientation::Horizontal</enum>
@@ -201,17 +208,17 @@
       </item>
       <item>
        <layout class="QGridLayout" name="gridLayout_5">
-        <item row="3" column="0">
-         <widget class="QLabel" name="labelStatus">
+        <item row="0" column="1">
+         <widget class="QLabel" name="labelNameValue">
           <property name="text">
-           <string>Status:</string>
+           <string>None</string>
           </property>
          </widget>
         </item>
-        <item row="1" column="1">
-         <widget class="QLabel" name="labelSerialNumberValue">
+        <item row="0" column="0">
+         <widget class="QLabel" name="labelName">
           <property name="text">
-           <string>None</string>
+           <string>Name:</string>
           </property>
          </widget>
         </item>
@@ -243,15 +250,29 @@
           </property>
          </widget>
         </item>
-        <item row="0" column="0">
-         <widget class="QLabel" name="labelName">
+        <item row="3" column="0">
+         <widget class="QLabel" name="labelStatus">
           <property name="text">
-           <string>Name:</string>
+           <string>Status:</string>
           </property>
          </widget>
         </item>
-        <item row="0" column="1">
-         <widget class="QLabel" name="labelNameValue">
+        <item row="1" column="1">
+         <widget class="QLabel" name="labelSerialNumberValue">
+          <property name="text">
+           <string>None</string>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="0">
+         <widget class="QLabel" name="labelSF">
+          <property name="text">
+           <string>Sample Frequency:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="1">
+         <widget class="QLabel" name="label">
           <property name="text">
            <string>None</string>
           </property>
