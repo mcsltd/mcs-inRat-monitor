@@ -1,8 +1,8 @@
 import struct
 import numpy as np
 
-from src.constants import Pkt, Const
-from src.decoder import Decoder
+from constants import Pkt, Const
+from decoder import Decoder
 
 
 def read_file(filename: str = "./data_decoder/test.txt") -> np.ndarray:

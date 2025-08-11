@@ -5,7 +5,6 @@ from typing import Any, AsyncGenerator
 
 from bleak import AdvertisementData, BLEDevice, BleakScanner, BleakClient
 
-from constants import DeviceInformationService
 
 DEFAULT_TIMEOUT = 30
 
