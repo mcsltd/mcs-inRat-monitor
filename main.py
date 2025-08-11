@@ -11,13 +11,12 @@ from PySide6.QtCore import QTimer, Signal
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QComboBox, QFileDialog
 from bleak import BLEDevice
-from pyqtgraph import ViewBox
 
 from device import RatSens
-from src.config import DATA_PATH
-from src.constants import HZ
-from src.scanner import BLEScannerWorker
-from src.utils.check_bluetooth import check_bluetooth_status
+from config import DATA_PATH
+from constants import HZ
+from scanner import BLEScannerWorker
+from utils.check_bluetooth import check_bluetooth_status
 from storage import Storage
 from ui.main_window import Ui_MainWindow
 from widget import WaitingDialog
@@ -38,7 +37,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
         self.setWindowTitle("InRat monitor")
-        self.setWindowIcon(QIcon("./ui/iconMCS.ico"))
+        self.setWindowIcon(QIcon("ui/iconMCS.ico"))
 
         # hide
         self.pushButtonDisconnect.hide()

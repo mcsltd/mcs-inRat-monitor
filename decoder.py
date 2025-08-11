@@ -2,7 +2,7 @@ import logging
 import struct
 import numpy as np
 
-from src.constants import Pkt, Const
+from constants import Pkt, Const
 
 logger = logging.getLogger(__name__)
 

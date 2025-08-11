@@ -1,12 +1,11 @@
 import datetime
 import logging
 import os.path
-from typing import Optional
-
 import numpy as np
 import wfdb
-from pyedflib import EdfWriter
 
+from pyedflib import EdfWriter
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 

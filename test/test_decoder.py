@@ -2,8 +2,8 @@ import unittest
 import struct
 import numpy as np
 
-from src.constants import Pkt, Const
-from src.decoder import Decoder
+from constants import Pkt, Const
+from decoder import Decoder
 
 
 class TestDecoder(unittest.TestCase):

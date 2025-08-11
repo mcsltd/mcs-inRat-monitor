@@ -1,16 +1,14 @@
 import asyncio
 import ctypes
 import logging
-import struct
 from typing import Optional
 
-import numpy as np
 from bleak import BleakClient
 
 from config import BLE_KEY
 from constants import Command, DataRateEcg, FullScaleAccelerometer, EnabledChannels, \
-    EventType, Const, Pkt, DeviceInformationService
-from src.decoder import Decoder
+    EventType, Const, DeviceInformationService
+from decoder import Decoder
 from structure import Settings, Event
 from utils.crypt import get_control_sum
 

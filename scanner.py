@@ -1,12 +1,11 @@
 import asyncio
 import time
-from typing import Optional
 
 from PySide6.QtCore import QObject, Signal
 from PySide6 import QtAsyncio
 from bleak import BLEDevice, BleakScanner
 
-from src.utils.scanner import NAME_TEMPLATE
+from utils.scanner import NAME_TEMPLATE
 
 
 class BLEScannerWorker(QObject):
@@ -41,7 +40,6 @@ class BLEScannerWorker(QObject):
     def run(self, qt_loop: QtAsyncio.QAsyncioEventLoop):
         self.timer = 0
         self.event_stop_scan.clear()
-        # ToDo: watch another variant
         asyncio.run_coroutine_threadsafe(self._scanning(), qt_loop)
 
     def stop(self):
