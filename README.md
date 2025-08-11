@@ -9,31 +9,6 @@ Application for viewing and saving signals from InRat.
 
 2. Save signal from InRat in two data format: edf, wfdb
 
-
-## Running
-
-You can launch the application in two ways:
-
-### First way (easy)
-
-0. Download `InRat monitor.exe`
-
-1. Create `.env` file in dir when you start application and fill in the fields
-
-```.env
-BLE_KEY=...
-```
-
-`BLE_KEY` - requested from the company MCS ltd.
-
-
-2. Double-click `InRat monitor.exe`
-
-### Second way (for developers)
-1. Download files from repo
-2. Install libs in requirements.txt
-2. Run code in your idle (see Dependencies)
-
 ## Dependencies
 
 ### Requirements
@@ -42,6 +17,7 @@ BLE_KEY=...
 
 ### System requirements
 * OS: Windows 10
+* Bluetooth
 
 ### Requirements for libraries
 You can find other requirements for the library in the [requirements.txt](requirements.txt).
