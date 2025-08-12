@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import logging
+import os
 from typing import Optional
 
 import pyqtgraph as pg
@@ -90,6 +91,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.pushButtonRecording.clicked.connect(self.change_recording)
         self.pushButtonSelectDirSave.clicked.connect(self._set_storage)
         self.pushButtonDisconnect.clicked.connect(lambda: asyncio.ensure_future(self.disconnect_device()))
+        self.pushButtonShowRecords.clicked.connect(self.open_savedir)
 
         self.lineEditSave.setText(self.storage.path_to_save) # set default folder
         self.comboBoxFormat.currentTextChanged.connect(self.storage.set_format)
@@ -99,11 +101,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         path_to_save = QFileDialog.getExistingDirectory(
             self,
             "Select folder",
-            DATA_PATH,
+            self.storage.path_to_save,
             QFileDialog.Option.ShowDirsOnly | QFileDialog.Option.DontResolveSymlinks
         )
         self.storage.set_save_dir(path_to_save)
         self.lineEditSave.setText(path_to_save)
+
+    def open_savedir(self):
+        if os.name == 'nt':  # Windows
+            os.system(f'start "" "{self.storage.path_to_save}"')
+        elif os.name == 'posix':  # Linux, macOS
+            os.system(f'open "{self.storage.path_to_save}"')
 
     def set_combobox_items(self, devices: set[BLEDevice]):
         for device in devices:
@@ -123,7 +131,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             # activate elements for setup storage when press "Stop Recording"
             self.comboBoxFormat.setEnabled(True)
-            self.pushButtonSelectDirSave.setEnabled(True)
+            # self.pushButtonSelectDirSave.setEnabled(True)
 
             logger.debug("Select stop recording ECG.")
 
@@ -139,7 +147,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.pushButtonRecording.setText("Stop Recording")
 
             # deactivate elements when press "Start Recording"
-            self.pushButtonSelectDirSave.setEnabled(False)
+            # self.pushButtonSelectDirSave.setEnabled(False)
             self.comboBoxFormat.setEnabled(False)
 
             logger.debug("Select start recording ECG.")
@@ -164,9 +172,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.comboBoxDevice.setDisabled(True)
         self.pushButtonConnect.setDisabled(True)
 
-        # # if already device is select and connected
-        # if self.device is not None and device.name == self.device.name:
-        #     return
 
         # reconnect with new device or old
         if self.device is not None and not self.device.is_connected:
@@ -202,7 +207,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
                 # enable settings for storage
                 self.comboBoxFormat.setEnabled(True)
-                self.pushButtonSelectDirSave.setEnabled(True)
+                # self.pushButtonSelectDirSave.setEnabled(True)
 
                 # enable button for start device
                 self.pushButtonStart.setEnabled(True)
@@ -224,7 +229,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # disable
         self.pushButtonStart.setEnabled(False)
-        self.pushButtonSelectDirSave.setEnabled(False)
+        # self.pushButtonSelectDirSave.setEnabled(False)
         self.comboBoxFormat.setEnabled(False)
 
         # activate
@@ -352,8 +357,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.pushButtonStart.setEnabled(True)
             self.pushButtonRecording.setEnabled(False)
             self.pushButtonDisconnect.setEnabled(True)
-
-
             # when stop device - activate mouse
             self.plotWidget.setMouseEnabled(x=True, y=True)
 
@@ -379,7 +382,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.pushButtonStop.setEnabled(False)
         self.pushButtonStart.setEnabled(False)
         self.pushButtonRecording.setEnabled(False)
-        self.pushButtonSelectDirSave.setEnabled(False)
+        # self.pushButtonSelectDirSave.setEnabled(False)
         self.comboBoxFormat.setEnabled(False)
 
         # hide disconnet and hide connect

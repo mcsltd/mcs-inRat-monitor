@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>796</width>
+    <width>1064</width>
     <height>592</height>
    </rect>
   </property>
@@ -156,7 +156,7 @@
           <item row="0" column="2">
            <widget class="QPushButton" name="pushButtonSelectDirSave">
             <property name="enabled">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <property name="sizePolicy">
              <sizepolicy hsizetype="Fixed" vsizetype="Minimum">
@@ -186,6 +186,16 @@
         </property>
         <property name="text">
          <string>Start Recording</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pushButtonShowRecords">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="text">
+         <string>Show Records</string>
         </property>
        </widget>
       </item>
@@ -309,7 +319,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>796</width>
+     <width>1064</width>
      <height>22</height>
     </rect>
    </property>

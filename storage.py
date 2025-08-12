@@ -42,7 +42,7 @@ class Storage:
         self._device_name = name
 
     def get_file_name(self):
-        str_st:str = str(self.start_time.time().replace(microsecond=0))
+        str_st:str = str(self.start_time.date()) + "_" + str(self.start_time.time().replace(microsecond=0))
         for v in ["h", "m"]:
             str_st = str_st.replace(":", v, 1)
         str_st += "s"
@@ -60,8 +60,8 @@ class Storage:
         if self.ecg.shape[0] == 0:
             return
 
-        write_dir = f"{self.path_to_save}\\{self._device_name}\\{self.start_time.date()}\\{self._format.lower()}"
-        # write_dir = f"{self.path_to_save}\\{self._format.lower()}_{filename}"
+        # write_dir = f"{self.path_to_save}\\{self._device_name}\\{self.start_time.date()}\\{self._format.lower()}"
+        write_dir = f"{self.path_to_save}\\{self._device_name}\\{self._format.lower()}\\"
 
         # create dir for saving files with selected format
         os.makedirs(write_dir, exist_ok=True)
@@ -70,7 +70,6 @@ class Storage:
         if self._format == "WFDB":
             self._to_wfdb(record_name=filename, write_dir=write_dir)
 
-        # filename = f"{write_dir}\\{filename}.edf"
         filename = f"{write_dir}\\{filename}.edf"
         if self._format == "EDF":
             self._to_edf(filename)

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'main_windowxsHwwz.ui'
+## Form generated from reading UI file 'main_windowKUQSxg.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -26,7 +26,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(796, 592)
+        MainWindow.resize(1064, 592)
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.gridLayout = QGridLayout(self.centralwidget)
@@ -133,7 +133,7 @@ class Ui_MainWindow(object):
 
         self.pushButtonSelectDirSave = QPushButton(self.centralwidget)
         self.pushButtonSelectDirSave.setObjectName(u"pushButtonSelectDirSave")
-        self.pushButtonSelectDirSave.setEnabled(False)
+        self.pushButtonSelectDirSave.setEnabled(True)
         sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
         sizePolicy1.setHorizontalStretch(0)
         sizePolicy1.setVerticalStretch(0)
@@ -154,6 +154,12 @@ class Ui_MainWindow(object):
         self.pushButtonRecording.setEnabled(False)
 
         self.verticalLayout.addWidget(self.pushButtonRecording)
+
+        self.pushButtonShowRecords = QPushButton(self.centralwidget)
+        self.pushButtonShowRecords.setObjectName(u"pushButtonShowRecords")
+        self.pushButtonShowRecords.setEnabled(True)
+
+        self.verticalLayout.addWidget(self.pushButtonShowRecords)
 
         self.line_2 = QFrame(self.centralwidget)
         self.line_2.setObjectName(u"line_2")
@@ -243,7 +249,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 796, 22))
+        self.menubar.setGeometry(QRect(0, 0, 1064, 22))
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QStatusBar(MainWindow)
         self.statusbar.setObjectName(u"statusbar")
@@ -270,6 +276,7 @@ class Ui_MainWindow(object):
 
         self.pushButtonSelectDirSave.setText(QCoreApplication.translate("MainWindow", u"Change", None))
         self.pushButtonRecording.setText(QCoreApplication.translate("MainWindow", u"Start Recording", None))
+        self.pushButtonShowRecords.setText(QCoreApplication.translate("MainWindow", u"Show Records", None))
         self.labelDeviceInformation.setText(QCoreApplication.translate("MainWindow", u"Device Information", None))
         self.labelNameValue.setText(QCoreApplication.translate("MainWindow", u"None", None))
         self.labelName.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
