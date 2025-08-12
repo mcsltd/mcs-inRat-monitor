@@ -5,7 +5,7 @@ import numpy as np
 
 
 def read_and_plot_wfdb(record_name):
-    record = wfdb.rdrecord(r"file")
+    record = wfdb.rdrecord(record_name)
 
     wfdb.plot_items(
         signal=record.p_signal,
@@ -30,4 +30,5 @@ def read_file_edf(record_name="file.edf"):
 
 
 if __name__ == "__main__":
-    read_file_edf(record_name="file.edf")
+    # read_file_edf(record_name="file.edf")
+    read_and_plot_wfdb(record_name="2025-08-12_11h53m08s_dur_11_sec")
