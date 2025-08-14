@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1064</width>
-    <height>592</height>
+    <width>1084</width>
+    <height>690</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -21,18 +21,34 @@
        <layout class="QHBoxLayout" name="horizontalLayout_3">
         <item>
          <widget class="QLabel" name="labelDevice">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
           <property name="text">
            <string>Device:</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QComboBox" name="comboBoxDevice"/>
+         <widget class="QComboBox" name="comboBoxDevice">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
+         </widget>
         </item>
        </layout>
       </item>
       <item>
        <widget class="QPushButton" name="pushButtonConnect">
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+         </font>
+        </property>
         <property name="text">
          <string>Connect</string>
         </property>
@@ -40,6 +56,11 @@
       </item>
       <item>
        <widget class="QPushButton" name="pushButtonDisconnect">
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+         </font>
+        </property>
         <property name="text">
          <string>Disconnect</string>
         </property>
@@ -57,6 +78,11 @@
         <property name="enabled">
          <bool>false</bool>
         </property>
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+         </font>
+        </property>
         <property name="text">
          <string>Start</string>
         </property>
@@ -66,6 +92,11 @@
        <widget class="QPushButton" name="pushButtonStop">
         <property name="enabled">
          <bool>false</bool>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+         </font>
         </property>
         <property name="text">
          <string>Stop</string>
@@ -85,6 +116,11 @@
          <layout class="QGridLayout" name="gridLayout_7">
           <item row="0" column="0">
            <widget class="QLabel" name="labelDirSave">
+            <property name="font">
+             <font>
+              <pointsize>12</pointsize>
+             </font>
+            </property>
             <property name="text">
              <string>Save in:</string>
             </property>
@@ -95,6 +131,11 @@
           </item>
           <item row="2" column="0">
            <widget class="QLabel" name="labelRT">
+            <property name="font">
+             <font>
+              <pointsize>12</pointsize>
+             </font>
+            </property>
             <property name="text">
              <string>Recording time:</string>
             </property>
@@ -105,6 +146,11 @@
           </item>
           <item row="1" column="0">
            <widget class="QLabel" name="labelFormat">
+            <property name="font">
+             <font>
+              <pointsize>12</pointsize>
+             </font>
+            </property>
             <property name="text">
              <string>Format:</string>
             </property>
@@ -115,8 +161,13 @@
           </item>
           <item row="2" column="1">
            <widget class="QLabel" name="labelRTvalue">
+            <property name="font">
+             <font>
+              <pointsize>12</pointsize>
+             </font>
+            </property>
             <property name="text">
-             <string>[00:00:00]</string>
+             <string>00:00:00</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -127,6 +178,11 @@
            <widget class="QComboBox" name="comboBoxFormat">
             <property name="enabled">
              <bool>false</bool>
+            </property>
+            <property name="font">
+             <font>
+              <pointsize>12</pointsize>
+             </font>
             </property>
             <item>
              <property name="text">
@@ -151,6 +207,11 @@
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
+            <property name="font">
+             <font>
+              <pointsize>12</pointsize>
+             </font>
+            </property>
            </widget>
           </item>
           <item row="0" column="2">
@@ -170,6 +231,11 @@
               <height>0</height>
              </size>
             </property>
+            <property name="font">
+             <font>
+              <pointsize>12</pointsize>
+             </font>
+            </property>
             <property name="text">
              <string>Change</string>
             </property>
@@ -184,6 +250,11 @@
         <property name="enabled">
          <bool>false</bool>
         </property>
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+         </font>
+        </property>
         <property name="text">
          <string>Start Recording</string>
         </property>
@@ -193,6 +264,11 @@
        <widget class="QPushButton" name="pushButtonShowRecords">
         <property name="enabled">
          <bool>true</bool>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+         </font>
         </property>
         <property name="text">
          <string>Show Records</string>
@@ -207,7 +283,56 @@
        </widget>
       </item>
       <item>
+       <layout class="QGridLayout" name="gridLayout_2">
+        <item row="0" column="1">
+         <widget class="QComboBox" name="comboBoxTimebase">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="0">
+         <widget class="QLabel" name="labelTimebase">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
+          <property name="text">
+           <string>Timebase</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="2">
+         <widget class="QLabel" name="labelPage">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
+          <property name="text">
+           <string>/ Page</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <widget class="Line" name="line_4">
+        <property name="orientation">
+         <enum>Qt::Orientation::Horizontal</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QLabel" name="labelDeviceInformation">
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+         </font>
+        </property>
         <property name="text">
          <string>Device Information</string>
         </property>
@@ -220,6 +345,11 @@
        <layout class="QGridLayout" name="gridLayout_5">
         <item row="0" column="1">
          <widget class="QLabel" name="labelNameValue">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
           <property name="text">
            <string>None</string>
           </property>
@@ -227,6 +357,11 @@
         </item>
         <item row="0" column="0">
          <widget class="QLabel" name="labelName">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
           <property name="text">
            <string>Name:</string>
           </property>
@@ -234,6 +369,11 @@
         </item>
         <item row="1" column="0">
          <widget class="QLabel" name="labelSerialNumber">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
           <property name="text">
            <string>Serial:</string>
           </property>
@@ -241,6 +381,11 @@
         </item>
         <item row="3" column="1">
          <widget class="QLabel" name="labelStatusValue">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
           <property name="text">
            <string>Not connected</string>
           </property>
@@ -248,6 +393,11 @@
         </item>
         <item row="2" column="0">
          <widget class="QLabel" name="labelModel">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
           <property name="text">
            <string>Model:</string>
           </property>
@@ -255,6 +405,11 @@
         </item>
         <item row="2" column="1">
          <widget class="QLabel" name="labelModelValue">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
           <property name="text">
            <string>None</string>
           </property>
@@ -262,6 +417,11 @@
         </item>
         <item row="3" column="0">
          <widget class="QLabel" name="labelStatus">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
           <property name="text">
            <string>Status:</string>
           </property>
@@ -269,6 +429,11 @@
         </item>
         <item row="1" column="1">
          <widget class="QLabel" name="labelSerialNumberValue">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
           <property name="text">
            <string>None</string>
           </property>
@@ -276,6 +441,11 @@
         </item>
         <item row="4" column="0">
          <widget class="QLabel" name="labelSF">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
           <property name="text">
            <string>Sample Frequency:</string>
           </property>
@@ -283,6 +453,11 @@
         </item>
         <item row="4" column="1">
          <widget class="QLabel" name="label">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
           <property name="text">
            <string>None</string>
           </property>
@@ -308,7 +483,13 @@
     <item row="0" column="0">
      <layout class="QHBoxLayout" name="horizontalLayout">
       <item>
-       <widget class="PlotWidget" name="plotWidget" native="true"/>
+       <widget class="PlotWidget" name="plotWidget" native="true">
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+         </font>
+        </property>
+       </widget>
       </item>
      </layout>
     </item>
@@ -319,7 +500,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1064</width>
+     <width>1084</width>
      <height>22</height>
     </rect>
    </property>

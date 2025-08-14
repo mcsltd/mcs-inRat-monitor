@@ -7,6 +7,7 @@ from constants import Pkt, Const
 logger = logging.getLogger(__name__)
 
 class Decoder:
+
     def __init__(self):
         self.prev = 0
         self.last_counter = 0

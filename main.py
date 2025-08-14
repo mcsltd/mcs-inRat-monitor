@@ -9,7 +9,7 @@ import pyqtgraph as pg
 import numpy as np
 from PySide6 import QtAsyncio, QtCore
 from PySide6.QtCore import QTimer, Signal
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QFont
 from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QComboBox, QFileDialog
 from bleak import BLEDevice
 
@@ -25,9 +25,9 @@ from widget import WaitingDialog
 logger = logging.getLogger(__name__)
 
 
-SEC_SLIDE_WINDOW = 5
+SEC_SLIDE_WINDOW = 1
 
-RED = pg.mkPen(color=(255, 0, 0))
+RED = pg.mkPen(color=(255, 0, 0), width=2, antialiasing=True)
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -58,13 +58,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.scanner = BLEScannerWorker()
 
         # setup plot
+
         self.plot_ecg = self.plotWidget.plot(self.time, self.ecg, pen=RED)
-        self.plotWidget.setLabel("left", "ECG (μV)", pen=pg.mkPen(color='k'))
+
+        font = QFont()
+        font.setPointSize(12)
+
+        self.plotWidget.setLabel("left", "ECG (uV)", pen=pg.mkPen(color='k'), font=font)
+        self.plotWidget.getAxis("left").label.setFont(font)
         self.plotWidget.getAxis("left").setPen(pg.mkPen(color='k'))
         self.plotWidget.getAxis("left").setTextPen(pg.mkPen(color='k'))
-        self.plotWidget.setLabel("bottom", "Time (sec)", pen=pg.mkPen(color='k'))
+        self.plotWidget.getAxis("left").setTickFont(font)
+
+        self.plotWidget.setLabel("bottom", "Time (sec)", pen=pg.mkPen(color='k'), font=font)
+        self.plotWidget.getAxis("bottom").label.setFont(font)
         self.plotWidget.getAxis("bottom").setPen(pg.mkPen(color='k'))
         self.plotWidget.getAxis("bottom").setTextPen(pg.mkPen(color='k'))
+        self.plotWidget.getAxis("bottom").setTickFont(font)
+
         self.plotWidget.addLegend()
         self.plotWidget.setBackground("w")
         self.plotWidget.setDownsampling(auto=True, mode='peak')
@@ -84,6 +95,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.comboBoxDevice.setDuplicatesEnabled(False)
         self.comboBoxDevice.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
 
+        for v in [(0.5, "0.5 s"), (1, "1 s"), (2, "2 s"), (4, "4 s"), (6, "6 s"), (8, "8 s"), (10, "10 s")]:
+            self.comboBoxTimebase.addItem(v[1], userData=v[0])
+        self.timebase = self.comboBoxTimebase.currentData()
+        self.comboBoxTimebase.currentTextChanged.connect(self.set_timebase)
+
         # connection
         self.pushButtonConnect.clicked.connect(lambda: asyncio.ensure_future(self.connect_device()))
         self.pushButtonStart.clicked.connect(lambda: asyncio.ensure_future(self.start_device()))
@@ -96,6 +112,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.lineEditSave.setText(self.storage.path_to_save) # set default folder
         self.comboBoxFormat.currentTextChanged.connect(self.storage.set_format)
 
+    def set_timebase(self):
+        self.timebase = self.comboBoxTimebase.currentData()
 
     def _set_storage(self):
         path_to_save = QFileDialog.getExistingDirectory(
@@ -135,7 +153,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             logger.debug("Select stop recording ECG.")
 
-            self.labelRTvalue.setText(f"[00:00:00]")
+            self.labelRTvalue.setText("00:00:00")
             # check if device running when change button state (when press stop recording)
             if self.device.is_running:
                 self.storage.save()
@@ -311,7 +329,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         logger.debug(f"Current {ecg['counter']=}")
         # calculate time
         if len(self.time) == 0:
-            self.time = np.arange(1, len(ecg["ecg"]) + 1) * 0.01
+            self.time = np.arange(1, len(ecg["ecg"]) + 1) * 0.01 # ToDo: check it
         else:
             self.time = np.append(self.time, np.arange(1, len(ecg["ecg"]) + 1) * 1 / HZ + self.time[-1])
         # check shape ecg and time
@@ -322,13 +340,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.storage(ecg["ecg"]) # save ecg in storage
             str_time = str(datetime.datetime.now() - self.storage.start_time).split(".")[0]
             str_time = "0" + str_time if len(str_time) != 8 else str_time
-            self.labelRTvalue.setText(f"[{str_time}]")
+            self.labelRTvalue.setText(f"{str_time}")
 
         # add data in plot
         self.plot_ecg.setData(self.time, self.ecg)
-        self.plotWidget.setXRange(max(0, self.time[-1] - SEC_SLIDE_WINDOW), self.time[-1])
 
-        slide = self.ecg[len(ecg) - SEC_SLIDE_WINDOW * HZ:]
+        if len(self.time) * 1 / HZ < self.timebase:
+            self.plotWidget.setXRange(0, self.timebase)
+        else:
+            self.plotWidget.setXRange(self.time[-1] - self.timebase, self.time[-1])
+
+        slide = self.ecg[len(ecg) - self.timebase * HZ:]
         self.plotWidget.setYRange(
             min(slide), max(slide), # padding=0.15
         )

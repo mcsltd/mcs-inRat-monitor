@@ -1,16 +1,32 @@
 import asyncio
 import ctypes
 import logging
-from typing import Optional
+import hashlib
 
+from typing import Optional
 from bleak import BleakClient
+
+from cryptography.hazmat.primitives.ciphers import algorithms, modes, Cipher
+
 
 from config import BLE_KEY
 from constants import Command, DataRateEcg, FullScaleAccelerometer, EnabledChannels, \
     EventType, Const, DeviceInformationService
 from decoder import Decoder
 from structure import Settings, Event
-from utils.crypt import get_control_sum
+
+
+def get_control_sum(data: bytes, key: bytearray) -> bytes:
+    hash = hashlib.sha256(data).digest()
+    iv = bytes(128 // 8)
+    # create encoder
+    cipher = Cipher(
+        algorithm=algorithms.AES(key), mode=modes.CBC(iv)
+    )
+    encryptor = cipher.encryptor()
+    # encrypt
+    sign = encryptor.update(hash) + encryptor.finalize()
+    return sign
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +42,6 @@ class RatSens(BleakClient):
 
         self.name = args[0].name
         self.is_running = False
-        self.decoder = Decoder()
 
         # set lock
         self._connect_lock = asyncio.Lock()
@@ -65,15 +80,15 @@ class RatSens(BleakClient):
             return info
 
     async def get_ecg(self, ecg_queue: Optional[asyncio.Queue] = None):
-
         async def ecg_handler(_, raw_data: bytearray):
-            counter, ecg = self.decoder.decode(raw_data)
+            counter, ecg = decoder.decode(raw_data)
             ecg *= 1e6  # in μV
 
             if ecg_queue is not None:
                 logger.debug("Put ecg in queue.")
                 await ecg_queue.put({"counter": counter, "ecg": ecg})
 
+        decoder = Decoder()
         await self.setup(
             cmd=Command.AcquisitionStart,
             settings=Settings(
