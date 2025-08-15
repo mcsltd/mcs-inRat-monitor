@@ -3,7 +3,7 @@ from enum import Enum, IntEnum
 from functools import cached_property
 from uuid import UUID
 
-HZ = 1000
+HZ = 500
 
 @dataclass(slots=True, frozen=True)
 class Pkt:

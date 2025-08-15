@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'main_windowicZWUU.ui'
+## Form generated from reading UI file 'main_windowXoSXNG.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -33,12 +33,19 @@ class Ui_MainWindow(object):
         self.gridLayout.setObjectName(u"gridLayout")
         self.verticalLayout = QVBoxLayout()
         self.verticalLayout.setObjectName(u"verticalLayout")
+        self.label_4 = QLabel(self.centralwidget)
+        self.label_4.setObjectName(u"label_4")
+        font = QFont()
+        font.setPointSize(12)
+        self.label_4.setFont(font)
+        self.label_4.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.verticalLayout.addWidget(self.label_4)
+
         self.horizontalLayout_3 = QHBoxLayout()
         self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
         self.labelDevice = QLabel(self.centralwidget)
         self.labelDevice.setObjectName(u"labelDevice")
-        font = QFont()
-        font.setPointSize(12)
         self.labelDevice.setFont(font)
 
         self.horizontalLayout_3.addWidget(self.labelDevice)
@@ -71,6 +78,13 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.addWidget(self.line_3)
 
+        self.label_3 = QLabel(self.centralwidget)
+        self.label_3.setObjectName(u"label_3")
+        self.label_3.setFont(font)
+        self.label_3.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.verticalLayout.addWidget(self.label_3)
+
         self.pushButtonStart = QPushButton(self.centralwidget)
         self.pushButtonStart.setObjectName(u"pushButtonStart")
         self.pushButtonStart.setEnabled(False)
@@ -92,47 +106,17 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.addWidget(self.line)
 
+        self.labelDataStorage = QLabel(self.centralwidget)
+        self.labelDataStorage.setObjectName(u"labelDataStorage")
+        self.labelDataStorage.setFont(font)
+        self.labelDataStorage.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.verticalLayout.addWidget(self.labelDataStorage)
+
         self.horizontalLayout_2 = QHBoxLayout()
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
         self.gridLayout_7 = QGridLayout()
         self.gridLayout_7.setObjectName(u"gridLayout_7")
-        self.labelDirSave = QLabel(self.centralwidget)
-        self.labelDirSave.setObjectName(u"labelDirSave")
-        self.labelDirSave.setFont(font)
-        self.labelDirSave.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter)
-
-        self.gridLayout_7.addWidget(self.labelDirSave, 0, 0, 1, 1)
-
-        self.labelRT = QLabel(self.centralwidget)
-        self.labelRT.setObjectName(u"labelRT")
-        self.labelRT.setFont(font)
-        self.labelRT.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter)
-
-        self.gridLayout_7.addWidget(self.labelRT, 2, 0, 1, 1)
-
-        self.labelFormat = QLabel(self.centralwidget)
-        self.labelFormat.setObjectName(u"labelFormat")
-        self.labelFormat.setFont(font)
-        self.labelFormat.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter)
-
-        self.gridLayout_7.addWidget(self.labelFormat, 1, 0, 1, 1)
-
-        self.labelRTvalue = QLabel(self.centralwidget)
-        self.labelRTvalue.setObjectName(u"labelRTvalue")
-        self.labelRTvalue.setFont(font)
-        self.labelRTvalue.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        self.gridLayout_7.addWidget(self.labelRTvalue, 2, 1, 1, 1)
-
-        self.comboBoxFormat = QComboBox(self.centralwidget)
-        self.comboBoxFormat.addItem("")
-        self.comboBoxFormat.addItem("")
-        self.comboBoxFormat.setObjectName(u"comboBoxFormat")
-        self.comboBoxFormat.setEnabled(False)
-        self.comboBoxFormat.setFont(font)
-
-        self.gridLayout_7.addWidget(self.comboBoxFormat, 1, 1, 1, 1)
-
         self.lineEditSave = QLineEdit(self.centralwidget)
         self.lineEditSave.setObjectName(u"lineEditSave")
         self.lineEditSave.setEnabled(False)
@@ -143,7 +127,14 @@ class Ui_MainWindow(object):
         self.lineEditSave.setSizePolicy(sizePolicy)
         self.lineEditSave.setFont(font)
 
-        self.gridLayout_7.addWidget(self.lineEditSave, 0, 1, 1, 1)
+        self.gridLayout_7.addWidget(self.lineEditSave, 1, 1, 1, 1)
+
+        self.labelRT = QLabel(self.centralwidget)
+        self.labelRT.setObjectName(u"labelRT")
+        self.labelRT.setFont(font)
+        self.labelRT.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter)
+
+        self.gridLayout_7.addWidget(self.labelRT, 3, 0, 1, 1)
 
         self.pushButtonSelectDirSave = QPushButton(self.centralwidget)
         self.pushButtonSelectDirSave.setObjectName(u"pushButtonSelectDirSave")
@@ -156,7 +147,37 @@ class Ui_MainWindow(object):
         self.pushButtonSelectDirSave.setMinimumSize(QSize(5, 0))
         self.pushButtonSelectDirSave.setFont(font)
 
-        self.gridLayout_7.addWidget(self.pushButtonSelectDirSave, 0, 2, 1, 1)
+        self.gridLayout_7.addWidget(self.pushButtonSelectDirSave, 1, 2, 1, 1)
+
+        self.comboBoxFormat = QComboBox(self.centralwidget)
+        self.comboBoxFormat.addItem("")
+        self.comboBoxFormat.addItem("")
+        self.comboBoxFormat.setObjectName(u"comboBoxFormat")
+        self.comboBoxFormat.setEnabled(False)
+        self.comboBoxFormat.setFont(font)
+
+        self.gridLayout_7.addWidget(self.comboBoxFormat, 2, 1, 1, 1)
+
+        self.labelDirSave = QLabel(self.centralwidget)
+        self.labelDirSave.setObjectName(u"labelDirSave")
+        self.labelDirSave.setFont(font)
+        self.labelDirSave.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter)
+
+        self.gridLayout_7.addWidget(self.labelDirSave, 1, 0, 1, 1)
+
+        self.labelRTvalue = QLabel(self.centralwidget)
+        self.labelRTvalue.setObjectName(u"labelRTvalue")
+        self.labelRTvalue.setFont(font)
+        self.labelRTvalue.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.gridLayout_7.addWidget(self.labelRTvalue, 3, 1, 1, 1)
+
+        self.labelFormat = QLabel(self.centralwidget)
+        self.labelFormat.setObjectName(u"labelFormat")
+        self.labelFormat.setFont(font)
+        self.labelFormat.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter)
+
+        self.gridLayout_7.addWidget(self.labelFormat, 2, 0, 1, 1)
 
 
         self.horizontalLayout_2.addLayout(self.gridLayout_7)
@@ -185,6 +206,13 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.addWidget(self.line_2)
 
+        self.label_2 = QLabel(self.centralwidget)
+        self.label_2.setObjectName(u"label_2")
+        self.label_2.setFont(font)
+        self.label_2.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.verticalLayout.addWidget(self.label_2)
+
         self.gridLayout_2 = QGridLayout()
         self.gridLayout_2.setObjectName(u"gridLayout_2")
         self.comboBoxTimebase = QComboBox(self.centralwidget)
@@ -193,17 +221,17 @@ class Ui_MainWindow(object):
 
         self.gridLayout_2.addWidget(self.comboBoxTimebase, 0, 1, 1, 1)
 
-        self.labelTimebase = QLabel(self.centralwidget)
-        self.labelTimebase.setObjectName(u"labelTimebase")
-        self.labelTimebase.setFont(font)
-
-        self.gridLayout_2.addWidget(self.labelTimebase, 0, 0, 1, 1)
-
         self.labelPage = QLabel(self.centralwidget)
         self.labelPage.setObjectName(u"labelPage")
         self.labelPage.setFont(font)
 
         self.gridLayout_2.addWidget(self.labelPage, 0, 2, 1, 1)
+
+        self.labelTimebase = QLabel(self.centralwidget)
+        self.labelTimebase.setObjectName(u"labelTimebase")
+        self.labelTimebase.setFont(font)
+
+        self.gridLayout_2.addWidget(self.labelTimebase, 0, 0, 1, 1)
 
 
         self.verticalLayout.addLayout(self.gridLayout_2)
@@ -321,24 +349,28 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"MainWindow", None))
+        self.label_4.setText(QCoreApplication.translate("MainWindow", u"Device connection", None))
         self.labelDevice.setText(QCoreApplication.translate("MainWindow", u"Device:", None))
         self.pushButtonConnect.setText(QCoreApplication.translate("MainWindow", u"Connect", None))
         self.pushButtonDisconnect.setText(QCoreApplication.translate("MainWindow", u"Disconnect", None))
+        self.label_3.setText(QCoreApplication.translate("MainWindow", u"Device control", None))
         self.pushButtonStart.setText(QCoreApplication.translate("MainWindow", u"Start", None))
         self.pushButtonStop.setText(QCoreApplication.translate("MainWindow", u"Stop", None))
-        self.labelDirSave.setText(QCoreApplication.translate("MainWindow", u"Save in:", None))
+        self.labelDataStorage.setText(QCoreApplication.translate("MainWindow", u"Data storage", None))
         self.labelRT.setText(QCoreApplication.translate("MainWindow", u"Recording time:", None))
-        self.labelFormat.setText(QCoreApplication.translate("MainWindow", u"Format:", None))
-        self.labelRTvalue.setText(QCoreApplication.translate("MainWindow", u"00:00:00", None))
+        self.pushButtonSelectDirSave.setText(QCoreApplication.translate("MainWindow", u"Change", None))
         self.comboBoxFormat.setItemText(0, QCoreApplication.translate("MainWindow", u"WFDB", None))
         self.comboBoxFormat.setItemText(1, QCoreApplication.translate("MainWindow", u"EDF", None))
 
-        self.pushButtonSelectDirSave.setText(QCoreApplication.translate("MainWindow", u"Change", None))
+        self.labelDirSave.setText(QCoreApplication.translate("MainWindow", u"Save in:", None))
+        self.labelRTvalue.setText(QCoreApplication.translate("MainWindow", u"00:00:00", None))
+        self.labelFormat.setText(QCoreApplication.translate("MainWindow", u"Format:", None))
         self.pushButtonRecording.setText(QCoreApplication.translate("MainWindow", u"Start Recording", None))
         self.pushButtonShowRecords.setText(QCoreApplication.translate("MainWindow", u"Show Records", None))
-        self.labelTimebase.setText(QCoreApplication.translate("MainWindow", u"Timebase", None))
+        self.label_2.setText(QCoreApplication.translate("MainWindow", u"Display", None))
         self.labelPage.setText(QCoreApplication.translate("MainWindow", u"/ Page", None))
-        self.labelDeviceInformation.setText(QCoreApplication.translate("MainWindow", u"Device Information", None))
+        self.labelTimebase.setText(QCoreApplication.translate("MainWindow", u"Timebase", None))
+        self.labelDeviceInformation.setText(QCoreApplication.translate("MainWindow", u"Device information", None))
         self.labelNameValue.setText(QCoreApplication.translate("MainWindow", u"None", None))
         self.labelName.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
         self.labelSerialNumber.setText(QCoreApplication.translate("MainWindow", u"Serial:", None))

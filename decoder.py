@@ -27,6 +27,8 @@ class Decoder:
         # read counter
         offset = 2
         counter = struct.unpack('<H', raw_data[:offset])[0]
+        logger.debug(f"Decode counter: {counter}")
+
 
         if counter == 1:
             self.reset()

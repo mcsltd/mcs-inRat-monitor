@@ -92,7 +92,7 @@ class RatSens(BleakClient):
         await self.setup(
             cmd=Command.AcquisitionStart,
             settings=Settings(
-                DataRateEcg=DataRateEcg.HZ_1000.value,
+                DataRateEcg=DataRateEcg.HZ_500.value,
                 HighPassFilterEcg=0,
                 FullScaleAccelerometer=FullScaleAccelerometer.G_0.value,
                 EnabledChannels=EnabledChannels.ENABLED_ECG.value,

@@ -25,9 +25,7 @@ from widget import WaitingDialog
 logger = logging.getLogger(__name__)
 
 
-SEC_SLIDE_WINDOW = 1
-
-RED = pg.mkPen(color=(255, 0, 0), width=2, antialiasing=True)
+RED = pg.mkPen(color=(255, 0, 0), width=2)
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -58,7 +56,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.scanner = BLEScannerWorker()
 
         # setup plot
-
         self.plot_ecg = self.plotWidget.plot(self.time, self.ecg, pen=RED)
 
         font = QFont()
@@ -78,12 +75,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.plotWidget.addLegend()
         self.plotWidget.setBackground("w")
-        self.plotWidget.setDownsampling(auto=True, mode='peak')
+        self.plotWidget.setDownsampling(auto=True, mode='peak', ds=50)
 
         # timer for get ecg from device and draw plot
-        self.time_update = 1
+        self.time_update = 2
         self.timer = QTimer()
-        self.timer.setInterval(self.time_update)
+        self.timer.setInterval(self.time_update) # in msec
         self.timer.timeout.connect(lambda: asyncio.ensure_future(self.updatePlot()))
 
         # create scanner and run it
@@ -97,6 +94,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         for v in [(0.5, "0.5 s"), (1, "1 s"), (2, "2 s"), (4, "4 s"), (6, "6 s"), (8, "8 s"), (10, "10 s")]:
             self.comboBoxTimebase.addItem(v[1], userData=v[0])
+        self.comboBoxTimebase.setCurrentIndex(6)
         self.timebase = self.comboBoxTimebase.currentData()
         self.comboBoxTimebase.currentTextChanged.connect(self.set_timebase)
 
@@ -190,7 +188,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.comboBoxDevice.setDisabled(True)
         self.pushButtonConnect.setDisabled(True)
 
-
         # reconnect with new device or old
         if self.device is not None and not self.device.is_connected:
             self.device = None
@@ -262,7 +259,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.labelSerialNumberValue.setText(device_information["serial"])
             self.labelStatusValue.setText(device_information["status"])
             self.labelNameValue.setText(device_information["name"])
-            self.label.setText("1000 Hz")
+            self.label.setText("500 Hz")
 
         else:
             self.labelModelValue.setText("None")
@@ -324,8 +321,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             await self.lost_connection()
 
         ecg = await self.ecg_queue.get()
-        self.ecg = np.append(self.ecg, ecg["ecg"])
         self.ecg_queue.task_done()
+
+        self.ecg = np.append(self.ecg, ecg["ecg"])
         logger.debug(f"Current {ecg['counter']=}")
         # calculate time
         if len(self.time) == 0:
@@ -343,14 +341,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.labelRTvalue.setText(f"{str_time}")
 
         # add data in plot
-        self.plot_ecg.setData(self.time, self.ecg)
+        self.plot_ecg.setData(self.time, self.ecg, antialias=False, clipToView=True)
 
-        if len(self.time) * 1 / HZ < self.timebase:
+        if self.time[-1] < self.timebase:
             self.plotWidget.setXRange(0, self.timebase)
         else:
             self.plotWidget.setXRange(self.time[-1] - self.timebase, self.time[-1])
 
-        slide = self.ecg[len(ecg) - self.timebase * HZ:]
+        slide = self.ecg[- int(self.timebase * HZ):]
         self.plotWidget.setYRange(
             min(slide), max(slide), # padding=0.15
         )
