@@ -106,6 +106,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.pushButtonSelectDirSave.clicked.connect(self._set_storage)
         self.pushButtonDisconnect.clicked.connect(lambda: asyncio.ensure_future(self.disconnect_device()))
         self.pushButtonShowRecords.clicked.connect(self.open_savedir)
+        self.pushButtonTurnOff.clicked.connect(lambda: asyncio.ensure_future(self.turn_off_device()))
 
         self.lineEditSave.setText(self.storage.path_to_save) # set default folder
         self.comboBoxFormat.currentTextChanged.connect(self.storage.set_format)
@@ -226,6 +227,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
                 # enable button for start device
                 self.pushButtonStart.setEnabled(True)
+                self.pushButtonTurnOff.setEnabled(True)
 
                 self.pushButtonDisconnect.show()
                 self.pushButtonConnect.hide()
@@ -303,6 +305,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.pushButtonDisconnect.setEnabled(False)
             self.comboBoxDevice.setEnabled(False)
             self.pushButtonStart.setEnabled(False)
+            self.pushButtonTurnOff.setEnabled(False)
 
             # enable
             self.pushButtonRecording.setEnabled(True)
@@ -380,10 +383,30 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # activate and disable btn when stop device
             self.pushButtonStop.setEnabled(False)
             self.pushButtonStart.setEnabled(True)
+            self.pushButtonTurnOff.setEnabled(True)
             self.pushButtonRecording.setEnabled(False)
             self.pushButtonDisconnect.setEnabled(True)
             # when stop device - activate mouse
             self.plotWidget.setMouseEnabled(x=True, y=True)
+
+    async def turn_off_device(self):
+        """ Action for turn off device """
+        self.reset()
+
+        await self.device.turn_off()
+
+        # disable
+        self.pushButtonStart.setEnabled(False)
+        self.comboBoxFormat.setEnabled(False)
+        self.pushButtonTurnOff.setEnabled(False)
+
+        # activate
+        self.comboBoxDevice.setEnabled(True)
+
+        self.pushButtonConnect.show()
+        self.pushButtonDisconnect.hide()
+
+        self.scanner.run(self.qt_loop)
 
     async def lost_connection(self):
         """
