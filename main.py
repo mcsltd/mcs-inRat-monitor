@@ -259,14 +259,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.labelSerialNumberValue.setText(device_information["serial"])
             self.labelStatusValue.setText(device_information["status"])
             self.labelNameValue.setText(device_information["name"])
-            self.label.setText("500 Hz")
+            self.labelSFValue.setText("500 Hz")
+            self.labelHardwareValue.setText(device_information["hardware"])
+            self.labelFirmwareValue.setText(device_information["firmware"])
+
 
         else:
             self.labelModelValue.setText("None")
             self.labelSerialNumberValue.setText("None")
             self.labelStatusValue.setText("Not connected")
             self.labelNameValue.setText("None")
-            self.label.setText("None")
+            self.labelSF.setText("None")
+            self.labelHardwareValue.setText("None")
+            self.labelFirmwareValue.setText("None")
 
     async def start_device(self):
         logger.debug("Start device")
@@ -417,7 +422,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # activate combobox
         self.comboBoxDevice.setEnabled(True)
-
 
     def reset(self) -> None:
         """

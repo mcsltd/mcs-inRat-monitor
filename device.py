@@ -69,6 +69,7 @@ class RatSens(BleakClient):
 
         async with self._operation_lock:
 
+            info = dict.fromkeys(["name", "model", "serial", "status", "firmware", "hardware"])
             info = {"name": None, "model": None, "serial": None, "status": "Connected"}
             name = await self.read_gatt_char(RatSens.UUID_CHARACTERISTIC_DEVICE_NAME)
             info["name"] = name.decode()
@@ -76,6 +77,10 @@ class RatSens(BleakClient):
             info["model"] = model.decode()
             sn = await self.read_gatt_char(str(DeviceInformationService.SERIAL))
             info["serial"] = sn.decode()
+            firmware = await self.read_gatt_char(str(DeviceInformationService.FIRMWARE))
+            info["firmware"] = firmware.decode()
+            hardware = await self.read_gatt_char(str(DeviceInformationService.HARDWARE))
+            info["hardware"] = hardware.decode()
 
             return info
 
