@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1084</width>
-    <height>824</height>
+    <width>1088</width>
+    <height>868</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -130,6 +130,21 @@
         </property>
         <property name="text">
          <string>Stop</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pushButtonTurnOff">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>Turn Off</string>
         </property>
        </widget>
       </item>
@@ -608,7 +623,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1084</width>
+     <width>1088</width>
      <height>22</height>
     </rect>
    </property>
