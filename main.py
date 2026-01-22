@@ -2,21 +2,19 @@ import asyncio
 import datetime
 import logging
 import os
-from typing import Optional
-
+import numpy as np
 import pyqtgraph as pg
 
-import numpy as np
-from PySide6 import QtAsyncio, QtCore
-from PySide6.QtCore import QTimer, Signal
-from PySide6.QtGui import QIcon, QFont
-from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QComboBox, QFileDialog
-from bleak import BLEDevice
+from typing import Optional
 
-from device import RatSens
+from PySide6 import QtAsyncio, QtCore
+from PySide6.QtCore import QTimer, Signal, Qt
+from PySide6.QtGui import QIcon, QFont
+from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QFileDialog
+
 from config import DATA_PATH
 from constants import HZ
-from scanner import BLEScannerWorker
+from scanner.scanner import BLEScanner
 from utils.check_bluetooth import check_bluetooth_status
 from storage import Storage
 from resources.main_window import Ui_MainWindow
@@ -39,8 +37,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.setWindowIcon(QIcon("resources/iconMCS.ico"))
 
         # hide
-        self.pushButtonDisconnect.hide()
-
         self.qt_loop = qt_loop
 
         # build queue
@@ -50,10 +46,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.ecg = np.array([])
         self.time = np.array([])
 
+
         # main classes
-        self.device: Optional[RatSens] = None
+        self.scanner = BLEScanner(loop=self.qt_loop)
+        # self.scanner.control_panel.pushButtonOpen.clicked.connect(self.device.set_device())
+        self.verticalLayout.insertWidget(0, self.scanner.control_panel, 2)
+
         self.storage = Storage(path_to_save=DATA_PATH, fs=HZ)
-        self.scanner = BLEScannerWorker()
 
         # setup plot
         self.plot_ecg = self.plotWidget.plot(self.time, self.ecg, pen=RED)
@@ -84,13 +83,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.timer.timeout.connect(lambda: asyncio.ensure_future(self.updatePlot()))
 
         # create scanner and run it
-        self.scanner.run(self.qt_loop)
-        self.scanner.signal_found.connect(self.set_combobox_items)
-        self.pushButtonConnect.setEnabled(False)
-
         # setup combobox
-        self.comboBoxDevice.setDuplicatesEnabled(False)
-        self.comboBoxDevice.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
 
         for v in [(0.5, "0.5 s"), (1, "1 s"), (2, "2 s"), (4, "4 s"), (6, "6 s"), (8, "8 s"), (10, "10 s")]:
             self.comboBoxTimebase.addItem(v[1], userData=v[0])
@@ -99,14 +92,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.comboBoxTimebase.currentTextChanged.connect(self.set_timebase)
 
         # connection
-        self.pushButtonConnect.clicked.connect(lambda: asyncio.ensure_future(self.connect_device()))
-        self.pushButtonStart.clicked.connect(lambda: asyncio.ensure_future(self.start_device()))
-        self.pushButtonStop.clicked.connect(lambda: asyncio.ensure_future(self.stop_device()))
         self.pushButtonRecording.clicked.connect(self.change_recording)
         self.pushButtonSelectDirSave.clicked.connect(self._set_storage)
-        self.pushButtonDisconnect.clicked.connect(lambda: asyncio.ensure_future(self.disconnect_device()))
         self.pushButtonShowRecords.clicked.connect(self.open_savedir)
-        self.pushButtonTurnOff.clicked.connect(lambda: asyncio.ensure_future(self.turn_off_device()))
 
         self.lineEditSave.setText(self.storage.path_to_save) # set default folder
         self.comboBoxFormat.currentTextChanged.connect(self.storage.set_format)
@@ -129,13 +117,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             os.system(f'start "" "{self.storage.path_to_save}"')
         elif os.name == 'posix':  # Linux, macOS
             os.system(f'open "{self.storage.path_to_save}"')
-
-    def set_combobox_items(self, devices: set[BLEDevice]):
-        for device in devices:
-            if self.comboBoxDevice.findText(device.name) == -1:
-                self.comboBoxDevice.addItem(device.name, userData=device)
-        if self.comboBoxDevice.count() != 0:
-            self.pushButtonConnect.setEnabled(True)
 
     def change_recording(self): # ToDo: rename method
         """
@@ -171,98 +152,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             self.add_marker(pos=self.time[-1], text="Start recording")
 
-    async def connect_device(self):
-        # raise waiting dialog
-        dlg = WaitingDialog(parent=self)
-        dlg.show()
-
-        # get device name for connection
-        device = self.comboBoxDevice.currentData()
-        idx_device = self.comboBoxDevice.currentIndex()
-        logger.debug(f"Select device with name: {device.name}.")
-
-        # stop scanner
-        self.scanner.stop()
-        # remove all device in combobox
-        self.comboBoxDevice.clear()
-        # disable combobox and button connect
-        self.comboBoxDevice.setDisabled(True)
-        self.pushButtonConnect.setDisabled(True)
-
-        # reconnect with new device or old
-        if self.device is not None and not self.device.is_connected:
-            self.device = None
-            self.reset()
-
-        try:
-            self.device = RatSens(device)
-
-            attempt_connection = 1
-            while not self.device.is_connected and attempt_connection <= 5:
-                logger.debug(f"Устройство найдено! Производится попытка подключиться. Номер попытки: {attempt_connection}")
-                try:
-                    await self.device.connect()
-                except Exception as exc:
-                    ...
-                attempt_connection += 1
-
-            # set device info in label
-            d_info = await self.device.get_device_information()
-
-            # add in storage device name (for write additional info in edf)
-            self.storage.set_device_name(self.device.name)
-
-        except Exception as exc:
-            self.device = None
-            info = QMessageBox.information(
-                self, "Connect error",
-                f"An error occurred while connect to the device.\nCheck if the device has turned off.",
-                QMessageBox.StandardButton.Ok
-            )
-            # remove device in combobox if not connected
-            self.comboBoxDevice.removeItem(idx_device)
-            self.comboBoxDevice.setEnabled(True)
-            # run the scanner if can't connect
-            self.scanner.run(self.qt_loop)
-        else:
-            # disable and activate btn state when connect to device
-            if self.device.is_connected:
-                self.set_device_information(d_info)
-
-                # enable settings for storage
-                self.comboBoxFormat.setEnabled(True)
-                # self.pushButtonSelectDirSave.setEnabled(True)
-
-                # enable button for start device
-                self.pushButtonStart.setEnabled(True)
-                self.pushButtonTurnOff.setEnabled(True)
-
-                self.pushButtonDisconnect.show()
-                self.pushButtonConnect.hide()
-        finally:
-            dlg.close()
-
-    async def disconnect_device(self):
-        self.reset()
-
-        if self.device.is_connected:
-            await self.device.close()
-            self.scanner.run(self.qt_loop)
-
-        else:
-            await self.lost_connection()
-
-        # disable
-        self.pushButtonStart.setEnabled(False)
-        # self.pushButtonSelectDirSave.setEnabled(False)
-        self.comboBoxFormat.setEnabled(False)
-
-        # activate
-        self.comboBoxDevice.setEnabled(True)
-
-        self.pushButtonConnect.show()
-        self.pushButtonDisconnect.hide()
-
     def set_device_information(self, device_information: Optional[dict] = None):
         if device_information is not None:
             self.labelModelValue.setText(device_information["model"])
@@ -282,45 +171,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.labelSF.setText("None")
             self.labelHardwareValue.setText("None")
             self.labelFirmwareValue.setText("None")
-
-    async def start_device(self):
-        logger.debug("Start device")
-
-        if not self.device.is_connected:
-            info = QMessageBox.information(
-                self, "Lost device connection",
-                f"Lost connection with device {self.device.name}",
-                buttons=QMessageBox.StandardButton.Ok
-            )
-
-            # reset all
-            await self.lost_connection()
-            return
-
-        # try:
-            await self.device.get_ecg(ecg_queue=self.ecg_queue)
-        # except Exception as exc:
-        #     info = QMessageBox.information(
-        #         self, "Start error",
-        #         f"An error occurred while starting the device\n\nInfo:\n{exc}\n\nPlease, restart application!",
-        #         QMessageBox.StandardButton.Ok
-        #     )
-        # else:
-            self.timer.start()
-
-            # disable
-            # self.pushButtonConnect.setEnabled(False)
-            self.pushButtonDisconnect.setEnabled(False)
-            self.comboBoxDevice.setEnabled(False)
-            self.pushButtonStart.setEnabled(False)
-            self.pushButtonTurnOff.setEnabled(False)
-
-            # enable
-            self.pushButtonRecording.setEnabled(True)
-            self.pushButtonStop.setEnabled(True)
-
-            # when draw signal in online - disable mouse
-            self.plotWidget.setMouseEnabled(x=False, y=False)
 
     async def updatePlot(self):
         # check device connection
@@ -369,91 +219,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             min(slide), max(slide), # padding=0.15
         )
 
-    async def stop_device(self):
-        logger.debug("Stop device")
-
-        try:
-            await self.device.stop()
-        except Exception as exc:
-            info = QMessageBox.information(
-                self, "Stop error",
-                f"An error occurred while stoping the device\n\nInfo:\n{exc}\n\nPlease, restart application!",
-                QMessageBox.StandardButton.Ok
-            )
-        finally:
-            self.timer.stop()
-
-            if self.storage.is_recording:
-                self.storage.save()
-                self.add_marker(pos=self.time[-1], text="Stop recording")
-                self.change_recording()
-
-            # activate and disable btn when stop device
-            self.pushButtonStop.setEnabled(False)
-            self.pushButtonStart.setEnabled(True)
-            self.pushButtonTurnOff.setEnabled(True)
-            self.pushButtonRecording.setEnabled(False)
-            self.pushButtonDisconnect.setEnabled(True)
-            # when stop device - activate mouse
-            self.plotWidget.setMouseEnabled(x=True, y=True)
-
-    async def turn_off_device(self):
-        """ Action for turn off device """
-        self.reset()
-
-        await self.device.turn_off()
-
-        # disable
-        self.pushButtonStart.setEnabled(False)
-        self.comboBoxFormat.setEnabled(False)
-        self.pushButtonTurnOff.setEnabled(False)
-
-        # activate
-        self.comboBoxDevice.setEnabled(True)
-
-        self.pushButtonConnect.show()
-        self.pushButtonDisconnect.hide()
-
-        self.scanner.run(self.qt_loop)
-
-    async def lost_connection(self):
-        """
-        Action when lost connection with device.
-        :return: None
-        """
-        logger.info("Lost device connetion.")
-
-        # delete device information
-        self.set_device_information()
-
-        await self.device.disconnect()
-
-        # save data in storage
-        if self.storage.is_recording:
-            self.storage.save()
-            self.add_marker(pos=self.time[-1], text="Stop recording")
-            self.change_recording()
-
-        # disable button
-        self.pushButtonStop.setEnabled(False)
-        self.pushButtonStart.setEnabled(False)
-        self.pushButtonRecording.setEnabled(False)
-        # self.pushButtonSelectDirSave.setEnabled(False)
-        self.comboBoxFormat.setEnabled(False)
-
-        # hide disconnet and hide connect
-        self.pushButtonDisconnect.hide()
-        self.pushButtonConnect.show()
-
-        # when lost connection - activate mouse
-        self.plotWidget.setMouseEnabled(x=True, y=True)
-
-        # run scanner
-        self.scanner.run(self.qt_loop)
-
-        # activate combobox
-        self.comboBoxDevice.setEnabled(True)
-
     def reset(self) -> None:
         """
         Reset data.
@@ -478,11 +243,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def closeEvent(self, event):
         if self.timer.isActive():
-            self.pushButtonStop.click()
             self.timer.stop()
 
-        # stop scanner
-        self.scanner.stop()
+        # # stop scanner
+        # self.scanner.stop()
 
 if __name__ == "__main__":
     logging.basicConfig(

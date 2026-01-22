@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'main_windowkTsIkK.ui'
+## Form generated from reading UI file 'main_windownEDoSH.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -33,78 +33,12 @@ class Ui_MainWindow(object):
         self.gridLayout.setObjectName(u"gridLayout")
         self.verticalLayout = QVBoxLayout()
         self.verticalLayout.setObjectName(u"verticalLayout")
-        self.label_4 = QLabel(self.centralwidget)
-        self.label_4.setObjectName(u"label_4")
-        font = QFont()
-        font.setPointSize(12)
-        self.label_4.setFont(font)
-        self.label_4.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        self.verticalLayout.addWidget(self.label_4)
-
-        self.horizontalLayout_3 = QHBoxLayout()
-        self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
-        self.labelDevice = QLabel(self.centralwidget)
-        self.labelDevice.setObjectName(u"labelDevice")
-        self.labelDevice.setFont(font)
-
-        self.horizontalLayout_3.addWidget(self.labelDevice)
-
-        self.comboBoxDevice = QComboBox(self.centralwidget)
-        self.comboBoxDevice.setObjectName(u"comboBoxDevice")
-        self.comboBoxDevice.setFont(font)
-
-        self.horizontalLayout_3.addWidget(self.comboBoxDevice)
-
-
-        self.verticalLayout.addLayout(self.horizontalLayout_3)
-
-        self.pushButtonConnect = QPushButton(self.centralwidget)
-        self.pushButtonConnect.setObjectName(u"pushButtonConnect")
-        self.pushButtonConnect.setFont(font)
-
-        self.verticalLayout.addWidget(self.pushButtonConnect)
-
-        self.pushButtonDisconnect = QPushButton(self.centralwidget)
-        self.pushButtonDisconnect.setObjectName(u"pushButtonDisconnect")
-        self.pushButtonDisconnect.setFont(font)
-
-        self.verticalLayout.addWidget(self.pushButtonDisconnect)
-
         self.line_3 = QFrame(self.centralwidget)
         self.line_3.setObjectName(u"line_3")
         self.line_3.setFrameShape(QFrame.Shape.HLine)
         self.line_3.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.verticalLayout.addWidget(self.line_3)
-
-        self.label_3 = QLabel(self.centralwidget)
-        self.label_3.setObjectName(u"label_3")
-        self.label_3.setFont(font)
-        self.label_3.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        self.verticalLayout.addWidget(self.label_3)
-
-        self.pushButtonStart = QPushButton(self.centralwidget)
-        self.pushButtonStart.setObjectName(u"pushButtonStart")
-        self.pushButtonStart.setEnabled(False)
-        self.pushButtonStart.setFont(font)
-
-        self.verticalLayout.addWidget(self.pushButtonStart)
-
-        self.pushButtonStop = QPushButton(self.centralwidget)
-        self.pushButtonStop.setObjectName(u"pushButtonStop")
-        self.pushButtonStop.setEnabled(False)
-        self.pushButtonStop.setFont(font)
-
-        self.verticalLayout.addWidget(self.pushButtonStop)
-
-        self.pushButtonTurnOff = QPushButton(self.centralwidget)
-        self.pushButtonTurnOff.setObjectName(u"pushButtonTurnOff")
-        self.pushButtonTurnOff.setEnabled(False)
-        self.pushButtonTurnOff.setFont(font)
-
-        self.verticalLayout.addWidget(self.pushButtonTurnOff)
 
         self.line = QFrame(self.centralwidget)
         self.line.setObjectName(u"line")
@@ -115,6 +49,8 @@ class Ui_MainWindow(object):
 
         self.labelDataStorage = QLabel(self.centralwidget)
         self.labelDataStorage.setObjectName(u"labelDataStorage")
+        font = QFont()
+        font.setPointSize(12)
         self.labelDataStorage.setFont(font)
         self.labelDataStorage.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -358,6 +294,12 @@ class Ui_MainWindow(object):
         self.plotWidget = PlotWidget(self.centralwidget)
         self.plotWidget.setObjectName(u"plotWidget")
         self.plotWidget.setFont(font)
+        self.gridLayout_3 = QGridLayout(self.plotWidget)
+        self.gridLayout_3.setObjectName(u"gridLayout_3")
+        self.horizontalSpacer = QSpacerItem(687, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.gridLayout_3.addItem(self.horizontalSpacer, 0, 0, 1, 1)
+
 
         self.horizontalLayout.addWidget(self.plotWidget)
 
@@ -380,14 +322,6 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"MainWindow", None))
-        self.label_4.setText(QCoreApplication.translate("MainWindow", u"Device connection", None))
-        self.labelDevice.setText(QCoreApplication.translate("MainWindow", u"Device:", None))
-        self.pushButtonConnect.setText(QCoreApplication.translate("MainWindow", u"Connect", None))
-        self.pushButtonDisconnect.setText(QCoreApplication.translate("MainWindow", u"Disconnect", None))
-        self.label_3.setText(QCoreApplication.translate("MainWindow", u"Device control", None))
-        self.pushButtonStart.setText(QCoreApplication.translate("MainWindow", u"Start", None))
-        self.pushButtonStop.setText(QCoreApplication.translate("MainWindow", u"Stop", None))
-        self.pushButtonTurnOff.setText(QCoreApplication.translate("MainWindow", u"Turn Off", None))
         self.labelDataStorage.setText(QCoreApplication.translate("MainWindow", u"Data storage", None))
         self.labelRT.setText(QCoreApplication.translate("MainWindow", u"Recording time:", None))
         self.pushButtonSelectDirSave.setText(QCoreApplication.translate("MainWindow", u"Change", None))
