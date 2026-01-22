@@ -196,7 +196,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         try:
             self.device = RatSens(device)
-            await self.device.connect()
+
+            attempt_connection = 1
+            while not self.device.is_connected and attempt_connection <= 5:
+                logger.debug(f"Устройство найдено! Производится попытка подключиться. Номер попытки: {attempt_connection}")
+                try:
+                    await self.device.connect()
+                except Exception as exc:
+                    ...
+                attempt_connection += 1
 
             # set device info in label
             d_info = await self.device.get_device_information()
@@ -289,15 +297,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             await self.lost_connection()
             return
 
-        try:
+        # try:
             await self.device.get_ecg(ecg_queue=self.ecg_queue)
-        except Exception as exc:
-            info = QMessageBox.information(
-                self, "Start error",
-                f"An error occurred while starting the device\n\nInfo:\n{exc}\n\nPlease, restart application!",
-                QMessageBox.StandardButton.Ok
-            )
-        else:
+        # except Exception as exc:
+        #     info = QMessageBox.information(
+        #         self, "Start error",
+        #         f"An error occurred while starting the device\n\nInfo:\n{exc}\n\nPlease, restart application!",
+        #         QMessageBox.StandardButton.Ok
+        #     )
+        # else:
             self.timer.start()
 
             # disable
