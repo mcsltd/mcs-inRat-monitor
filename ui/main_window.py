@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'main_windowqoxNpP.ui'
+## Form generated from reading UI file 'main_windowkTsIkK.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -26,7 +26,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(1084, 824)
+        MainWindow.resize(1088, 868)
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.gridLayout = QGridLayout(self.centralwidget)
@@ -98,6 +98,13 @@ class Ui_MainWindow(object):
         self.pushButtonStop.setFont(font)
 
         self.verticalLayout.addWidget(self.pushButtonStop)
+
+        self.pushButtonTurnOff = QPushButton(self.centralwidget)
+        self.pushButtonTurnOff.setObjectName(u"pushButtonTurnOff")
+        self.pushButtonTurnOff.setEnabled(False)
+        self.pushButtonTurnOff.setFont(font)
+
+        self.verticalLayout.addWidget(self.pushButtonTurnOff)
 
         self.line = QFrame(self.centralwidget)
         self.line.setObjectName(u"line")
@@ -360,7 +367,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 1084, 22))
+        self.menubar.setGeometry(QRect(0, 0, 1088, 22))
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QStatusBar(MainWindow)
         self.statusbar.setObjectName(u"statusbar")
@@ -380,6 +387,7 @@ class Ui_MainWindow(object):
         self.label_3.setText(QCoreApplication.translate("MainWindow", u"Device control", None))
         self.pushButtonStart.setText(QCoreApplication.translate("MainWindow", u"Start", None))
         self.pushButtonStop.setText(QCoreApplication.translate("MainWindow", u"Stop", None))
+        self.pushButtonTurnOff.setText(QCoreApplication.translate("MainWindow", u"Turn Off", None))
         self.labelDataStorage.setText(QCoreApplication.translate("MainWindow", u"Data storage", None))
         self.labelRT.setText(QCoreApplication.translate("MainWindow", u"Recording time:", None))
         self.pushButtonSelectDirSave.setText(QCoreApplication.translate("MainWindow", u"Change", None))

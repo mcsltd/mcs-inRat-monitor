@@ -175,6 +175,25 @@ class RatSens(BleakClient):
         await self.setup(cmd=Command.ConnectionClose)
         await self.disconnect()
 
+    async def turn_off(self, time=1):
+        logger.debug("Turn off device")
+        self._check_operation_lock()
+
+        self.is_running = False
+
+        if self.is_running:
+            await self.stop()
+
+        async with self._operation_lock:
+            data = Command.TurnOff.value.to_bytes() + bytes(time)
+            data += get_control_sum(data=data, key=BLE_KEY)
+            await self.write_gatt_char(char_specifier=RatSens.UUID_CHARACTERISTIC_CONTROL, data=data)
+
+        try:
+            await self.disconnect()
+        except Exception:
+            ...
+
 
 
 async def main():
