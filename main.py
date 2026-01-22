@@ -19,7 +19,7 @@ from constants import HZ
 from scanner import BLEScannerWorker
 from utils.check_bluetooth import check_bluetooth_status
 from storage import Storage
-from ui.main_window import Ui_MainWindow
+from resources.main_window import Ui_MainWindow
 from widget import WaitingDialog
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
         self.setWindowTitle("InRat monitor")
-        self.setWindowIcon(QIcon("ui/iconMCS.ico"))
+        self.setWindowIcon(QIcon("resources/iconMCS.ico"))
 
         # hide
         self.pushButtonDisconnect.hide()
