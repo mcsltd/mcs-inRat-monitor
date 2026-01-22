@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 class BLEScanner(QObject):
 
     signal_device_detected = Signal(object)
+    signal_device_selected = Signal(object)
 
     def __init__(self, loop: AbstractEventLoop, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -30,6 +31,7 @@ class BLEScanner(QObject):
 
     def start(self):
         """ Запуск сканера для обнаружения устройств с префиксом inRat-1"""
+        self._control_panel.reset()
         future = asyncio.run_coroutine_threadsafe(self._scan(), self._loop)
         self._scan_future = future
 
@@ -52,6 +54,8 @@ class BLEScanner(QObject):
         logger.info("Остановка BLE сканера")
         if self._scan_future:
             self._loop.call_soon_threadsafe(self._scan_future.cancel)
+            device = self._control_panel.comboBoxDevice.currentData()
+            self.signal_device_selected.emit(device)
         self.control_panel.reset()
 
     @property
@@ -61,9 +65,11 @@ class BLEScanner(QObject):
 
 class OnlineControlPanel(QFrame, Ui_FrmScanner):
 
-    def __init__(self, parent=None, *args, **kwargs):
+    def __init__(self, scanner: BLEScanner, *args, **kwargs):
         super().__init__(parent=None, *args, **kwargs)
         self.setupUi(self)
+
+        self._scanner = scanner
         self._detected_device = set()
 
     def set_device(self, device: BLEDevice):

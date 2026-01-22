@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'main_windownEDoSH.ui'
+## Form generated from reading UI file 'main_windowUbBRUb.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -39,13 +39,6 @@ class Ui_MainWindow(object):
         self.line_3.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.verticalLayout.addWidget(self.line_3)
-
-        self.line = QFrame(self.centralwidget)
-        self.line.setObjectName(u"line")
-        self.line.setFrameShape(QFrame.Shape.HLine)
-        self.line.setFrameShadow(QFrame.Shadow.Sunken)
-
-        self.verticalLayout.addWidget(self.line)
 
         self.labelDataStorage = QLabel(self.centralwidget)
         self.labelDataStorage.setObjectName(u"labelDataStorage")

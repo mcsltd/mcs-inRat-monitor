@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'frm_online_scannerqHQELR.ui'
+## Form generated from reading UI file 'frm_online_scannerPbdrXL.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -33,8 +33,11 @@ class Ui_FrmScanner(object):
         self.gridLayout.setObjectName(u"gridLayout")
         self.groupBox = QGroupBox(FrmScanner)
         self.groupBox.setObjectName(u"groupBox")
-        sizePolicy.setHeightForWidth(self.groupBox.sizePolicy().hasHeightForWidth())
-        self.groupBox.setSizePolicy(sizePolicy)
+        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
+        sizePolicy1.setHorizontalStretch(0)
+        sizePolicy1.setVerticalStretch(0)
+        sizePolicy1.setHeightForWidth(self.groupBox.sizePolicy().hasHeightForWidth())
+        self.groupBox.setSizePolicy(sizePolicy1)
         font = QFont()
         font.setPointSize(12)
         self.groupBox.setFont(font)
@@ -49,11 +52,11 @@ class Ui_FrmScanner(object):
         self.horizontalLayoutDevice.setObjectName(u"horizontalLayoutDevice")
         self.labelDevice = QLabel(self.verticalLayoutWidget)
         self.labelDevice.setObjectName(u"labelDevice")
-        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
-        sizePolicy1.setHorizontalStretch(0)
-        sizePolicy1.setVerticalStretch(0)
-        sizePolicy1.setHeightForWidth(self.labelDevice.sizePolicy().hasHeightForWidth())
-        self.labelDevice.setSizePolicy(sizePolicy1)
+        sizePolicy2 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        sizePolicy2.setHorizontalStretch(0)
+        sizePolicy2.setVerticalStretch(0)
+        sizePolicy2.setHeightForWidth(self.labelDevice.sizePolicy().hasHeightForWidth())
+        self.labelDevice.setSizePolicy(sizePolicy2)
         self.labelDevice.setMaximumSize(QSize(88, 16777215))
         self.labelDevice.setFont(font)
 
@@ -61,8 +64,8 @@ class Ui_FrmScanner(object):
 
         self.comboBoxDevice = QComboBox(self.verticalLayoutWidget)
         self.comboBoxDevice.setObjectName(u"comboBoxDevice")
-        sizePolicy1.setHeightForWidth(self.comboBoxDevice.sizePolicy().hasHeightForWidth())
-        self.comboBoxDevice.setSizePolicy(sizePolicy1)
+        sizePolicy2.setHeightForWidth(self.comboBoxDevice.sizePolicy().hasHeightForWidth())
+        self.comboBoxDevice.setSizePolicy(sizePolicy2)
         self.comboBoxDevice.setFont(font)
 
         self.horizontalLayoutDevice.addWidget(self.comboBoxDevice)

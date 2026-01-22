@@ -13,7 +13,7 @@ from PySide6.QtGui import QIcon, QFont
 from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QFileDialog
 
 from config import DATA_PATH
-from constants import HZ
+from device.device import Device
 from scanner.scanner import BLEScanner
 from utils.check_bluetooth import check_bluetooth_status
 from storage import Storage
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 RED = pg.mkPen(color=(255, 0, 0), width=2)
-
+HZ = 500
 
 class MainWindow(QMainWindow, Ui_MainWindow):
 
@@ -46,14 +46,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.ecg = np.array([])
         self.time = np.array([])
 
-
         # main classes
+        self.device = Device(loop=self.qt_loop)
         self.scanner = BLEScanner(loop=self.qt_loop)
-        # self.scanner.control_panel.pushButtonOpen.clicked.connect(self.device.set_device())
-        self.verticalLayout.insertWidget(0, self.scanner.control_panel, 2)
+
+        self.scanner.signal_device_selected.connect(self.device.set_device)
+        self.device.signal_disconnected.connect(self.scanner.start)
 
         self.storage = Storage(path_to_save=DATA_PATH, fs=HZ)
-
         # setup plot
         self.plot_ecg = self.plotWidget.plot(self.time, self.ecg, pen=RED)
 
@@ -98,6 +98,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.lineEditSave.setText(self.storage.path_to_save) # set default folder
         self.comboBoxFormat.currentTextChanged.connect(self.storage.set_format)
+
+        self.verticalLayout.insertWidget(0, self.scanner.control_panel, 2)
+        self.verticalLayout.insertWidget(1, self.device.control_panel, 2)
 
     def set_timebase(self):
         self.timebase = self.comboBoxTimebase.currentData()
@@ -269,7 +272,6 @@ if __name__ == "__main__":
         app.quit()
     else:
         window = MainWindow(loop)
-        # window.show()
         window.showMaximized()
         loop.run_forever()
 
