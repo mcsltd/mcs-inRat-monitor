@@ -34,8 +34,9 @@ class InRat:
     UUID_CHARACTERISTIC_STATUS = "c3571b1b-e17e-5195-9fd3-8119cb153187"
 
     def __init__(self, ble_device):
-        self._client: BleakClient | None = BleakClient(ble_device)
+        self._client: BleakClient = BleakClient(ble_device)
 
+        self._name = ble_device.name
         self._model = None
         self._serial_number = None
         self._firmware = None
@@ -49,7 +50,7 @@ class InRat:
         return self._client.address
     @property
     def name(self) -> str:
-        return self._client.name
+        return self._name
     @property
     def serial_number(self) -> str | None:
         return self._serial_number
@@ -105,16 +106,16 @@ class InRat:
             logger.warning(f"Устройство {self.address} уже подключено")
             return res
 
-        # try:
-        await asyncio.wait_for(self._client.connect(), timeout)
-        await self._get_device_info()
-        logger.info(f"Устройство {self.name} подключено")
-        # except asyncio.TimeoutError:
-        #     res = False
-        #     logger.info(f"Устройство {self.name} не было найден")
+        try:
+            await asyncio.wait_for(self._client.connect(), timeout)
+            await self._get_device_info()
+            logger.info(f"Устройство {self.name} подключено")
+        except asyncio.TimeoutError:
+            res = False
+            logger.info(f"Устройство {self.name} не было найден")
 
-        # except Exception as exp:
-        #     res = False
+        except Exception as exp:
+            res = False
 
         return res
 
@@ -125,9 +126,9 @@ class InRat:
             return res
 
         try:
+            logger.info(f"Устройство {self.name} отключено")
             await self._client.disconnect()
             res = True
-            logger.info(f"Устройство {self.name} отключено")
         except Exception:
             res = False
         return res

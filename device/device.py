@@ -1,9 +1,13 @@
+import asyncio
 import logging
 from asyncio import AbstractEventLoop
+from concurrent.futures import Future
+from tkinter.font import names
 
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import QFrame
 from bleak import BleakClient, BLEDevice
+from widget import WaitingDialog
 
 from device import InRat
 from resources.frm_online_device import Ui_FrmDevice
@@ -22,10 +26,30 @@ class Device(QObject):
         self._inrat: InRat | None = None
         self._control_panel: OnlineControlPanel = OnlineControlPanel(device=self)
 
+        self._future_connection: None | Future = None
+
     def set_device(self, device: BLEDevice):
         """ Открытие устройства """
-        self._inrat = BleakClient(device)
-        self._control_panel.set_device(device)
+        self._future_connection = asyncio.run_coroutine_threadsafe(self.process_connect(device), self._loop)
+
+    async def process_connect(self, device: BLEDevice):
+        dlg = WaitingDialog()
+        dlg.show()
+        retry = 0
+        self._inrat = InRat(device)
+
+        while retry != 3:
+            if await self._inrat.connect():
+                break
+            retry += 1
+
+        if self._inrat.is_connected:
+            self._inrat.name = device.name
+            self._control_panel.set_device(device)
+        else:
+            self._inrat = None
+        dlg.close()
+
 
     @property
     def control_panel(self):
