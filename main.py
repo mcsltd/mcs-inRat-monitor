@@ -51,6 +51,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.scanner.signal_device_selected.connect(self.device.set_device)
         self.device.signal_disconnected.connect(self.scanner.start)
+        self.device.signal_data_accepted.connect(self.updatePlot)
 
         self.storage = Storage(path_to_save=DATA_PATH, fs=HZ)
         # setup plot
@@ -174,39 +175,23 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.labelHardwareValue.setText("None")
             self.labelFirmwareValue.setText("None")
 
-    async def updatePlot(self):
-        # check device connection
-        if not self.device.is_connected:
-            self.timer.stop()  # stop update plot
+    def updatePlot(self, signal: np.ndarray):
+        self.ecg = np.append(self.ecg, signal)
 
-            info = QMessageBox.information(
-                self, "Lost device connection",
-                f"Lost connection with device {self.device.name}",
-                buttons=QMessageBox.StandardButton.Ok
-            )
-
-            # reset all
-            await self.lost_connection()
-
-        ecg = await self.ecg_queue.get()
-        self.ecg_queue.task_done()
-
-        self.ecg = np.append(self.ecg, ecg["ecg"])
-        logger.debug(f"Current {ecg['counter']=}")
         # calculate time
         if len(self.time) == 0:
-            self.time = np.arange(1, len(ecg["ecg"]) + 1) * 0.01 # ToDo: check it
+            self.time = np.arange(1, len(signal) + 1) * 0.01 # ToDo: check it
         else:
-            self.time = np.append(self.time, np.arange(1, len(ecg["ecg"]) + 1) * 1 / HZ + self.time[-1])
+            self.time = np.append(self.time, np.arange(1, len(signal) + 1) * 1 / HZ + self.time[-1])
         # check shape ecg and time
         if self.ecg.shape != self.time.shape:
             raise ValueError("Arrays time and ecg have not same shape!")
 
-        if self.storage.is_recording:
-            self.storage(ecg["ecg"]) # save ecg in storage
-            str_time = str(datetime.datetime.now() - self.storage.start_time).split(".")[0]
-            str_time = "0" + str_time if len(str_time) != 8 else str_time
-            self.labelRTvalue.setText(f"{str_time}")
+        # if self.storage.is_recording:
+        #     self.storage(ecg["ecg"]) # save ecg in storage
+        #     str_time = str(datetime.datetime.now() - self.storage.start_time).split(".")[0]
+        #     str_time = "0" + str_time if len(str_time) != 8 else str_time
+        #     self.labelRTvalue.setText(f"{str_time}")
 
         # add data in plot
         self.plot_ecg.setData(self.time, self.ecg, antialias=False, clipToView=True)

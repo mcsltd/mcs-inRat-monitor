@@ -3,6 +3,7 @@ import ctypes
 import hashlib
 import logging
 
+from asyncio import Queue
 from cryptography.hazmat.primitives.ciphers import algorithms, modes, Cipher
 from bleak import BleakClient, BleakScanner
 
@@ -140,13 +141,14 @@ class InRat:
 
         await self._client.write_gatt_char(char_specifier=InRat.UUID_CHARACTERISTIC_CONTROL, data=data)
 
-    async def start_acquisition(self, settings: Settings):
+    async def start_acquisition(self, settings: Settings, queue: Queue):
         """ Запуск устройства на получение данных """
         async def event_handler(_, raw_data: bytearray):
             cnt = int(len(raw_data) / ctypes.sizeof(Event))
             logger.debug(f"Получено событий: {cnt}")
             for idx in range(cnt):
                 event = Event.from_buffer(raw_data)
+                await queue.put({"type": "event", "counter": event.Counter, "data": event})
                 logger.debug("Получено событие:\n"
                     f" {event.Type=}\n"
                     f" {event.Value=}\n"
@@ -156,19 +158,17 @@ class InRat:
                     f" {event.Counter=}\n"
                     f" {event.Data=}"
                 )
-            await asyncio.sleep(0.001)
 
         async def ecg_handler(_, raw_data: bytearray):
             counter, signal = decoder.decode_ecg(raw_data)
+            await queue.put({"type": "ecg", "counter": counter, "data": signal})
             logger.debug(f"Получен сигнал ЭКГ: {counter}; значение сигнала: {signal}")
-            await asyncio.sleep(0.001)
 
         decoder = Decoder()
         await self.setup(cmd=Command.AcquisitionStart, settings=settings)
         await self._client.start_notify(self.UUID_CHARACTERISTIC_DATA_ECG, ecg_handler)
         await self._client.start_notify(self.UUID_CHARACTERISTIC_EVENT, event_handler)
         logger.debug(f"{self.name} запущено для получения событий и записи ЭКГ!")
-
 
     async def stop_acquisition(self):
         await self.setup(cmd=Command.AcquisitionStop)

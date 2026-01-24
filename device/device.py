@@ -1,8 +1,7 @@
 import asyncio
 import logging
-from asyncio import AbstractEventLoop
+from asyncio import AbstractEventLoop, Queue, Event
 from concurrent.futures import Future
-from functools import partial
 
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import QFrame
@@ -22,12 +21,18 @@ class Device(QObject):
     signal_disconnected = Signal()
     signal_acquisition = Signal()
 
+    signal_data_accepted = Signal(object)
+    signal_event_accepted = Signal(object)
+
     def __init__(self, loop: AbstractEventLoop, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self._loop = loop
         self._in_rat: InRat | None = None
         self._control_panel: OnlineControlPanel = OnlineControlPanel(device=self)
+
+        self._acquisition_queue = Queue()
+        self._acquisition_event = Event()
 
         self._future_connection: None | Future = None
         self._future_acquisition: None | Future = None
@@ -68,18 +73,30 @@ class Device(QObject):
         )
 
         self._future_acquisition = asyncio.run_coroutine_threadsafe(
-            self._in_rat.start_acquisition(default_settings),
-            self._loop
+            self._in_rat.start_acquisition(default_settings, self._acquisition_queue), self._loop
         )
+        self._acquisition_event.set()
+        future = asyncio.run_coroutine_threadsafe(self.process_acquisition(), self._loop)
 
         self._control_panel.pushButtonStart.setEnabled(False)
         self._control_panel.pushButtonStop.setEnabled(True)
+
+    async def process_acquisition(self):
+        """ Обработка очереди с данными. Очередь заполняется в методе start_acquisition класса InRat """
+        while self._acquisition_event.is_set():
+            print(f"Состояние: {self._future_acquisition.running()=}")
+            data = await self._acquisition_queue.get()
+            self._acquisition_queue.task_done()
+
+            if data["type"] == "ecg":
+                self.signal_data_accepted.emit(data["data"])
 
     def process_stop(self):
         """ Остановка получения данных с устройства """
         self._future_acquisition.cancel()
 
         future = asyncio.run_coroutine_threadsafe(self._in_rat.stop_acquisition(), self._loop)
+        self._acquisition_event.clear()
 
         self._control_panel.pushButtonStart.setEnabled(True)
         self._control_panel.pushButtonStop.setEnabled(False)
