@@ -18,7 +18,6 @@ from scanner.scanner import BLEScanner
 from utils.check_bluetooth import check_bluetooth_status
 from storage import Storage
 from resources.main_window import Ui_MainWindow
-from widget import WaitingDialog
 
 logger = logging.getLogger(__name__)
 

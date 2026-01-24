@@ -49,7 +49,7 @@ class InRat:
     def address(self) -> str:
         return self._client.address
     @property
-    def name(self) -> str:
+    def name(self) -> str | None:
         return self._name
     @property
     def serial_number(self) -> str | None:
@@ -112,7 +112,7 @@ class InRat:
             logger.info(f"Устройство {self.name} подключено")
         except asyncio.TimeoutError:
             res = False
-            logger.info(f"Устройство {self.name} не было найден")
+            logger.info(f"Устройство {self.name} не было найдено")
 
         except Exception as exp:
             res = False
@@ -142,7 +142,7 @@ class InRat:
 
     async def start_acquisition(self, settings: Settings):
         """ Запуск устройства на получение данных """
-        def event_handler(_, raw_data: bytearray):
+        async def event_handler(_, raw_data: bytearray):
             cnt = int(len(raw_data) / ctypes.sizeof(Event))
             logger.debug(f"Получено событий: {cnt}")
             for idx in range(cnt):
@@ -156,20 +156,25 @@ class InRat:
                     f" {event.Counter=}\n"
                     f" {event.Data=}"
                 )
+            await asyncio.sleep(0.001)
 
-        def ecg_handler(_, raw_data: bytearray):
+        async def ecg_handler(_, raw_data: bytearray):
             counter, signal = decoder.decode_ecg(raw_data)
             logger.debug(f"Получен сигнал ЭКГ: {counter}; значение сигнала: {signal}")
+            await asyncio.sleep(0.001)
 
         decoder = Decoder()
         await self.setup(cmd=Command.AcquisitionStart, settings=settings)
         await self._client.start_notify(self.UUID_CHARACTERISTIC_DATA_ECG, ecg_handler)
         await self._client.start_notify(self.UUID_CHARACTERISTIC_EVENT, event_handler)
+        logger.debug(f"{self.name} запущено для получения событий и записи ЭКГ!")
+
 
     async def stop_acquisition(self):
         await self.setup(cmd=Command.AcquisitionStop)
         await self._client.stop_notify(self.UUID_CHARACTERISTIC_DATA_ECG)
         await self._client.stop_notify(self.UUID_CHARACTERISTIC_EVENT)
+        logger.debug(f"{self.name} остановлено!")
 
 async def main():
     logging.basicConfig(

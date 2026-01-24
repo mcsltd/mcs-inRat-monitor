@@ -2,11 +2,14 @@ import asyncio
 import logging
 from asyncio import AbstractEventLoop
 from concurrent.futures import Future
-from tkinter.font import names
+from functools import partial
 
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import QFrame
-from bleak import BleakClient, BLEDevice
+from bleak import BLEDevice
+
+from device.constants import SamplingRate, EventType, ScaleAccelerometer, EnabledChannels
+from device.structure import Settings
 from widget import WaitingDialog
 
 from device import InRat
@@ -23,33 +26,64 @@ class Device(QObject):
         super().__init__(*args, **kwargs)
 
         self._loop = loop
-        self._inrat: InRat | None = None
+        self._in_rat: InRat | None = None
         self._control_panel: OnlineControlPanel = OnlineControlPanel(device=self)
 
         self._future_connection: None | Future = None
+        self._future_acquisition: None | Future = None
+
+        self._control_panel.pushButtonStart.clicked.connect(self.process_start)
+        self._control_panel.pushButtonStop.clicked.connect(self.process_stop)
 
     def set_device(self, device: BLEDevice):
         """ Открытие устройства """
         self._future_connection = asyncio.run_coroutine_threadsafe(self.process_connect(device), self._loop)
 
     async def process_connect(self, device: BLEDevice):
+        """ Соединение и открытие устройства """
         dlg = WaitingDialog()
         dlg.show()
+
+        self._in_rat = InRat(device)
         retry = 0
-        self._inrat = InRat(device)
-
-        while retry != 3:
-            if await self._inrat.connect():
-                break
+        while retry < 3:
+            logger.debug(f"Попытка подключения {retry}")
             retry += 1
+            if await self._in_rat.connect():
+                break
 
-        if self._inrat.is_connected:
-            self._inrat.name = device.name
+        if self._in_rat.is_connected:
             self._control_panel.set_device(device)
         else:
-            self._inrat = None
+            self._in_rat = None
+            self.signal_disconnected.emit()
+
         dlg.close()
 
+    def process_start(self):
+        """ Запуск устройства на получение данных """
+        default_settings = Settings(
+            DataRateEcg=SamplingRate.HZ_500.value, HighPassFilterEcg=0, FullScaleAccelerometer=ScaleAccelerometer.G_2.value,
+            EnabledChannels=EnabledChannels.ECG.value, EnabledEvents=EventType.START, ActivityThreshold=1
+        )
+
+        self._future_acquisition = asyncio.run_coroutine_threadsafe(
+            self._in_rat.start_acquisition(default_settings),
+            self._loop
+        )
+
+        self._control_panel.pushButtonStart.setEnabled(False)
+        self._control_panel.pushButtonStop.setEnabled(True)
+
+    def process_stop(self):
+        """ Остановка получения данных с устройства """
+        self._future_acquisition.cancel()
+
+        future = asyncio.run_coroutine_threadsafe(self._in_rat.stop_acquisition(), self._loop)
+
+        self._control_panel.pushButtonStart.setEnabled(True)
+        self._control_panel.pushButtonStop.setEnabled(False)
+        self._future_connection = None
 
     @property
     def control_panel(self):
@@ -57,10 +91,11 @@ class Device(QObject):
 
     def reset(self):
         """ Сброс соединения с подключенным устройством и уведомление об этом главного окна"""
-        self.signal_disconnected.emit()
-        # ToDo: disconnect inrat and stop notifying
-        self._inrat = None
+        future = asyncio.run_coroutine_threadsafe(self._in_rat.disconnect(), self._loop)
+
+        self._in_rat = None
         self._control_panel.reset()
+        self.signal_disconnected.emit()
 
 
 class OnlineControlPanel(QFrame, Ui_FrmDevice):
