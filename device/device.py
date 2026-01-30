@@ -84,7 +84,7 @@ class Device(QObject):
     async def process_acquisition(self):
         """ Обработка очереди с данными. Очередь заполняется в методе start_acquisition класса InRat """
         while self._acquisition_event.is_set():
-            print(f"Состояние: {self._future_acquisition.running()=}")
+            # print(f"Состояние: {self._future_acquisition.running()=}")
             data = await self._acquisition_queue.get()
             self._acquisition_queue.task_done()
 

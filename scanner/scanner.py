@@ -5,10 +5,12 @@ from asyncio import AbstractEventLoop
 from concurrent.futures import Future
 
 from PySide6.QtCore import QObject, Signal
-from PySide6.QtWidgets import QFrame
+from PySide6.QtWidgets import QFrame, QVBoxLayout
 from bleak import AdvertisementData, BLEDevice, BleakScanner
 
+# from resources.frm_online_scanner_deepseek import Ui_FrmScanner
 from resources.frm_online_scanner import Ui_FrmScanner
+
 
 logger = logging.getLogger(__name__)
 
@@ -83,4 +85,3 @@ class OnlineControlPanel(QFrame, Ui_FrmScanner):
         self.comboBoxDevice.clear()
         self.comboBoxDevice.setEnabled(True)
         self.pushButtonOpen.setEnabled(False)
-

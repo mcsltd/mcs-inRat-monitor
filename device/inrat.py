@@ -11,6 +11,8 @@ from device.constants import DeviceInformationService, Command, ScaleAcceleromet
 from device.decoder import Decoder
 from device.structure import Settings, Status, Event
 
+from config import BLE_KEY
+
 logger = logging.getLogger(__name__)
 
 def get_control_sum(data: bytes, key: bytearray) -> bytes:
@@ -25,7 +27,6 @@ def get_control_sum(data: bytes, key: bytearray) -> bytes:
     sign = encryptor.update(hash) + encryptor.finalize()
     return sign
 
-BLE_KEY = bytearray([0x9F, 0xD7, 0x01, 0x17, 0x73, 0x5D, 0x75, 0x8C, 0x19, 0x59, 0x7C, 0x7E, 0x9D, 0x1E, 0x57, 0x3E])
 
 class InRat:
 
