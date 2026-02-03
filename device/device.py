@@ -24,6 +24,9 @@ class Device(QObject):
     signal_data_accepted = Signal(object)
     signal_event_accepted = Signal(object)
 
+    signal_show_dialog = Signal()
+    signal_close_dialog = Signal()
+
     def __init__(self, loop: AbstractEventLoop, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -37,17 +40,22 @@ class Device(QObject):
         self._future_connection: None | Future = None
         self._future_acquisition: None | Future = None
 
+        # waiting dialog window
+        self.dlg_waiting_connection = WaitingDialog()
+        self.signal_show_dialog.connect(self.dlg_waiting_connection.show)
+        self.signal_close_dialog.connect(self.dlg_waiting_connection.close)
+
         self._control_panel.pushButtonStart.clicked.connect(self.process_start)
         self._control_panel.pushButtonStop.clicked.connect(self.process_stop)
 
     def set_device(self, device: BLEDevice):
         """ Открытие устройства """
+        logger.debug(f"Открытие устройства: {device.name}")
         self._future_connection = asyncio.run_coroutine_threadsafe(self.process_connect(device), self._loop)
 
     async def process_connect(self, device: BLEDevice):
         """ Соединение и открытие устройства """
-        dlg = WaitingDialog()
-        dlg.show()
+        self.signal_show_dialog.emit()
 
         self._in_rat = InRat(device)
         retry = 0
@@ -63,10 +71,11 @@ class Device(QObject):
             self._in_rat = None
             self.signal_disconnected.emit()
 
-        dlg.close()
+        self.signal_close_dialog.emit()
 
     def process_start(self):
         """ Запуск устройства на получение данных """
+        logger.debug("P")
         default_settings = Settings(
             DataRateEcg=SamplingRate.HZ_500.value, HighPassFilterEcg=0, FullScaleAccelerometer=ScaleAccelerometer.G_2.value,
             EnabledChannels=EnabledChannels.ECG.value, EnabledEvents=EventType.START, ActivityThreshold=1

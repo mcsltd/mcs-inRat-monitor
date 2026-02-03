@@ -1,7 +1,8 @@
 import asyncio
-import datetime
 import logging
-import os
+from asyncio import AbstractEventLoop
+from threading import Thread
+
 import numpy as np
 import pyqtgraph as pg
 
@@ -15,6 +16,7 @@ from device.device import Device
 from scanner.scanner import BLEScanner
 from utils.check_bluetooth import check_bluetooth_status
 from resources.main_window import Ui_MainWindow
+from widget import WaitingDialog
 
 logger = logging.getLogger(__name__)
 
@@ -26,14 +28,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     signal_connect = Signal()
 
-    def __init__(self, qt_loop: QtAsyncio.QAsyncioEventLoop, *args, **kwargs):
+    def __init__(self, loop: AbstractEventLoop, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
         self.setWindowTitle("InRat monitor")
         self.setWindowIcon(QIcon("resources/iconMCS.ico"))
 
         # hide
-        self.qt_loop = qt_loop
+        self._loop = loop
 
         # build queue
         self.ecg_queue = asyncio.Queue()
@@ -43,8 +45,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.time = np.array([])
 
         # main classes
-        self.device = Device(loop=self.qt_loop)
-        self.scanner = BLEScanner(loop=self.qt_loop)
+        self.device = Device(loop=self._loop)
+        self.scanner = BLEScanner(loop=self._loop)
 
         self.scanner.signal_device_selected.connect(self.device.set_device)
         self.device.signal_disconnected.connect(self.scanner.start)
@@ -119,21 +121,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.time = np.array([])
         self.plot_ecg = self.plotWidget.plot(self.time, self.ecg, pen=RED)
 
-
     def closeEvent(self, event):
         if self.timer.isActive():
             self.timer.stop()
 
 
-if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format="%(asctime)-15s %(name)-8s %(levelname)s: %(message)s",
-    )
+class ThreadedEventLoop(Thread):
+    
+    def __init__(self, loop: AbstractEventLoop):
+        super().__init__()
+        self._loop = loop
+        self.daemon = True
 
+    def run(self):
+        self._loop.run_forever()
+
+def run_qevent_loop():
     app = QApplication([])
     loop = QtAsyncio.QAsyncioEventLoop(application=app)
-
     try:
         check_bluetooth_status()
     except Exception as exc:
@@ -149,4 +154,30 @@ if __name__ == "__main__":
         window.showMaximized()
         loop.run_forever()
 
-    # QtAsyncio.run(handle_sigint=True, debug=True)
+def run_async_event_loop():
+    app = QApplication([])
+
+    loop = asyncio.new_event_loop()
+    asyncio_thread = ThreadedEventLoop(loop)
+    asyncio_thread.start()
+
+    try:
+        check_bluetooth_status()
+    except Exception as exc:
+        info = QMessageBox().information(
+            None,
+            "Bluetooth error",
+            f"Bluetooth error\n\nInfo:\n{exc}",
+            QMessageBox.StandardButton.Ok
+        )
+        app.quit()
+    else:
+        window = MainWindow(loop)
+        window.showMaximized()
+        app.exec()
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG, format="%(asctime)-15s %(name)-8s %(levelname)s: %(message)s",)
+    run_async_event_loop()
+    # run_qevent_loop()
+
