@@ -9,6 +9,7 @@ from bleak import BLEDevice
 
 from device.constants import SamplingRate, EventType, ScaleAccelerometer, EnabledChannels
 from device.structure import Settings
+from resources.frm_inrat_configuration import Ui_FrmInRatConfig
 from widget import WaitingDialog
 
 from device import InRat
@@ -30,9 +31,13 @@ class Device(QObject):
     def __init__(self, loop: AbstractEventLoop, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        # build queue
+        self.ecg_queue = asyncio.Queue()
+
         self._loop = loop
         self._in_rat: InRat | None = None
         self._control_panel: OnlineControlPanel = OnlineControlPanel(device=self)
+        self._config_panel: DeviceConfigurationPane = DeviceConfigurationPane()
 
         self._acquisition_queue = Queue()
         self._acquisition_event = Event()
@@ -98,7 +103,7 @@ class Device(QObject):
             self._acquisition_queue.task_done()
 
             if data["type"] == "ecg":
-                self.signal_data_accepted.emit(data["data"])
+                self.signal_data_accepted.emit(data)
 
     def process_stop(self):
         """ Остановка получения данных с устройства """
@@ -114,6 +119,10 @@ class Device(QObject):
     @property
     def control_panel(self):
         return self._control_panel
+
+    @property
+    def config_panel(self):
+        return self._config_panel
 
     def reset(self):
         """ Сброс соединения с подключенным устройством и уведомление об этом главного окна"""
@@ -145,3 +154,10 @@ class OnlineControlPanel(QFrame, Ui_FrmDevice):
         self.pushButtonStart.setEnabled(False)
         self.pushButtonStop.setEnabled(False)
         self.pushButtonDisconnect.setEnabled(False)
+
+
+class DeviceConfigurationPane(QFrame, Ui_FrmInRatConfig):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setupUi(self)
+

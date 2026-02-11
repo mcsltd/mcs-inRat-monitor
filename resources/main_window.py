@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'main_windowPqiYBT.ui'
+## Form generated from reading UI file 'main_windowNechQf.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -16,10 +16,8 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QGridLayout, QHBoxLayout, QLayout,
-    QMainWindow, QMenuBar, QSizePolicy, QSpacerItem,
+    QMainWindow, QMenuBar, QPushButton, QSizePolicy,
     QStatusBar, QVBoxLayout, QWidget)
-
-from pyqtgraph import PlotWidget
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -33,25 +31,26 @@ class Ui_MainWindow(object):
         self.verticalLayout = QVBoxLayout()
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.verticalLayout.setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint)
+        self.pushButtonConfig = QPushButton(self.centralwidget)
+        self.pushButtonConfig.setObjectName(u"pushButtonConfig")
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.pushButtonConfig.sizePolicy().hasHeightForWidth())
+        self.pushButtonConfig.setSizePolicy(sizePolicy)
+        self.pushButtonConfig.setMinimumSize(QSize(0, 0))
+        self.pushButtonConfig.setMaximumSize(QSize(16777215, 30))
+        font = QFont()
+        font.setPointSize(12)
+        self.pushButtonConfig.setFont(font)
+
+        self.verticalLayout.addWidget(self.pushButtonConfig)
+
 
         self.gridLayout.addLayout(self.verticalLayout, 0, 1, 1, 1)
 
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
-        self.plotWidget = PlotWidget(self.centralwidget)
-        self.plotWidget.setObjectName(u"plotWidget")
-        font = QFont()
-        font.setPointSize(12)
-        self.plotWidget.setFont(font)
-        self.gridLayout_3 = QGridLayout(self.plotWidget)
-        self.gridLayout_3.setObjectName(u"gridLayout_3")
-        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.gridLayout_3.addItem(self.horizontalSpacer, 0, 0, 1, 1)
-
-
-        self.horizontalLayout.addWidget(self.plotWidget)
-
 
         self.gridLayout.addLayout(self.horizontalLayout, 0, 0, 1, 1)
 
@@ -71,5 +70,6 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"MainWindow", None))
+        self.pushButtonConfig.setText(QCoreApplication.translate("MainWindow", u"\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438", None))
     # retranslateUi
 

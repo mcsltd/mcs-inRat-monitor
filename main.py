@@ -6,23 +6,20 @@ from threading import Thread
 import numpy as np
 import pyqtgraph as pg
 
-
-from PySide6 import QtAsyncio, QtCore
-from PySide6.QtCore import QTimer, Signal, Qt
+from PySide6 import QtAsyncio
+from PySide6.QtCore import QTimer, Signal
 from PySide6.QtGui import QIcon, QFont
-from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QFileDialog
+from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QDialog
 
-from device.device import Device
+from device.device import Device, DeviceConfigurationPane
+from display import DisplayScope
+from resources.frm_configuration import Ui_frmConfiguration
 from scanner.scanner import BLEScanner
 from utils.check_bluetooth import check_bluetooth_status
 from resources.main_window import Ui_MainWindow
-from widget import WaitingDialog
 
 logger = logging.getLogger(__name__)
 
-
-RED = pg.mkPen(color=(255, 0, 0), width=2)
-HZ = 500
 
 class MainWindow(QMainWindow, Ui_MainWindow):
 
@@ -37,93 +34,37 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # hide
         self._loop = loop
 
-        # build queue
-        self.ecg_queue = asyncio.Queue()
-
-        # data
-        self.ecg = np.array([])
-        self.time = np.array([])
-
         # main classes
         self.device = Device(loop=self._loop)
         self.scanner = BLEScanner(loop=self._loop)
+        self.scope = DisplayScope()
 
         self.scanner.signal_device_selected.connect(self.device.set_device)
         self.device.signal_disconnected.connect(self.scanner.start)
-        self.device.signal_data_accepted.connect(self.updatePlot)
-
-        # setup plot
-        self.plot_ecg = self.plotWidget.plot(self.time, self.ecg, pen=RED)
-
-        font = QFont()
-        font.setPointSize(12)
-
-        self.plotWidget.setLabel("left", "ECG (uV)", pen=pg.mkPen(color='k'), font=font)
-        self.plotWidget.getAxis("left").label.setFont(font)
-        self.plotWidget.getAxis("left").setPen(pg.mkPen(color='k'))
-        self.plotWidget.getAxis("left").setTextPen(pg.mkPen(color='k'))
-        self.plotWidget.getAxis("left").setTickFont(font)
-
-        self.plotWidget.setLabel("bottom", "Time (sec)", pen=pg.mkPen(color='k'), font=font)
-        self.plotWidget.getAxis("bottom").label.setFont(font)
-        self.plotWidget.getAxis("bottom").setPen(pg.mkPen(color='k'))
-        self.plotWidget.getAxis("bottom").setTextPen(pg.mkPen(color='k'))
-        self.plotWidget.getAxis("bottom").setTickFont(font)
-
-        self.plotWidget.addLegend()
-        self.plotWidget.setBackground("w")
-        self.plotWidget.setDownsampling(auto=True, mode='peak', ds=50)
-
-        # timer for get ecg from device and draw plot
-        self.time_update = 2
-        self.timer = QTimer()
-        self.timer.setInterval(self.time_update) # in msec
-        self.timer.timeout.connect(self.updatePlot)
+        self.device.signal_data_accepted.connect(self.scope.process_input)
 
         self.verticalLayout.insertWidget(0, self.scanner.control_panel, 2)
         self.verticalLayout.insertWidget(1, self.device.control_panel, 2)
-        self.verticalLayout.addStretch(10)
+        self.verticalLayout.addStretch(20)
 
-        self.timebase = 10
+        self.pushButtonConfig.clicked.connect(self.on_configuration_clicked)
+
+        self.horizontalLayout.addWidget(self.scope)
+
+    def on_configuration_clicked(self):
+        dlg = DlgConfiguration()
+        dlg.add_tab(self.device.config_panel)
+        dlg.exec()
 
 
-    def updatePlot(self, signal: np.ndarray):
-        self.ecg = np.append(self.ecg, signal)
+class DlgConfiguration(QDialog, Ui_frmConfiguration):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setupUi(self)
+        self.tabs = []
 
-        # calculate time
-        if len(self.time) == 0:
-            self.time = np.arange(1, len(signal) + 1) * 0.01 # ToDo: check it
-        else:
-            self.time = np.append(self.time, np.arange(1, len(signal) + 1) * 1 / HZ + self.time[-1])
-        # check shape ecg and time
-        if self.ecg.shape != self.time.shape:
-            raise ValueError("Arrays time and ecg have not same shape!")
-
-        # add data in plot
-        self.plot_ecg.setData(self.time, self.ecg, antialias=False, clipToView=True)
-
-        if self.time[-1] < self.timebase:
-            self.plotWidget.setXRange(0, self.timebase)
-        else:
-            self.plotWidget.setXRange(self.time[-1] - self.timebase, self.time[-1])
-
-        slide = self.ecg[- int(self.timebase * HZ):]
-        self.plotWidget.setYRange(
-            min(slide), max(slide), # padding=0.15
-        )
-
-    def reset(self) -> None:
-        """
-        Reset data.
-        """
-        self.plotWidget.clear()
-        self.ecg = np.array([])
-        self.time = np.array([])
-        self.plot_ecg = self.plotWidget.plot(self.time, self.ecg, pen=RED)
-
-    def closeEvent(self, event):
-        if self.timer.isActive():
-            self.timer.stop()
+    def add_tab(self, tab):
+        self.tabWidget.addTab(tab, "")
 
 
 class ThreadedEventLoop(Thread):
