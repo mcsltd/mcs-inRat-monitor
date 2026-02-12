@@ -3,6 +3,8 @@ from pyqtgraph import PlotWidget, PlotDataItem
 
 import pyqtgraph as pg
 
+from device.device import EcgDataBlock
+
 RED = pg.mkPen(color=(255, 0, 0), width=2)
 
 
@@ -32,8 +34,8 @@ class DisplayScope(PlotWidget):
         self.addLegend()
         self.setBackground("w")
 
-    def process_input(self, datablock: dict):
-        self.curve.setData(datablock["data"])
+    def process_input(self, datablock: EcgDataBlock):
+        self.curve.setData(datablock.ecg_signal)
 
 
 

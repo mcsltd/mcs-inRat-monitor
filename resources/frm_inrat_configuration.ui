@@ -18,82 +18,11 @@
     <layout class="QVBoxLayout" name="verticalLayout">
      <item>
       <layout class="QGridLayout" name="gridLayout">
-       <item row="0" column="2">
-        <widget class="QLabel" name="labelSamplingRateValueDim">
-         <property name="text">
-          <string>[Гц]</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="1">
-        <widget class="QCheckBox" name="checkBoxEnabeActivated">
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <widget class="QComboBox" name="comboBoxSamplingRate">
-         <item>
-          <property name="text">
-           <string>500</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>1000</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>2000</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-       <item row="0" column="0">
-        <widget class="QLabel" name="labelSamplingRate">
-         <property name="text">
-          <string>Частота оцифровки</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="labelEnableActivated">
-         <property name="text">
-          <string>Активировано</string>
-         </property>
-        </widget>
-       </item>
        <item row="1" column="0">
         <widget class="QLabel" name="labelFullScaleAcc">
          <property name="text">
           <string>Диапазон акселерометра</string>
          </property>
-        </widget>
-       </item>
-       <item row="1" column="1">
-        <widget class="QComboBox" name="comboBoxScaleAcc">
-         <item>
-          <property name="text">
-           <string>±2</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>±4</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>±8</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>±16</string>
-          </property>
-         </item>
         </widget>
        </item>
        <item row="1" column="2">
@@ -102,6 +31,50 @@
           <string>g</string>
          </property>
         </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="labelEnableActivated">
+         <property name="text">
+          <string>Активировано</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="2">
+        <widget class="QLabel" name="labelSamplingRateValueDim">
+         <property name="text">
+          <string>[Гц]</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QCheckBox" name="checkBoxEnabeActivated">
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QComboBox" name="comboBoxSamplingRate"/>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="labelSamplingRate">
+         <property name="text">
+          <string>Частота оцифровки</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QComboBox" name="comboBoxScaleAcc"/>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="labelActivityThreshold">
+         <property name="text">
+          <string>Порог активности</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QComboBox" name="comboBoxActivityThreshold"/>
        </item>
       </layout>
      </item>

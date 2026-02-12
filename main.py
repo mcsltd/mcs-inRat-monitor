@@ -9,7 +9,7 @@ import pyqtgraph as pg
 from PySide6 import QtAsyncio
 from PySide6.QtCore import QTimer, Signal
 from PySide6.QtGui import QIcon, QFont
-from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QDialog
+from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QDialog, QWidget, QGridLayout, QFrame
 
 from device.device import Device, DeviceConfigurationPane
 from display import DisplayScope
@@ -58,13 +58,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 
 class DlgConfiguration(QDialog, Ui_frmConfiguration):
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
         self.tabs = []
+        self.buttonBox.clicked.connect(self.close)
 
-    def add_tab(self, tab):
+    def add_tab(self, tab: QFrame | None):
         self.tabWidget.addTab(tab, "")
+        self.tabs.append(tab)
+        self.tabWidget.setTabText(self.tabWidget.indexOf(tab), tab.windowTitle())
 
 
 class ThreadedEventLoop(Thread):
@@ -84,9 +88,7 @@ def run_qevent_loop():
         check_bluetooth_status()
     except Exception as exc:
         info = QMessageBox().information(
-            None,
-            "Bluetooth error",
-            f"Bluetooth error\n\nInfo:\n{exc}",
+            None,"Bluetooth error",f"Bluetooth error\n\nInfo:\n{exc}",
             QMessageBox.StandardButton.Ok
         )
         app.quit()

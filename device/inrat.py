@@ -2,12 +2,16 @@ import asyncio
 import ctypes
 import hashlib
 import logging
+import datetime
 
 from asyncio import Queue
+
+import numpy as np
 from cryptography.hazmat.primitives.ciphers import algorithms, modes, Cipher
 from bleak import BleakClient, BleakScanner
 
-from device.constants import DeviceInformationService, Command, ScaleAccelerometer, SamplingRate, EnabledChannels, EventType
+from device.constants import DeviceInformationService, Command, ScaleAccelerometer, SamplingRate, EnabledChannels, \
+    EventType, Pkt
 from device.decoder import Decoder
 from device.structure import Settings, Status, Event
 
@@ -142,7 +146,7 @@ class InRat:
 
         await self._client.write_gatt_char(char_specifier=InRat.UUID_CHARACTERISTIC_CONTROL, data=data)
 
-    async def start_acquisition(self, settings: Settings, queue: Queue):
+    async def start_acquisition(self, settings, queue: Queue):
         """ Запуск устройства на получение данных """
         async def event_handler(_, raw_data: bytearray):
             cnt = int(len(raw_data) / ctypes.sizeof(Event))
@@ -177,38 +181,4 @@ class InRat:
         await self._client.stop_notify(self.UUID_CHARACTERISTIC_EVENT)
         logger.debug(f"{self.name} остановлено!")
 
-async def main():
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format="%(asctime)-15s %(name)-8s %(levelname)s: %(message)s",
-    )
 
-    device = await BleakScanner.find_device_by_name(name="inRat-1-1021")
-    print(f"{device=}")
-
-    if device is not None:
-        inrat = InRat(ble_device=device)
-
-        await inrat.connect()
-        print(f"Состояние соединения с InRat: {inrat.is_connected}")
-        await asyncio.sleep(15)
-
-        settings = Settings(
-            DataRateEcg=SamplingRate.HZ_500.value,
-            HighPassFilterEcg=0,
-            FullScaleAccelerometer=ScaleAccelerometer.G_2.value,
-            EnabledChannels=EnabledChannels.ECG,
-            EnabledEvents=EventType.BUTTON | EventType.ACTIVITY | EventType.FREEFALL | EventType.ORIENTATION | EventType.START | EventType.TEMP,
-            ActivityThreshold=1
-        )
-
-        await inrat.start_acquisition(settings=settings)
-        await asyncio.sleep(30)
-        await inrat.stop_acquisition()
-
-        await inrat.disconnect()
-    else:
-        print("Устройство не найдено")
-
-if __name__ == "__main__":
-    asyncio.run(main())

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'frm_configurationJWoPdF.ui'
+## Form generated from reading UI file 'frm_configurationbPVkiX.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -27,9 +27,6 @@ class Ui_frmConfiguration(object):
         self.gridLayout.setObjectName(u"gridLayout")
         self.tabWidget = QTabWidget(frmConfiguration)
         self.tabWidget.setObjectName(u"tabWidget")
-        self.tab = QWidget()
-        self.tab.setObjectName(u"tab")
-        self.tabWidget.addTab(self.tab, "")
 
         self.gridLayout.addWidget(self.tabWidget, 0, 0, 1, 1)
 
@@ -42,14 +39,13 @@ class Ui_frmConfiguration(object):
 
         self.retranslateUi(frmConfiguration)
 
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(-1)
 
 
         QMetaObject.connectSlotsByName(frmConfiguration)
     # setupUi
 
     def retranslateUi(self, frmConfiguration):
-        frmConfiguration.setWindowTitle(QCoreApplication.translate("frmConfiguration", u"Configuration", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("frmConfiguration", u"Tab 1", None))
+        frmConfiguration.setWindowTitle(QCoreApplication.translate("frmConfiguration", u"\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438", None))
     # retranslateUi
 

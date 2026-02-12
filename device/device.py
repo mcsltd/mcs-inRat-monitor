@@ -1,13 +1,16 @@
 import asyncio
+import copy
+import datetime
 import logging
 from asyncio import AbstractEventLoop, Queue, Event
 from concurrent.futures import Future
 
-from PySide6.QtCore import QObject, Signal
+import numpy as np
+from PySide6.QtCore import QObject, Signal, QAbstractTableModel
 from PySide6.QtWidgets import QFrame
 from bleak import BLEDevice
 
-from device.constants import SamplingRate, EventType, ScaleAccelerometer, EnabledChannels
+from device.constants import SamplingRate, EventType, ScaleAccelerometer, EnabledChannels, Pkt
 from device.structure import Settings
 from resources.frm_inrat_configuration import Ui_FrmInRatConfig
 from widget import WaitingDialog
@@ -45,6 +48,9 @@ class Device(QObject):
         self._future_connection: None | Future = None
         self._future_acquisition: None | Future = None
 
+        # signal
+        self.ecg_block = EcgDataBlock()
+
         # waiting dialog window
         self.dlg_waiting_connection = WaitingDialog()
         self.signal_show_dialog.connect(self.dlg_waiting_connection.show)
@@ -80,14 +86,12 @@ class Device(QObject):
 
     def process_start(self):
         """ Запуск устройства на получение данных """
-        logger.debug("P")
-        default_settings = Settings(
-            DataRateEcg=SamplingRate.HZ_500.value, HighPassFilterEcg=0, FullScaleAccelerometer=ScaleAccelerometer.G_2.value,
-            EnabledChannels=EnabledChannels.ECG.value, EnabledEvents=EventType.START, ActivityThreshold=1
-        )
+        settings = Settings(DataRateEcg=self.config_panel.sampling_rate.value, HighPassFilterEcg=0,
+                            FullScaleAccelerometer=self.config_panel.accelerometer_scale.value, EnabledChannels=EnabledChannels.ECG,
+                            EnabledEvents=EventType.START.value, ActivityThreshold=self.config_panel.activity_threshold,)
 
         self._future_acquisition = asyncio.run_coroutine_threadsafe(
-            self._in_rat.start_acquisition(default_settings, self._acquisition_queue), self._loop
+            self._in_rat.start_acquisition(settings, self._acquisition_queue), self._loop
         )
         self._acquisition_event.set()
         future = asyncio.run_coroutine_threadsafe(self.process_acquisition(), self._loop)
@@ -97,13 +101,17 @@ class Device(QObject):
 
     async def process_acquisition(self):
         """ Обработка очереди с данными. Очередь заполняется в методе start_acquisition класса InRat """
+
         while self._acquisition_event.is_set():
-            # print(f"Состояние: {self._future_acquisition.running()=}")
+
             data = await self._acquisition_queue.get()
             self._acquisition_queue.task_done()
 
             if data["type"] == "ecg":
-                self.signal_data_accepted.emit(data)
+                self.ecg_block.sample_rate = 500
+                self.ecg_block.ecg_signal = data["data"]
+                datablock = copy.copy(self.ecg_block)
+                self.signal_data_accepted.emit(datablock)
 
     def process_stop(self):
         """ Остановка получения данных с устройства """
@@ -157,7 +165,47 @@ class OnlineControlPanel(QFrame, Ui_FrmDevice):
 
 
 class DeviceConfigurationPane(QFrame, Ui_FrmInRatConfig):
+    signal_config_changed = Signal()
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
+
+        self._set_scale_accelerometer()
+        self._set_sampling_rate()
+        self._set_activity_threshold()
+
+    @property
+    def sampling_rate(self):
+        return self.comboBoxSamplingRate.currentData()
+    @property
+    def accelerometer_scale(self):
+        return self.comboBoxScaleAcc.currentData()
+    @property
+    def activity_threshold(self):
+        return self.comboBoxActivityThreshold.currentData()
+
+    def _set_scale_accelerometer(self):
+        items = [("±2", ScaleAccelerometer.G_2), ("±4", ScaleAccelerometer.G_4),
+                 ("±8", ScaleAccelerometer.G_8), ("±16", ScaleAccelerometer.G_16)]
+        for item in items:
+            self.comboBoxScaleAcc.addItem(*item)
+
+    def _set_sampling_rate(self):
+        items = [("500", SamplingRate.HZ_500), ("1000", SamplingRate.HZ_1000), ("2000", SamplingRate.HZ_1000)]
+        for item in items:
+            self.comboBoxSamplingRate.addItem(*item)
+
+    def _set_activity_threshold(self):
+        items = [(f"{i}", i) for i in range(1, 10)]
+        for item in items:
+            self.comboBoxActivityThreshold.addItem(*item)
+
+
+class EcgDataBlock:
+    def __init__(self, ecg=1):
+        self.sample_counter = 0
+        self.sample_rate = 500.0
+        self.block_time = datetime.datetime.now()
+        self.ecg_signal = np.zeros((ecg, Pkt.SamplesCountEcg))
 
