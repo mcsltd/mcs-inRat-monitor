@@ -50,6 +50,7 @@ class Device(QObject):
 
         # signal
         self.ecg_block = EcgDataBlock()
+        self.start_time = datetime.datetime.now()
 
         # waiting dialog window
         self.dlg_waiting_connection = WaitingDialog()
@@ -99,17 +100,21 @@ class Device(QObject):
         self._control_panel.pushButtonStart.setEnabled(False)
         self._control_panel.pushButtonStop.setEnabled(True)
 
+        self.start_time = datetime.datetime.now()
+
     async def process_acquisition(self):
         """ Обработка очереди с данными. Очередь заполняется в методе start_acquisition класса InRat """
-
         while self._acquisition_event.is_set():
-
             data = await self._acquisition_queue.get()
             self._acquisition_queue.task_done()
 
             if data["type"] == "ecg":
-                self.ecg_block.sample_rate = 500
+                self.ecg_block.sample_counter = data["counter"]
+                self.ecg_block.sample_rate = 500.0
                 self.ecg_block.ecg_signal = data["data"]
+
+                sampletime = self.ecg_block.sample_counter / self.ecg_block.sample_rate * 32
+                self.ecg_block.block_time = self.start_time + datetime.timedelta(seconds=sampletime)
                 datablock = copy.copy(self.ecg_block)
                 self.signal_data_accepted.emit(datablock)
 
