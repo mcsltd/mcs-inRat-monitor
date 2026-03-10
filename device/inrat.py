@@ -2,13 +2,13 @@ import asyncio
 import ctypes
 import hashlib
 import logging
+import time
 
-from asyncio import Queue
 from cryptography.hazmat.primitives.ciphers import algorithms, modes, Cipher
-from bleak import BleakClient, BleakScanner
+from bleak import BleakClient, BleakCharacteristicNotFoundError
 
 from device.constants import DeviceInformationService, Command, ScaleAccelerometer, SamplingRate, EnabledChannels, EventType
-from device.decoder import Decoder
+from device.decoder import decode_ecg
 from device.structure import Settings, Status, Event
 
 from config import BLE_KEY
@@ -28,7 +28,7 @@ def get_control_sum(data: bytes, key: bytearray) -> bytes:
     return sign
 
 
-class InRat:
+class inRat:
 
     UUID_CHARACTERISTIC_DATA_ECG = "59573ef1-5389-575f-87d5-5f31fcdcba7b"
     UUID_CHARACTERISTIC_EVENT = "f553739f-9f1f-538d-a7d3-cd987b395eb5"
@@ -38,6 +38,8 @@ class InRat:
     def __init__(self, ble_device):
         self._client: BleakClient = BleakClient(ble_device)
 
+        self._is_notifying: bool = False
+        self._is_activated: bool = False
         self._name = ble_device.name
         self._model = None
         self._serial_number = None
@@ -47,6 +49,9 @@ class InRat:
     @property
     def is_connected(self) -> bool:
         return self._client.is_connected
+    @property
+    def is_activated(self) -> bool:
+        return self._is_activated
     @property
     def address(self) -> str:
         return self._client.address
@@ -66,16 +71,36 @@ class InRat:
     def firmware(self) -> str | None:
         return self._firmware
 
-    async def _get_device_info(self) -> None:
+    async def _get_device_info(self) -> (bool, str):
         """ Получение данных об устройстве """
-        sn = await self._client.read_gatt_char(str(DeviceInformationService.SERIAL))
-        self._serial_number = sn.decode()
-        fw = await self._client.read_gatt_char(str(DeviceInformationService.FIRMWARE))
-        self._firmware = fw.decode()
-        hw = await self._client.read_gatt_char(str(DeviceInformationService.HARDWARE))
-        self._hardware = hw.decode()
-        md = await self._client.read_gatt_char(str(DeviceInformationService.MODEL))
-        self._model = md.decode()
+        if not self._client.is_connected:
+            logger.error(f"Потеряно соединение с {self.name}!")
+            return True, f"Потеряно соединение с {self.name}!"
+
+        try:
+            sn = await self._client.read_gatt_char(str(DeviceInformationService.SERIAL))
+            self._serial_number = sn.decode()
+        except Exception as error:
+            return False, f"Не удалось прочитать серийный номер. Ошибка: {error}"
+
+        try:
+            fw = await self._client.read_gatt_char(str(DeviceInformationService.FIRMWARE))
+            self._firmware = fw.decode()
+        except Exception as error:
+            return False, f"Не удалось прочитать версию прошивки. Ошибка: {error}"
+
+        try:
+            hw = await self._client.read_gatt_char(str(DeviceInformationService.HARDWARE))
+            self._hardware = hw.decode()
+        except Exception as error:
+            return False, f"Не удалось прочитать версию аппаратуры. Ошибка: {error}"
+
+        try:
+            md = await self._client.read_gatt_char(str(DeviceInformationService.MODEL))
+            self._model = md.decode()
+        except Exception as error:
+            return False, f"Не удалось прочитать модель устройсва. Ошибка: {error}"
+
         logger.info(
             f"Получена информация об устройстве: {self.name}\n"
             f" - sn: {self.serial_number}\n"
@@ -83,6 +108,7 @@ class InRat:
             f" - firmware: {self.firmware}\n"
             f" - hardware: {self.hardware}\n"
         )
+        return True, "Ok!"
 
     async def get_status(self) -> None | Status:
         """ Получение статуса устройства и другой информации """
@@ -101,114 +127,111 @@ class InRat:
 
         return status
 
-    async def connect(self, timeout: int=10) -> bool:
-        """ Попытка соединения с обнаруженным устройством """
-        res = True
+    async def connect(self, wait: float=10.0) -> (bool, str):
+        """ метод соединения с устройством и получения статуса и данных от устройства """
         if self.is_connected:
             logger.warning(f"Устройство {self.address} уже подключено")
-            return res
+            return True, "Ok"
 
+        # соединение
         try:
-            await asyncio.wait_for(self._client.connect(), timeout)
-            await self._get_device_info()
-            logger.info(f"Устройство {self.name} подключено")
-        except asyncio.TimeoutError:
-            res = False
-            logger.info(f"Устройство {self.name} не было найдено")
+            await asyncio.wait_for(self._client.connect(), wait)
+            logger.info(f"Подключение к {self.name} прошло успешно")
+        except TimeoutError:
+            logger.error(f"Истекло время подключения к {self.name}")
+            return False, f"Истекло время подключения к {self.name}"
+        except Exception as error:
+            return False, f"Возникла ошибка во время подключения к {self.name}. Ошибка: {error}"
 
-        except Exception as exp:
-            res = False
+        # получение информации об устройстве
+        res, msg = await self._get_device_info()
+        if not res:
+            return False, msg
 
-        return res
+        return True, "Ok!"
 
-    async def disconnect(self) -> bool:
-        """ Отсоединение от устройства """
-        res = True
-        if not self.is_connected:
-            return res
 
+    async def disconnect(self) -> (bool, str):
+        """ метод отключения inRat """
+        msg = None
+        # передача команды закрытия соединения inRat
         try:
-            logger.info(f"Устройство {self.name} отключено")
+            await self.setup(Command.ConnectionClose)
+        except Exception as err:
+            msg = f"Возникла ошибка во время передачи команды ConnectionClose. Ошибка: {err}"
+
+        # ToDo: добавить отписку от сервисов
+
+        # отсоединение (в любом случае)
+        try:
             await self._client.disconnect()
-            res = True
-        except Exception:
-            res = False
-        return res
+            msg = "Ok!"
+        except Exception as err:
+            if msg:
+                msg += f"\n{err}Возникла ошибка закрытия {self.name}. Ошибка: {err}"
+            else:
+                msg = f"Возникла ошибка закрытия {self.name}. Ошибка: {err}"
+            return False, msg
+
+        return True, msg
 
     async def setup(self, cmd: Command, settings: Settings | bytes = b''):
         """ Настройка устройства """
         data = cmd.value.to_bytes() + bytes(settings)
         data += get_control_sum(data=data, key=BLE_KEY)
 
-        await self._client.write_gatt_char(char_specifier=InRat.UUID_CHARACTERISTIC_CONTROL, data=data)
+        await self._client.write_gatt_char(char_specifier=self.UUID_CHARACTERISTIC_CONTROL, data=data)
 
-    async def start_acquisition(self, settings: Settings, queue: Queue):
-        """ Запуск устройства на получение данных """
-        async def event_handler(_, raw_data: bytearray):
-            cnt = int(len(raw_data) / ctypes.sizeof(Event))
+    async def start_acquisition(self, data_queue) -> (bool, str):
+        """ Запуск inRat на регистрацию сигнала и событий """
+
+        async def event_handler(sender, data: bytearray):
+            event_size = ctypes.sizeof(Event)
+            cnt = int(len(data) / event_size)
+
             logger.debug(f"Получено событий: {cnt}")
             for idx in range(cnt):
-                event = Event.from_buffer(raw_data)
-                await queue.put({"type": "event", "counter": event.Counter, "data": event})
-                logger.debug("Получено событие:\n"
-                    f" {event.Type=}\n"
-                    f" {event.Value=}\n"
-                    f" Acceleration:\n"
-                    f"      {event.Acceleration.X=} {event.Acceleration.Y=} {event.Acceleration.Z=}\n"
-                    f" {event.Number=}\n"
-                    f" {event.Counter=}\n"
-                    f" {event.Data=}"
-                )
+                event = Event.from_buffer(data[idx: (idx + 1) * event_size])
+                await data_queue.put({"type": "event", "counter": event.Counter, "event": event})
 
-        async def ecg_handler(_, raw_data: bytearray):
-            counter, signal = decoder.decode_ecg(raw_data)
-            await queue.put({"type": "ecg", "counter": counter, "data": signal})
-            logger.debug(f"Получен сигнал ЭКГ: {counter}; значение сигнала: {signal}")
+        async def signal_handler(sender, data: bytearray):
+            # print(f"{sender=}, {data=}")
+            time_received = time.time()
+            cnt, sig = decode_ecg(data)
+            await data_queue.put({"type": "signal", "start_time": time_received, "counter": cnt, "signal": sig})
 
-        decoder = Decoder()
-        await self.setup(cmd=Command.AcquisitionStart, settings=settings)
-        await self._client.start_notify(self.UUID_CHARACTERISTIC_DATA_ECG, ecg_handler)
-        await self._client.start_notify(self.UUID_CHARACTERISTIC_EVENT, event_handler)
-        logger.debug(f"{self.name} запущено для получения событий и записи ЭКГ!")
+        settings = Settings(
+            DataRateEcg=SamplingRate.HZ_500, HighPassFilterEcg=0, FullScaleAccelerometer=ScaleAccelerometer.G_2,
+            EnabledChannels=EnabledChannels.ECG, EnabledEvents=EventType.BUTTON | EventType.ACTIVITY | EventType.FREEFALL | EventType.ORIENTATION | EventType.START | EventType.TEMP,
+            ActivityThreshold=1
+        )
+        res = True
+
+        if not self.is_connected:
+            return False, f"потеряно соединение с {self.name}!"
+
+        try:
+            await self.setup(Command.AcquisitionStart, settings)
+        except:
+            return False, f"Не удалось {self.name} передать команду Command.AcquisitionStart "
+
+        try:
+            await self._client.start_notify(self.UUID_CHARACTERISTIC_DATA_ECG, signal_handler)
+            if not self._is_notifying:
+                self._is_notifying = True
+        except BleakCharacteristicNotFoundError:
+            return False, f"Не удалось подписаться на сервис: {self.UUID_CHARACTERISTIC_DATA_ECG}"
+        try:
+            await self._client.start_notify(self.UUID_CHARACTERISTIC_EVENT, event_handler)
+            if not self._is_notifying:
+                self._is_notifying = True
+        except BleakCharacteristicNotFoundError:
+            return False, f"Не удалось подписаться на сервис: {self.UUID_CHARACTERISTIC_EVENT}"
+
+        return res, "Ok"
 
     async def stop_acquisition(self):
         await self.setup(cmd=Command.AcquisitionStop)
         await self._client.stop_notify(self.UUID_CHARACTERISTIC_DATA_ECG)
         await self._client.stop_notify(self.UUID_CHARACTERISTIC_EVENT)
         logger.debug(f"{self.name} остановлено!")
-
-async def main():
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format="%(asctime)-15s %(name)-8s %(levelname)s: %(message)s",
-    )
-
-    device = await BleakScanner.find_device_by_name(name="inRat-1-1021")
-    print(f"{device=}")
-
-    if device is not None:
-        inrat = InRat(ble_device=device)
-
-        await inrat.connect()
-        print(f"Состояние соединения с InRat: {inrat.is_connected}")
-        await asyncio.sleep(15)
-
-        settings = Settings(
-            DataRateEcg=SamplingRate.HZ_500.value,
-            HighPassFilterEcg=0,
-            FullScaleAccelerometer=ScaleAccelerometer.G_2.value,
-            EnabledChannels=EnabledChannels.ECG,
-            EnabledEvents=EventType.BUTTON | EventType.ACTIVITY | EventType.FREEFALL | EventType.ORIENTATION | EventType.START | EventType.TEMP,
-            ActivityThreshold=1
-        )
-
-        await inrat.start_acquisition(settings=settings)
-        await asyncio.sleep(30)
-        await inrat.stop_acquisition()
-
-        await inrat.disconnect()
-    else:
-        print("Устройство не найдено")
-
-if __name__ == "__main__":
-    asyncio.run(main())
