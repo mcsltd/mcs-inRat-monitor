@@ -11,7 +11,7 @@ from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import QDialog
 from bleak import BLEDevice
 
-from device.constants import Pkt
+from device.constants import Pkt, Const
 from device.inrat import inRat
 from resources.frm_online_device import Ui_FrmDevice
 # from ui.waiting_dialog import WaitingDialog
@@ -135,7 +135,7 @@ class inRatDevice(QObject):
 
     def process_output(self, data: dict) -> ECG_DataBlock | None:
         if data["type"] == "signal":
-            self.datablock.ecg_channels = data.get("signal")
+            self.datablock.ecg_channels = data.get("signal") * Const.EcgResolution
             self.datablock.sample_counter = data.get("counter")
             ecg = copy.copy(self.datablock)
             return ecg
