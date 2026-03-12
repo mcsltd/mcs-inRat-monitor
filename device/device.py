@@ -119,7 +119,6 @@ class inRatDevice(QObject):
     def _worker_thread(self):
         logger.debug("Запуск асинхронного обработчика событий")
         while self._running:
-
             try:
                 data = self._async_queue.get_nowait()
             except (QueueShutDown, QueueEmpty):
@@ -127,8 +126,12 @@ class inRatDevice(QObject):
 
             if data:
                 data = self.process_output(data)
-                logger.debug(f"{data=}")
-        # todo: process_idle()
+
+            if data:
+                for receiver in self._receivers:
+                    receiver._transmit_data(data)
+
+            time.sleep(0.001)
 
     def process_output(self, data: dict) -> ECG_DataBlock | None:
         if data["type"] == "signal":
@@ -161,8 +164,6 @@ class inRatDevice(QObject):
         self._control_panel.pushButtonStart.setEnabled(True)
         self._control_panel.pushButtonStop.setDisabled(True)
 
-
-
     def process_disconnect(self):
         """ метод обработчик отключения от inRat """
         if self._running:
@@ -178,6 +179,12 @@ class inRatDevice(QObject):
             self._control_panel.disable()
             return
         self.device_info.emit(msg)
+
+    def add_receiver(self, receiver):
+        """ добавление класса приёмника """
+        if self._running:
+            receiver.start()
+        self._receivers.append(receiver)
 
 
 class DlgControlPanel(QDialog, Ui_FrmDevice):

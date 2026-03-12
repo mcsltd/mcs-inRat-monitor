@@ -13,6 +13,7 @@ from PySide6.QtGui import QIcon, QFont
 from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QFileDialog
 
 from device.device import inRatDevice
+from display import inRatDisplay
 from scanner.scanner import BLEScanner
 from utils.check_bluetooth import check_bluetooth_status
 from resources.main_window import Ui_MainWindow
@@ -39,13 +40,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # main classes
         self.device = inRatDevice(loop=self._loop)
         self.scanner = BLEScanner(loop=self._loop)
-        # ToDo: self.display = ...
+        self.display = inRatDisplay()
         # ToDo: self.storage = ...
+
+        self.device.add_receiver(self.display)
 
         self.scanner.signal_device_selected.connect(self.device.process_connect)
         self.device.device_info.connect(self.on_device_info_received)
         self.device.device_disconnected.connect(self.scanner.start)
 
+        self.horizontalLayout.addWidget(self.display)
+
+        # добавление панелей настроек
         self.verticalLayout.insertWidget(0, self.scanner.control_panel, 2)
         self.verticalLayout.insertWidget(1, self.device.control_panel, 2)
         self.verticalLayout.addStretch(10)
