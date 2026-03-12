@@ -185,16 +185,13 @@ class inRat:
         data += get_control_sum(data=data, key=BLE_KEY)
         await self._client.write_gatt_char(char_specifier=self.UUID_CHARACTERISTIC_CONTROL, data=data)
 
-    async def start_acquisition(self, data_queue) -> (bool, str):
+    async def start_acquisition(self, data_queue: asyncio.Queue, event_queue: asyncio.Queue) -> (bool, str):
         """ Запуск inRat на регистрацию сигнала и событий """
-
         async def event_handler(sender, data: bytearray):
             for event in decode_event(data):
-                print(event)
-            # await event_queue.put({})
+                await event_queue.put(event)
 
         async def signal_handler(sender, data: bytearray):
-            # print(f"{sender=}, {data=}")
             time_received = time.time()
             cnt, sig = decode_ecg(data)
             await data_queue.put({"type": "signal", "start_time": time_received, "counter": cnt, "signal": sig})
