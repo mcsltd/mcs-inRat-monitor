@@ -8,7 +8,7 @@ from cryptography.hazmat.primitives.ciphers import algorithms, modes, Cipher
 from bleak import BleakClient, BleakCharacteristicNotFoundError
 
 from device.constants import DeviceInformationService, Command, ScaleAccelerometer, SamplingRate, EnabledChannels, EventType
-from device.decoder import decode_ecg
+from device.decoder import decode_ecg, decode_event
 from device.structure import Settings, Status, Event
 
 from config import BLE_KEY
@@ -189,13 +189,9 @@ class inRat:
         """ Запуск inRat на регистрацию сигнала и событий """
 
         async def event_handler(sender, data: bytearray):
-            event_size = ctypes.sizeof(Event)
-            cnt = int(len(data) / event_size)
-
-            logger.debug(f"Получено событий: {cnt}")
-            for idx in range(cnt):
-                event = Event.from_buffer(data[idx: (idx + 1) * event_size])
-                await data_queue.put({"type": "event", "counter": event.Counter, "event": event})
+            for event in decode_event(data):
+                print(event)
+            # await event_queue.put({})
 
         async def signal_handler(sender, data: bytearray):
             # print(f"{sender=}, {data=}")

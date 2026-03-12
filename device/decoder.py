@@ -1,8 +1,10 @@
+import ctypes
 import struct
 
 import numpy as np
 
 from device.constants import Pkt
+from device.structure import Event
 
 
 def decode_ecg(raw_data: bytearray) -> (int, np.ndarray):
@@ -29,3 +31,13 @@ def decode_ecg(raw_data: bytearray) -> (int, np.ndarray):
 
         prev = ecg[i]
     return counter, ecg
+
+
+def decode_event(raw_data):
+    """ декодирование событий """
+    event_size = ctypes.sizeof(Event)
+    cnt = int(len(raw_data) / event_size)
+    for idx in range(cnt):
+        offset = idx * event_size
+        event = Event.from_buffer(raw_data[offset: offset + event_size]).to_dataclass()
+        yield event

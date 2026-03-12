@@ -61,3 +61,5 @@ class SamplingRate(IntEnum):
 
 class EnabledChannels(IntFlag):
     ECG = 1
+
+

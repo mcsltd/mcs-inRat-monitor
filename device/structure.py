@@ -1,4 +1,7 @@
 import ctypes
+from dataclasses import dataclass
+
+from device.constants import EventType
 
 
 class Settings(ctypes.Structure):
@@ -29,6 +32,13 @@ class Status(ctypes.Structure):
         ("Usage", Usage)
     ]
 
+
+@dataclass
+class AccelerationData:
+    x: int
+    y: int
+    z: int
+
 class Acceleration(ctypes.Structure):
     _pack_ = 1
     _fields_ = [
@@ -36,6 +46,18 @@ class Acceleration(ctypes.Structure):
         ("Y", ctypes.c_int16),
         ("Z", ctypes.c_int16)
     ]
+    def to_dataclass(self) -> AccelerationData:
+        return AccelerationData(x=self.X, y=self.Y, z=self.Z)
+
+@dataclass
+class EventData:
+    type: str
+    value: int
+    acceleration: AccelerationData
+    number: int
+    counter: int
+    data: int
+
 
 class Event(ctypes.Structure):
     _pack_ = 1
@@ -47,5 +69,30 @@ class Event(ctypes.Structure):
         ("Counter", ctypes.c_uint32),
         ("Data", ctypes.c_int32),
     ]
+
+    def get_event_type(self):
+        if self.Type == EventType.BUTTON.bit_length():
+            return "Button"
+        if self.Type == EventType.ACTIVITY.bit_length():
+            return "Activity"
+        if self.Type == EventType.FREEFALL.bit_length():
+            return "Freefall"
+        if self.Type == EventType.ORIENTATION.bit_length():
+            return "Orientation"
+        if self.Type == EventType.START.bit_length():
+            return "Start"
+        if self.Type == EventType.TEMP.bit_length():
+            return "Temp"
+        return None
+
+    def to_dataclass(self):
+        return EventData(
+            type=self.get_event_type(),
+            value=self.Value,
+            acceleration=self.Acceleration.to_dataclass(),
+            number=self.Number,
+            counter=self.Counter,
+            data=self.Data
+        )
 
 
