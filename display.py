@@ -3,9 +3,12 @@ import threading
 import time
 
 import numpy as np
+from PySide6.QtWidgets import QFrame
+from PySide6.QtCore import Qt
 
 from pyqtgraph import PlotWidget, PlotDataItem
 from device.device import ECG_DataBlock
+from resources.frm_online_display import Ui_FrmDisplay
 
 
 class inRatDisplay(PlotWidget):
@@ -34,6 +37,13 @@ class inRatDisplay(PlotWidget):
         self.setXRange(0.0, self.timebase, padding=0.0)
         self.setMenuEnabled(False)
         self.setMouseEnabled(False, False)
+
+        self._config_panel = OnlineConfigPanel()
+        self._config_panel.comboBoxTimebase.activated.connect(self._timebase_changed)
+
+    @property
+    def config_panel(self):
+        return self._config_panel
 
     def start(self):
         """ запуск обработки очереди """
@@ -104,3 +114,30 @@ class inRatDisplay(PlotWidget):
             self._work.join(1.0)
             self._work = None
         self.process_stop()
+
+    # config
+    def _timebase_changed(self, index):
+        """ настройка окна под новый диапазон отображения времени"""
+        timebase = self._config_panel.get_timebase()
+        self.set_timebase(timebase)
+    def set_timebase(self, timebase: int):
+        """ изменение диапазона отображения по оси времени """
+        self.timebase = timebase
+        self.setXRange(min=0, max=timebase)
+        self.replot()
+
+
+class OnlineConfigPanel(QFrame, Ui_FrmDisplay):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setupUi(self)
+
+        timebases = [("1 c.", 1), ("5 c.", 5), ("10 c.", 10), ("30 c.", 30), ("60 c.", 60),]
+        for text, value in timebases:
+            print(f"{text=} {value=}")
+            self.comboBoxTimebase.addItem(text, value)
+
+    def get_timebase(self) -> int:
+        """ отдать текущее значение установленное в выпадающем списке окна по оси x """
+        tb = self.comboBoxTimebase.currentData()
+        return tb

@@ -54,6 +54,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # добавление панелей настроек
         self.verticalLayout.insertWidget(0, self.scanner.control_panel, 2)
         self.verticalLayout.insertWidget(1, self.device.control_panel, 2)
+        self.verticalLayout.insertWidget(2, self.display.config_panel, 3)
+
         self.verticalLayout.addStretch(10)
 
         self.timebase = 10
