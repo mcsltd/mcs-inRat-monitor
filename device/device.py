@@ -1,147 +1,191 @@
 import asyncio
+import copy
 import logging
-from asyncio import AbstractEventLoop, Queue, Event
-from concurrent.futures import Future
+import threading
+import time
+from asyncio import AbstractEventLoop, Future, QueueShutDown, QueueEmpty
+from threading import Thread
 
+import numpy as np
 from PySide6.QtCore import QObject, Signal
-from PySide6.QtWidgets import QFrame
+from PySide6.QtWidgets import QDialog
 from bleak import BLEDevice
 
-from device.constants import SamplingRate, EventType, ScaleAccelerometer, EnabledChannels
-from device.structure import Settings
-from widget import WaitingDialog
-
-from device import InRat
+from device.constants import Pkt
+from device.inrat import inRat
 from resources.frm_online_device import Ui_FrmDevice
+# from ui.waiting_dialog import WaitingDialog
 
 logger = logging.getLogger(__name__)
 
-class Device(QObject):
 
-    signal_disconnected = Signal()
-    signal_acquisition = Signal()
+class ECG_DataBlock:
+    def __init__(self):
+        self.sample_rate = 500.0
+        self.sample_counter = 0
+        self.ecg_channels = np.zeros(Pkt.SamplesCountEcg)
 
-    signal_data_accepted = Signal(object)
-    signal_event_accepted = Signal(object)
+    def __repr__(self):
+        return f"{self.sample_rate} Гц; {self.sample_counter}; ecg={self.ecg_channels}"
 
-    signal_show_dialog = Signal()
-    signal_close_dialog = Signal()
+class inRatDevice(QObject):
+
+    device_connected = Signal()
+    device_disconnected = Signal()
+    device_info = Signal(str)
 
     def __init__(self, loop: AbstractEventLoop, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self._loop = loop
-        self._in_rat: InRat | None = None
-        self._control_panel: OnlineControlPanel = OnlineControlPanel(device=self)
+        self._inrat: inRat | None = None
 
-        self._acquisition_queue = Queue()
-        self._acquisition_event = Event()
+        # ui elements
+        self._control_panel = DlgControlPanel()
+        self._control_panel.pushButtonStart.clicked.connect(self.start)
+        self._control_panel.pushButtonStop.clicked.connect(self.stop)
+        self._control_panel.pushButtonDisconnect.clicked.connect(self.process_disconnect)
 
-        self._future_connection: None | Future = None
-        self._future_acquisition: None | Future = None
+        self._async_queue = asyncio.Queue()
+        self.datablock = ECG_DataBlock()
 
-        # waiting dialog window
-        self.dlg_waiting_connection = WaitingDialog()
-        self.signal_show_dialog.connect(self.dlg_waiting_connection.show)
-        self.signal_close_dialog.connect(self.dlg_waiting_connection.close)
 
-        self._control_panel.pushButtonStart.clicked.connect(self.process_start)
-        self._control_panel.pushButtonStop.clicked.connect(self.process_stop)
+        self._receivers = []
+        self._running: bool = False
+        self._loop: AbstractEventLoop = loop
+        self._work: None | Thread = None
 
-    def set_device(self, device: BLEDevice):
-        """ Открытие устройства """
-        logger.debug(f"Открытие устройства: {device.name}")
-        self._future_connection = asyncio.run_coroutine_threadsafe(self.process_connect(device), self._loop)
-
-    async def process_connect(self, device: BLEDevice):
-        """ Соединение и открытие устройства """
-        self.signal_show_dialog.emit()
-
-        self._in_rat = InRat(device)
-        retry = 0
-        while retry < 3:
-            logger.debug(f"Попытка подключения {retry}")
-            retry += 1
-            if await self._in_rat.connect():
-                break
-
-        if self._in_rat.is_connected:
-            self._control_panel.set_device(device)
-        else:
-            self._in_rat = None
-            self.signal_disconnected.emit()
-
-        self.signal_close_dialog.emit()
-
-    def process_start(self):
-        """ Запуск устройства на получение данных """
-        logger.debug("P")
-        default_settings = Settings(
-            DataRateEcg=SamplingRate.HZ_500.value, HighPassFilterEcg=0, FullScaleAccelerometer=ScaleAccelerometer.G_2.value,
-            EnabledChannels=EnabledChannels.ECG.value, EnabledEvents=EventType.START, ActivityThreshold=1
-        )
-
-        self._future_acquisition = asyncio.run_coroutine_threadsafe(
-            self._in_rat.start_acquisition(default_settings, self._acquisition_queue), self._loop
-        )
-        self._acquisition_event.set()
-        future = asyncio.run_coroutine_threadsafe(self.process_acquisition(), self._loop)
-
-        self._control_panel.pushButtonStart.setEnabled(False)
-        self._control_panel.pushButtonStop.setEnabled(True)
-
-    async def process_acquisition(self):
-        """ Обработка очереди с данными. Очередь заполняется в методе start_acquisition класса InRat """
-        while self._acquisition_event.is_set():
-            # print(f"Состояние: {self._future_acquisition.running()=}")
-            data = await self._acquisition_queue.get()
-            self._acquisition_queue.task_done()
-
-            if data["type"] == "ecg":
-                self.signal_data_accepted.emit(data["data"])
-
-    def process_stop(self):
-        """ Остановка получения данных с устройства """
-        self._future_acquisition.cancel()
-
-        future = asyncio.run_coroutine_threadsafe(self._in_rat.stop_acquisition(), self._loop)
-        self._acquisition_event.clear()
-
-        self._control_panel.pushButtonStart.setEnabled(True)
-        self._control_panel.pushButtonStop.setEnabled(False)
-        self._future_connection = None
-
+    # properties
     @property
     def control_panel(self):
         return self._control_panel
 
-    def reset(self):
-        """ Сброс соединения с подключенным устройством и уведомление об этом главного окна"""
-        future = asyncio.run_coroutine_threadsafe(self._in_rat.disconnect(), self._loop)
+    def process_connect(self, inrat: BLEDevice, wait: float = 10.0):
+        """ метод обработки соединения с устройством """
+        self._inrat = inRat(inrat)
+        future = asyncio.run_coroutine_threadsafe(self._inrat.connect(wait=wait), self._loop)
+        future.add_done_callback(self.on_device_connected)
+    def on_device_connected(self, future: Future):
+        """ метод обработки результата соединения """
+        result, msg = future.result()
+        if result and self.device_connected:
+            logger.debug(f"info: {result}; msg: {msg}")
+            self.device_connected.emit()
+            # enable start
+            self._control_panel.pushButtonDisconnect.setEnabled(True)
+            self._control_panel.pushButtonStart.setEnabled(True)
+            self._control_panel.groupBox.setTitle(self._inrat.name)
+            return
+        self.device_info.emit(msg)
+        self.device_disconnected.emit()
 
-        self._in_rat = None
-        self._control_panel.reset()
-        self.signal_disconnected.emit()
+
+    def start(self):
+        """ метод запуска inRat на получение данных """
+        # очистка очереди
+        while not self._async_queue.empty():
+            self._async_queue.get_nowait()
+
+        # запуск прикрепленных классов приемников данных
+        for receiver in self._receivers:
+            receiver.start()
+
+        res = self.process_start()
+        if not self._running and res:
+            self._running = True
+            self._work = threading.Thread(target=self._worker_thread)
+            self._work.start()
 
 
-class OnlineControlPanel(QFrame, Ui_FrmDevice):
+    def process_start(self):
+        """ метод для запуска inRat """
+        logger.debug("запуск inRat")
+        future = asyncio.run_coroutine_threadsafe(self._inrat.start_acquisition(self._async_queue), self._loop)
+        self._control_panel.pushButtonStart.setEnabled(False)
+        try:
+            res, msg = future.result(timeout=10)
+            if not res:
+                self.device_info.emit(msg)
+            self._control_panel.pushButtonStop.setEnabled(True)
+        except TimeoutError:
+            logger.debug("Время запуска устройства истекло")
+            self._control_panel.pushButtonStart.setEnabled(True)
+            return False
+        except Exception as err:
+            logger.debug(f"При запуске возникла ошибка: {err}")
+            self._control_panel.pushButtonStart.setEnabled(True)
+            return False
+        return True
 
-    def __init__(self, device: Device, *args, **kwargs):
-        super().__init__(parent=None, *args, **kwargs)
+    def _worker_thread(self):
+        logger.debug("Запуск асинхронного обработчика событий")
+        while self._running:
+
+            try:
+                data = self._async_queue.get_nowait()
+            except (QueueShutDown, QueueEmpty):
+                data = None
+
+            if data:
+                data = self.process_output(data)
+                logger.debug(f"{data=}")
+        # todo: process_idle()
+
+    def process_output(self, data: dict) -> ECG_DataBlock | None:
+        if data["type"] == "signal":
+            self.datablock.ecg_channels = data.get("signal")
+            self.datablock.sample_counter = data.get("counter")
+            ecg = copy.copy(self.datablock)
+            return ecg
+        return None
+
+    def stop(self):
+        """ метод остановки получения данных с inRat """
+        # остановка цикла обработки очереди
+        self._running = False
+        if self._work:
+            self._work.join(5.0)
+            self._work = None
+
+        # остановить все классы-приёмники
+        for receiver in self._receivers:
+            receiver.stop()
+
+        self.process_stop()
+
+    def process_stop(self):
+        """ метод остановки устройства """
+        future = asyncio.run_coroutine_threadsafe(self._inrat.stop_acquisition(), self._loop)
+        future.add_done_callback(self._on_device_stopped)
+    def _on_device_stopped(self, future):
+        """ обработка результата задачи остановки устройства """
+        self._control_panel.pushButtonStart.setEnabled(True)
+        self._control_panel.pushButtonStop.setDisabled(True)
+
+
+
+    def process_disconnect(self):
+        """ метод обработчик отключения от inRat """
+        if self._running:
+            self.stop()
+        future = asyncio.run_coroutine_threadsafe(self._inrat.disconnect(), self._loop)
+        future.add_done_callback(self.on_device_disconnected)
+    def on_device_disconnected(self, future):
+        """ коллбек-обработчик результата отключения от inRat """
+        result, msg = future.result()
+        if result and not self._inrat.is_connected:
+            self.device_disconnected.emit()
+            self._inrat = None
+            self._control_panel.disable()
+            return
+        self.device_info.emit(msg)
+
+
+class DlgControlPanel(QDialog, Ui_FrmDevice):
+    def __init__(self, parent=None, *args, **kwargs):
+        super().__init__(parent, *args, **kwargs)
         self.setupUi(self)
 
-        self._device = device
-        self.pushButtonDisconnect.clicked.connect(self._device.reset)
-
-    def set_device(self, device: BLEDevice):
-        """ Активация окна управления inRat """
-        self.groupBox.setTitle(device.name)
-        self.pushButtonStart.setEnabled(True)
-        self.pushButtonDisconnect.setEnabled(True)
-
-    def reset(self):
-        """ Возврат окна управления в начальное состояние """
-        self.groupBox.setTitle("inRat")
-        self.pushButtonStart.setEnabled(False)
-        self.pushButtonStop.setEnabled(False)
-        self.pushButtonDisconnect.setEnabled(False)
+    def disable(self):
+        self.pushButtonStart.setDisabled(True)
+        self.pushButtonStop.setDisabled(True)
+        self.pushButtonDisconnect.setDisabled(True)
