@@ -40,7 +40,7 @@ class Const:
     EcgResolution = (2.42 / 171.) / ((1 << 16) - 1)
     AccResolution = 4000.0 / ((1 << 16) - 1)
 
-class ScaleAccelerometer(Enum):
+class ScaleAccelerometer(IntEnum):
     G_2 = 0
     G_4 = 1
     G_8 = 2
@@ -54,7 +54,7 @@ class EventType(IntFlag):
     START = auto()
     TEMP = auto()
 
-class SamplingRate(Enum):
+class SamplingRate(IntEnum):
     HZ_500 = 0
     HZ_1000 = 1
     HZ_2000 = 2

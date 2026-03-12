@@ -1,16 +1,32 @@
 import asyncio
+import copy
 import logging
-from asyncio import AbstractEventLoop, Future, QueueShutDown
+import threading
+import time
+from asyncio import AbstractEventLoop, Future, QueueShutDown, QueueEmpty
 from threading import Thread
 
+import numpy as np
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import QDialog
 from bleak import BLEDevice
 
+from device.constants import Pkt
 from device.inrat import inRat
 from resources.frm_online_device import Ui_FrmDevice
+# from ui.waiting_dialog import WaitingDialog
 
 logger = logging.getLogger(__name__)
+
+
+class ECG_DataBlock:
+    def __init__(self):
+        self.sample_rate = 500.0
+        self.sample_counter = 0
+        self.ecg_channels = np.zeros(Pkt.SamplesCountEcg)
+
+    def __repr__(self):
+        return f"{self.sample_rate} Гц; {self.sample_counter}; ecg={self.ecg_channels}"
 
 class inRatDevice(QObject):
 
@@ -30,6 +46,8 @@ class inRatDevice(QObject):
         self._control_panel.pushButtonDisconnect.clicked.connect(self.process_disconnect)
 
         self._async_queue = asyncio.Queue()
+        self.datablock = ECG_DataBlock()
+
 
         self._receivers = []
         self._running: bool = False
@@ -55,7 +73,6 @@ class inRatDevice(QObject):
             # enable start
             self._control_panel.pushButtonDisconnect.setEnabled(True)
             self._control_panel.pushButtonStart.setEnabled(True)
-
             self._control_panel.groupBox.setTitle(self._inrat.name)
             return
         self.device_info.emit(msg)
@@ -64,42 +81,61 @@ class inRatDevice(QObject):
 
     def start(self):
         """ метод запуска inRat на получение данных """
+        # очистка очереди
         while not self._async_queue.empty():
             self._async_queue.get_nowait()
+
+        # запуск прикрепленных классов приемников данных
+        for receiver in self._receivers:
+            receiver.start()
 
         res = self.process_start()
         if not self._running and res:
             self._running = True
-            self._work = asyncio.run_coroutine_threadsafe(self._async_worker_thread(), self._loop)
+            self._work = threading.Thread(target=self._worker_thread)
+            self._work.start()
 
 
     def process_start(self):
-        """ метод запуска inRat """
+        """ метод для запуска inRat """
+        logger.debug("запуск inRat")
         future = asyncio.run_coroutine_threadsafe(self._inrat.start_acquisition(self._async_queue), self._loop)
         self._control_panel.pushButtonStart.setEnabled(True)
         try:
-            res, msg = future.result(timeout=1.0)
+            res, msg = future.result(timeout=10)
+            if not res:
+                self.device_info.emit(msg)
             self._control_panel.pushButtonStop.setEnabled(True)
         except TimeoutError:
-            self._control_panel.pushButtonStart.setEnabled(False)
+            logger.debug("Время запуска устройства истекло")
+            self._control_panel.pushButtonStart.setEnabled(True)
             return False
         except Exception as err:
-            self._control_panel.pushButtonStart.setEnabled(False)
+            logger.debug(f"При запуске возникла ошибка: {err}")
+            self._control_panel.pushButtonStart.setEnabled(True)
             return False
         return True
 
-    async def _async_worker_thread(self):
+    def _worker_thread(self):
+        logger.debug("Запуск асинхронного обработчика событий")
         while self._running:
-            data = self.process_acquisition()
-            logger.info(f"{data=}")
 
-    def process_acquisition(self):
-        """ обработка асинхронной очереди """
-        try:
-            data = self._async_queue.get_nowait()
-        except QueueShutDown:
-            data = None
-        return data
+            try:
+                data = self._async_queue.get_nowait()
+            except (QueueShutDown, QueueEmpty):
+                data = None
+
+            if data:
+                data = self.process_output(data)
+                logger.debug(f"{data=}")
+
+    def process_output(self, data: dict) -> ECG_DataBlock | None:
+        if data["type"] == "signal":
+            self.datablock.ecg_channels = data.get("signal")
+            self.datablock.sample_counter = data.get("counter")
+            ecg = copy.copy(self.datablock)
+            return ecg
+        return None
 
     def stop(self):
         """ метод остановки получения данных с inRat """

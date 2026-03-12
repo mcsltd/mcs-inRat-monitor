@@ -202,7 +202,8 @@ class inRat:
 
         settings = Settings(
             DataRateEcg=SamplingRate.HZ_500, HighPassFilterEcg=0, FullScaleAccelerometer=ScaleAccelerometer.G_2,
-            EnabledChannels=EnabledChannels.ECG, EnabledEvents=EventType.BUTTON | EventType.ACTIVITY | EventType.FREEFALL | EventType.ORIENTATION | EventType.START | EventType.TEMP,
+            EnabledChannels=EnabledChannels.ECG,
+            EnabledEvents=EventType.BUTTON | EventType.ACTIVITY | EventType.FREEFALL | EventType.ORIENTATION | EventType.START | EventType.TEMP,
             ActivityThreshold=1
         )
         res = True
