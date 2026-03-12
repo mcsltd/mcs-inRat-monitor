@@ -100,7 +100,7 @@ class inRatDevice(QObject):
         """ метод для запуска inRat """
         logger.debug("запуск inRat")
         future = asyncio.run_coroutine_threadsafe(self._inrat.start_acquisition(self._async_queue), self._loop)
-        self._control_panel.pushButtonStart.setEnabled(True)
+        self._control_panel.pushButtonStart.setEnabled(False)
         try:
             res, msg = future.result(timeout=10)
             if not res:
@@ -128,6 +128,7 @@ class inRatDevice(QObject):
             if data:
                 data = self.process_output(data)
                 logger.debug(f"{data=}")
+        # todo: process_idle()
 
     def process_output(self, data: dict) -> ECG_DataBlock | None:
         if data["type"] == "signal":
@@ -139,25 +140,33 @@ class inRatDevice(QObject):
 
     def stop(self):
         """ метод остановки получения данных с inRat """
+        # остановка цикла обработки очереди
         self._running = False
-        # if not self._work.done():
-        #     self._work.cancel()
-        self.process_stop()
+        if self._work:
+            self._work.join(5.0)
+            self._work = None
+
+        # остановить все классы-приёмники
         for receiver in self._receivers:
             receiver.stop()
+
+        self.process_stop()
 
     def process_stop(self):
         """ метод остановки устройства """
         future = asyncio.run_coroutine_threadsafe(self._inrat.stop_acquisition(), self._loop)
         future.add_done_callback(self._on_device_stopped)
-
     def _on_device_stopped(self, future):
         """ обработка результата задачи остановки устройства """
         self._control_panel.pushButtonStart.setEnabled(True)
         self._control_panel.pushButtonStop.setDisabled(True)
 
+
+
     def process_disconnect(self):
         """ метод обработчик отключения от inRat """
+        if self._running:
+            self.stop()
         future = asyncio.run_coroutine_threadsafe(self._inrat.disconnect(), self._loop)
         future.add_done_callback(self.on_device_disconnected)
     def on_device_disconnected(self, future):

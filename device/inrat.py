@@ -177,9 +177,12 @@ class inRat:
 
     async def setup(self, cmd: Command, settings: Settings | bytes = b''):
         """ Настройка устройства """
+        if not self.is_connected:
+            logger.error(f"Потеряно соединение с {self.name}!")
+            return False, f"Потеряно соединение с {self.name}!"
+
         data = cmd.value.to_bytes() + bytes(settings)
         data += get_control_sum(data=data, key=BLE_KEY)
-
         await self._client.write_gatt_char(char_specifier=self.UUID_CHARACTERISTIC_CONTROL, data=data)
 
     async def start_acquisition(self, data_queue) -> (bool, str):
@@ -231,8 +234,16 @@ class inRat:
 
         return res, "Ok"
 
-    async def stop_acquisition(self):
-        await self.setup(cmd=Command.AcquisitionStop)
-        await self._client.stop_notify(self.UUID_CHARACTERISTIC_DATA_ECG)
-        await self._client.stop_notify(self.UUID_CHARACTERISTIC_EVENT)
-        logger.debug(f"{self.name} остановлено!")
+    async def stop_acquisition(self) -> None:
+        """ Остановка inRat на регистрацию сигнала и событий """
+        await self.setup(Command.AcquisitionStop)
+        try:
+            await self._client.stop_notify(self.UUID_CHARACTERISTIC_DATA_ECG)
+        except Exception as exc:
+            logger.debug(f"Возникла ошибка описки от сервиса рассылки сигналов:\n{exc}")
+
+        try:
+            await self._client.stop_notify(self.UUID_CHARACTERISTIC_EVENT)
+        except Exception as exc:
+            logger.debug(f"Возникла ошибка описки от сервиса рассылки событий:\n{exc}")
+

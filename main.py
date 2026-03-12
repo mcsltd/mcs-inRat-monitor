@@ -39,6 +39,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # main classes
         self.device = inRatDevice(loop=self._loop)
         self.scanner = BLEScanner(loop=self._loop)
+        # ToDo: self.display = ...
+        # ToDo: self.storage = ...
 
         self.scanner.signal_device_selected.connect(self.device.process_connect)
         self.device.device_info.connect(self.on_device_info_received)
@@ -64,7 +66,9 @@ class ThreadedEventLoop(Thread):
     def run(self):
         self._loop.run_forever()
 
-def run_async_event_loop():
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG, format="%(asctime)-15s %(name)-8s %(levelname)s: %(message)s",)
     app = QApplication([])
 
     loop = asyncio.new_event_loop()
@@ -85,9 +89,3 @@ def run_async_event_loop():
         window = MainWindow(loop)
         window.showMaximized()
         app.exec()
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG, format="%(asctime)-15s %(name)-8s %(levelname)s: %(message)s",)
-    run_async_event_loop()
-    # run_qevent_loop()
-
