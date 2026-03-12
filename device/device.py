@@ -13,6 +13,7 @@ from bleak import BLEDevice
 
 from device.constants import Pkt, Const
 from device.inrat import inRat
+from device.structure import EventData
 from resources.frm_online_device import Ui_FrmDevice
 # from ui.waiting_dialog import WaitingDialog
 
@@ -47,7 +48,6 @@ class inRatDevice(QObject):
 
         self._async_queue = asyncio.Queue()
         self.datablock = ECG_DataBlock()
-
 
         self._receivers = []
         self._running: bool = False
@@ -99,7 +99,13 @@ class inRatDevice(QObject):
     def process_start(self):
         """ метод для запуска inRat """
         logger.debug("запуск inRat")
-        future = asyncio.run_coroutine_threadsafe(self._inrat.start_acquisition(self._async_queue), self._loop)
+        future = asyncio.run_coroutine_threadsafe(
+            self._inrat.start_acquisition(
+                data_queue=self._async_queue,
+                event_queue=asyncio.Queue(),
+            ),
+            self._loop
+        )
         self._control_panel.pushButtonStart.setEnabled(False)
         try:
             res, msg = future.result(timeout=10)
@@ -134,6 +140,9 @@ class inRatDevice(QObject):
             time.sleep(0.001)
 
     def process_output(self, data: dict) -> ECG_DataBlock | None:
+        if isinstance(data, EventData):
+            return None
+
         if data["type"] == "signal":
             self.datablock.ecg_channels = data.get("signal") * Const.EcgResolution
             self.datablock.sample_counter = data.get("counter")
