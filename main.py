@@ -120,6 +120,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.lineEditSave.setText(self.storage.path_to_save) # set default folder
         self.comboBoxFormat.currentTextChanged.connect(self.storage.set_format)
 
+
+
     def set_timebase(self):
         self.timebase = self.comboBoxTimebase.currentData()
 
@@ -370,7 +372,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 event = self.event_queue.get_nowait()
             except asyncio.QueueEmpty:
                 event = None
+            else:
+                self.process_event(event)
             time.sleep(0.001)
+
+    def process_event(self, event):
+        """ обработка событий """
+        print(f"{event=}")
 
     def update_plot(self, ecg: dict):
         signal, counter = ecg["ecg"], ecg["counter"]
@@ -396,39 +404,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         visible_data = self.ecg_buffer[-int(self.timebase * HZ):]
         self.plotWidget.setYRange(visible_data.min(), visible_data.max())
         self.plotWidget.replot()
-        time.sleep(0.01)
-
-    # def update_plot(self, ecg: dict):
-    #     signal, counter = ecg["ecg"], ecg["counter"]
-    #
-    #     self.ecg = np.append(self.ecg, )
-    #     logger.debug(f"Current {ecg['counter']=}")
-    #     # calculate time
-    #     if len(self.time) == 0:
-    #         self.time = np.arange(1, len(ecg["ecg"]) + 1) * 0.01  # ToDo: check it
-    #     else:
-    #         self.time = np.append(self.time, np.arange(1, len(ecg["ecg"]) + 1) * 1 / HZ + self.time[-1])
-    #     # check shape ecg and time
-    #     if self.ecg.shape != self.time.shape:
-    #         raise ValueError("Arrays time and ecg have not same shape!")
-    #
-    #     if self.storage.is_recording:
-    #         self.storage(ecg["ecg"])  # save ecg in storage
-    #         str_time = str(datetime.datetime.now() - self.storage.start_time).split(".")[0]
-    #         str_time = "0" + str_time if len(str_time) != 8 else str_time
-    #         self.labelRTvalue.setText(f"{str_time}")
-    #
-    #     # add data in plot
-    #     self.plot_ecg.setData(self.time, self.ecg, antialias=False, clipToView=True)
-    #
-    #     if self.time[-1] < self.timebase:
-    #         self.plotWidget.setXRange(0, self.timebase)
-    #     else:
-    #         self.plotWidget.setXRange(self.time[-1] - self.timebase, self.time[-1])
-    #
-    #     slide = self.ecg[- int(self.timebase * HZ):]
-    #     self.plotWidget.setYRange(min(slide), max(slide),)
-
 
     async def stop_device(self):
         logger.debug("Stop device")

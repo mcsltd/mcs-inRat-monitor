@@ -25,6 +25,13 @@ class Settings(ctypes.Structure):
         ("ActivityThreshold", ctypes.c_uint16),
     ]
 
+
+@dataclass
+class AccelerationData:
+    x: int
+    y: int
+    z: int
+
 class Acceleration(ctypes.Structure):
     _pack_ = 1  # remove offset
     _fields_ = [
@@ -33,11 +40,8 @@ class Acceleration(ctypes.Structure):
         ("Z", ctypes.c_int16)
     ]
 
-@dataclass
-class AccelerationData:
-    x: int
-    y: int
-    z: int
+    def to_dataclass(self):
+        return AccelerationData(x=self.X, y=self.Y, z=self.Z)
 
 @dataclass
 class EventData:

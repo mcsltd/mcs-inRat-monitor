@@ -3,7 +3,7 @@ import struct
 import numpy as np
 
 from constants import Pkt, Const
-from structure import Event
+from structure import Event, EventData
 
 
 def decode_ecg(raw_data: bytearray) -> (int, np.ndarray):

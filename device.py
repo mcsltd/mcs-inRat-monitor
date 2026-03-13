@@ -104,8 +104,8 @@ class RatSens(BleakClient):
                 await ecg_queue.put({"counter": counter, "ecg": ecg})
 
         async def event_handler(_, raw_data: bytearray):
-            event = decode_event(raw_data)
-            await event_queue.put(event)
+            for event in decode_event(raw_data):
+                await event_queue.put(event)
 
         if not self.is_connected:
             return False
@@ -117,8 +117,8 @@ class RatSens(BleakClient):
                     DataRateEcg=DataRateEcg.HZ_500.value, HighPassFilterEcg=0,
                     FullScaleAccelerometer=FullScaleAccelerometer.G_0.value,
                     EnabledChannels=EnabledChannels.ENABLED_ECG.value,
-                    EnabledEvents=EventType.START,
-                    ActivityThreshold=2
+                    EnabledEvents=EventType.TEMP | EventType.ACTIVITY | EventType.FREEFALL | EventType.ORIENTATION,
+                    ActivityThreshold=2,
                 )
             )
             self.is_running = True
