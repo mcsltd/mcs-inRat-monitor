@@ -17,8 +17,9 @@ from bleak import BLEDevice
 
 from device import RatSens
 from config import DATA_PATH
-from constants import HZ
+from constants import HZ, Pkt
 from scanner import BLEScannerWorker
+from structure import EventData
 from utils.check_bluetooth import check_bluetooth_status
 from storage import Storage
 from ui.main_window import Ui_MainWindow
@@ -61,8 +62,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.storage = Storage(path_to_save=DATA_PATH, fs=HZ)
         self.scanner = BLEScannerWorker()
 
+        # легенда
+        self.legend = self.plotWidget.addLegend()
+
         # setup plot
-        self.plot_ecg = self.plotWidget.plot(self.time_buffer[:self.timebase * HZ], self.ecg_buffer[:self.timebase * HZ], pen=RED)
+        self.plot_ecg = self.plotWidget.plot(pen=RED)
+
+        # scatter plot for activity, freefall, orientation
+        self.scatter_activity = pg.ScatterPlotItem(name="Activity", symbol='t', brush=pg.mkBrush(0, 255, 0, 180), size=10,)
+        self.plotWidget.addItem(self.scatter_activity)
+
+        self.scatter_orientation = pg.ScatterPlotItem(name="Orientation", symbol="o", brush=pg.mkBrush(0, 0, 255, 180), size=10,)
+        self.plotWidget.addItem(self.scatter_orientation)
+
+        self.scatter_freefall = pg.ScatterPlotItem(name="Freefall", symbol='s', brush=pg.mkBrush(255, 0, 0, 180), size=10,)
+        self.plotWidget.addItem(self.scatter_freefall)
 
         font = QFont()
         font.setPointSize(12)
@@ -81,13 +95,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.plotWidget.addLegend()
         self.plotWidget.setBackground("w")
-        self.plotWidget.setDownsampling(auto=True, mode='peak', ds=50)
+        # self.plotWidget.setDownsampling(auto=True, mode='peak', ds=50)
 
         # timer for get ecg from device and draw plot
         self.time_update = 2
         self.timer = QTimer()
         self.timer.setInterval(self.time_update) # in msec
-        # self.timer.timeout.connect(lambda: asyncio.ensure_future(self.updatePlot()))
 
         # create scanner and run it
         self.scanner.run(self.qt_loop)
@@ -120,7 +133,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.lineEditSave.setText(self.storage.path_to_save) # set default folder
         self.comboBoxFormat.currentTextChanged.connect(self.storage.set_format)
 
+        # Буфер для накопления данных
+        self.pending_update = False
 
+        # Таймер для обновления графика (60 FPS)
+        self.update_timer = QtCore.QTimer()
+        self.update_timer.timeout.connect(self._delayed_update)
+        self.update_timer.start(16)  # ~60 FPS (1000/60 ≈ 16ms)
 
     def set_timebase(self):
         self.timebase = self.comboBoxTimebase.currentData()
@@ -373,28 +392,54 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             except asyncio.QueueEmpty:
                 event = None
             else:
-                self.process_event(event)
+                # self.process_event(event)
+                ...
             time.sleep(0.001)
 
-    def process_event(self, event):
+    def process_event(self, event: EventData):
         """ обработка событий """
-        print(f"{event=}")
+        event_type = event.type
+        x = event.counter * Pkt.SamplesCountECG * HZ
+        y = self.ecg_buffer[-1]
+
+        if event_type == "Temp":
+            line = pg.InfiniteLine(
+                pos=x, angle=90,
+                pen=pg.mkPen('gray', width=1.5, style=QtCore.Qt.PenStyle.DashLine),
+                movable=True,
+                label=f"T={round(event.data / 1000, 1)} °C",
+                labelOpts={'color': 'k', 'position': 0.1}
+            )
+            self.plotWidget.addItem(line)
+        elif event.type == "Activity":
+            self.scatter_activity.addPoints([{'pos': (x, y)}])
+        elif event.type == "Freefall":
+            self.scatter_freefall.addPoints([{'pos': (x, y)}])
+        elif event.type == "Orientation":
+            self.scatter_orientation.addPoints([{'pos': (x, y)}])
 
     def update_plot(self, ecg: dict):
         signal, counter = ecg["ecg"], ecg["counter"]
 
-        # кольцевой сдвиг
+        # кольцевой сдвиг (ВСЕГДА обновляем буфер)
         self.ecg_buffer = np.roll(self.ecg_buffer, -len(signal))
         self.ecg_buffer[-len(signal):] = signal
 
         # Обновляем время (проще пересоздавать)
         self.time_buffer = np.arange(0, self.max_timebase, self.dt)
 
+        # Отмечаем, что нужно обновить график
+        self.pending_update = True
+
+    def _delayed_update(self):
+        """Обновление графика по таймеру"""
+        if not self.pending_update:
+            return
+
         # Отображаем
         self.plot_ecg.setData(
             self.time_buffer[-self.timebase * HZ:],
             self.ecg_buffer[-self.timebase * HZ:],
-            antialias=False, clipToView=True
         )
 
         # Настройка отображения
@@ -404,6 +449,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         visible_data = self.ecg_buffer[-int(self.timebase * HZ):]
         self.plotWidget.setYRange(visible_data.min(), visible_data.max())
         self.plotWidget.replot()
+        logger.debug("plot data")
+
+        self.pending_update = False
 
     async def stop_device(self):
         logger.debug("Stop device")
@@ -526,10 +574,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.scanner.stop()
 
 if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format="%(asctime)-15s %(name)-8s %(levelname)s: %(message)s",
-    )
+    # logging.basicConfig(
+    #     level=logging.DEBUG,
+    #     format="%(asctime)-15s %(name)-8s %(levelname)s: %(message)s",
+    # )
 
     app = QApplication([])
     loop = QtAsyncio.QAsyncioEventLoop(application=app)
