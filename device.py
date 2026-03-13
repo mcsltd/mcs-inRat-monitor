@@ -12,8 +12,8 @@ from cryptography.hazmat.primitives.ciphers import algorithms, modes, Cipher
 from config import BLE_KEY
 from constants import Command, DataRateEcg, FullScaleAccelerometer, EnabledChannels, \
     EventType, Const, DeviceInformationService
-from decoder import Decoder
-from structure import Settings, Event
+from decoder import decode_ecg, decode_event
+from structure import Settings, Event, Status, StatusData
 
 
 def get_control_sum(data: bytes, key: bytearray) -> bytes:
@@ -36,16 +36,22 @@ class RatSens(BleakClient):
     UUID_CHARACTERISTIC_DATA_ECG = "59573ef1-5389-575f-87d5-5f31fcdcba7b"
     UUID_CHARACTERISTIC_EVENT = "f553739f-9f1f-538d-a7d3-cd987b395eb5"
     UUID_CHARACTERISTIC_CONTROL = "7395ca15-5997-5a1b-a138-75a7a573b8e5"
+    UUID_CHARACTERISTIC_STATUS = "c3571b1b-e17e-5195-9fd3-8119cb153187"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.name = args[0].name
         self.is_running = False
+        self._is_activated = False
 
         # set lock
         self._connect_lock = asyncio.Lock()
         self._operation_lock = asyncio.Lock()
+
+    @property
+    def is_activated(self):
+        return self._is_activated
 
     def _check_operation_lock(self) -> None:
         """ Check and print message if lock occupied. """
@@ -68,7 +74,6 @@ class RatSens(BleakClient):
         self._check_operation_lock()
 
         async with self._operation_lock:
-
             info = dict.fromkeys(["name", "model", "serial", "status", "firmware", "hardware"])
             info = {"name": None, "model": None, "serial": None, "status": "Connected"}
             name = await self.read_gatt_char(RatSens.UUID_CHARACTERISTIC_DEVICE_NAME)
@@ -84,84 +89,64 @@ class RatSens(BleakClient):
 
             return info
 
-    async def get_ecg(self, ecg_queue: Optional[asyncio.Queue] = None):
+    async def start_acquisition(
+            self,
+            ecg_queue: asyncio.Queue,
+            event_queue: asyncio.Queue
+    ) -> bool:
+        """ запуск устройства на получение сигнала и событий"""
         async def ecg_handler(_, raw_data: bytearray):
-            counter, ecg = decoder.decode(raw_data)
+            counter, ecg = decode_ecg(raw_data)
             ecg *= 1e6  # in μV
 
             if ecg_queue is not None:
                 logger.debug("Put ecg in queue.")
                 await ecg_queue.put({"counter": counter, "ecg": ecg})
 
-        decoder = Decoder()
-        await self.setup(
-            cmd=Command.AcquisitionStart,
-            settings=Settings(
-                DataRateEcg=DataRateEcg.HZ_500.value,
-                HighPassFilterEcg=0,
-                FullScaleAccelerometer=FullScaleAccelerometer.G_0.value,
-                EnabledChannels=EnabledChannels.ENABLED_ECG.value,
-                EnabledEvents=0,
-                ActivityThreshold=2
+        async def event_handler(_, raw_data: bytearray):
+            event = decode_event(raw_data)
+            await event_queue.put(event)
+
+        if not self.is_connected:
+            return False
+
+        try:
+            await self.setup(
+                cmd=Command.AcquisitionStart,
+                settings=Settings(
+                    DataRateEcg=DataRateEcg.HZ_500.value, HighPassFilterEcg=0,
+                    FullScaleAccelerometer=FullScaleAccelerometer.G_0.value,
+                    EnabledChannels=EnabledChannels.ENABLED_ECG.value,
+                    EnabledEvents=EventType.START,
+                    ActivityThreshold=2
+                )
             )
-        )
-        self.is_running = True
+            self.is_running = True
+        except Exception as err:
+            logger.debug(f"Возникла ошибка при запуске на регистрацию ЭКГ и событий: {err}")
+            return False
+
         await self.start_notify(RatSens.UUID_CHARACTERISTIC_DATA_ECG, ecg_handler)
-
-    async def get_event(self, event_queue: Optional[asyncio.Queue] = None):
-        async def event_handler(_, raw_event):
-            cnt = len(raw_event) // ctypes.sizeof(Event)
-
-            idx_last = 0
-            idx_next = idx_delta = ctypes.sizeof(Event)
-            for i in range(cnt):
-                ev: Event = Event.from_buffer(raw_event[idx_last:idx_next])
-
-                ax = ev.Acceleration.X * Const.AccResolution
-                ay = ev.Acceleration.Y * Const.AccResolution
-                az = ev.Acceleration.Z * Const.AccResolution
-
-                idx_last += idx_delta
-                idx_next += idx_delta
-
-                dict_ev = {
-                    "Type": None, "Value": None, "Acceleration": None, "Number": None, "Counter": None, "Data": None
-                }
-
-                if ev.Type == EventType.ButtonPress.value:
-                    dict_ev["Type"] = "ButtonPress"
-                if ev.Type == EventType.Activity.value:
-                    dict_ev["Type"] = "Activity"
-                if ev.Type == EventType.Start.value:
-                    dict_ev["Type"] = "Start"
-                if ev.Type == EventType.Charge.value:
-                    dict_ev["Type"] = "Charge"
-                if ev.Type == EventType.Orientation.value:
-                    dict_ev["Type"] = "Orientation"
-                if ev.Type == EventType.Freefall.value:
-                    dict_ev["Type"] = "Freefall"
-
-                dict_ev["Acceleration"] = [ax, ay, az]
-                dict_ev["Number"] = ev.Number
-                dict_ev["Counter"] = ev.Counter
-                dict_ev["Data"] = ev.Data
-                dict_ev["Value"] = ev.Data
-
-                if event_queue is not None:
-                    await event_queue.put(dict_ev)
-
-        await self.setup(
-            cmd=Command.AcquisitionStart,
-            settings=Settings(
-                DataRateEcg=DataRateEcg.HZ_1000.value,
-                HighPassFilterEcg=0,
-                FullScaleAccelerometer=FullScaleAccelerometer.G_0.value,
-                EnabledChannels=EnabledChannels.DISABLED_ECG.value,
-                EnabledEvents=63,
-                ActivityThreshold=2
-            )
-        )
         await self.start_notify(RatSens.UUID_CHARACTERISTIC_EVENT, event_handler)
+        return True
+
+    async def get_status(self) -> None | StatusData:
+        """ Получение данных из структуры Status """
+        if not self.is_connected:
+            return None
+        byte_status = await self.read_gatt_char(self.UUID_CHARACTERISTIC_STATUS)
+        status = Status.from_buffer(byte_status)
+        self._is_activated = (status.Activated == 1)
+        status = status.to_dataclass()
+        return status
+
+    async def activate(self):
+        """ активация устройства """
+        await self.setup(cmd=Command.Activate)
+
+    async def deactivate(self):
+        """ деактивация устройства """
+        await self.setup(cmd=Command.Deactivate)
 
     async def stop(self):
         logger.debug("Set settings to the BLE device.")
@@ -194,21 +179,6 @@ class RatSens(BleakClient):
         except Exception:
             ...
 
-
-
-async def main():
-    from utils.scanner import find_device
-
-    device, adv = await find_device()
-
-    client = RatSens(device)
-    await client.connect()
-
-    # await client.get_event()
-    await client.get_ecg()
-
-    await asyncio.sleep(10)
-    await client.disconnect()
 
 
 if __name__ == "__main__":

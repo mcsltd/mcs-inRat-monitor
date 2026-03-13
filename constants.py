@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from enum import Enum, IntEnum
+from enum import Enum, IntEnum, IntFlag, auto
 from functools import cached_property
 from uuid import UUID
 
@@ -25,13 +25,13 @@ class Command(Enum):
     Deactivate = 6
 
 
-class EventType(Enum):
-    ButtonPress = 0
-    Activity = 1
-    Freefall = 2
-    Orientation = 3
-    Start = 4
-    Charge = 5
+class EventType(IntFlag):
+    BUTTON = 0
+    ACTIVITY = auto()
+    FREEFALL = auto()
+    ORIENTATION = auto()
+    START = auto()
+    TEMP = auto()
 
 UUID_TEMPLATE = "0000{:0>4x}-0000-1000-8000-00805f9b34fb"
 

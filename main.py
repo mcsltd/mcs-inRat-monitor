@@ -2,6 +2,8 @@ import asyncio
 import datetime
 import logging
 import os
+import time
+from threading import Thread
 from typing import Optional
 
 import pyqtgraph as pg
@@ -25,7 +27,7 @@ from widget import WaitingDialog
 logger = logging.getLogger(__name__)
 
 
-RED = pg.mkPen(color=(255, 0, 0), width=2)
+RED = pg.mkPen(color=(255, 0, 0), width=1.5)
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -40,15 +42,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # hide
         self.pushButtonDisconnect.hide()
-
         self.qt_loop = qt_loop
 
         # build queue
         self.ecg_queue = asyncio.Queue()
+        self.event_queue = asyncio.Queue()
 
         # data
-        self.ecg = np.array([])
-        self.time = np.array([])
+        self.max_timebase = 60
+        self.timebase = 30
+        self.dt = 1 / HZ
+        self.ecg_buffer = np.zeros(int(self.max_timebase * HZ))
+        self.time_buffer = np.arange(0, self.max_timebase, self.dt)
+        assert self.ecg_buffer.shape == self.time_buffer.shape
 
         # main classes
         self.device: Optional[RatSens] = None
@@ -56,7 +62,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.scanner = BLEScannerWorker()
 
         # setup plot
-        self.plot_ecg = self.plotWidget.plot(self.time, self.ecg, pen=RED)
+        self.plot_ecg = self.plotWidget.plot(self.time_buffer[:self.timebase * HZ], self.ecg_buffer[:self.timebase * HZ], pen=RED)
 
         font = QFont()
         font.setPointSize(12)
@@ -81,21 +87,23 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.time_update = 2
         self.timer = QTimer()
         self.timer.setInterval(self.time_update) # in msec
-        self.timer.timeout.connect(lambda: asyncio.ensure_future(self.updatePlot()))
+        # self.timer.timeout.connect(lambda: asyncio.ensure_future(self.updatePlot()))
 
         # create scanner and run it
         self.scanner.run(self.qt_loop)
         self.scanner.signal_found.connect(self.set_combobox_items)
         self.pushButtonConnect.setEnabled(False)
 
+        self._work: None | Thread = None
+        self._running = False
+
         # setup combobox
         self.comboBoxDevice.setDuplicatesEnabled(False)
         self.comboBoxDevice.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
 
-        for v in [(0.5, "0.5 s"), (1, "1 s"), (2, "2 s"), (4, "4 s"), (6, "6 s"), (8, "8 s"), (10, "10 s")]:
+        for v in [(1, "1 s"), (5, "5 s"), (10, "10 s"), (30, "30 s"), (60, "60 s")]:
             self.comboBoxTimebase.addItem(v[1], userData=v[0])
-        self.comboBoxTimebase.setCurrentIndex(6)
-        self.timebase = self.comboBoxTimebase.currentData()
+        self.comboBoxTimebase.setCurrentIndex(3)
         self.comboBoxTimebase.currentTextChanged.connect(self.set_timebase)
 
         # connection
@@ -107,6 +115,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.pushButtonDisconnect.clicked.connect(lambda: asyncio.ensure_future(self.disconnect_device()))
         self.pushButtonShowRecords.clicked.connect(self.open_savedir)
         self.pushButtonTurnOff.clicked.connect(lambda: asyncio.ensure_future(self.turn_off_device()))
+        self.checkBoxActivated.clicked.connect(lambda: asyncio.ensure_future(self.on_activated_clicked()))
 
         self.lineEditSave.setText(self.storage.path_to_save) # set default folder
         self.comboBoxFormat.currentTextChanged.connect(self.storage.set_format)
@@ -228,6 +237,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # disable and activate btn state when connect to device
             if self.device.is_connected:
                 self.set_device_information(d_info)
+                self.checkBoxActivated.setEnabled(True)
+
+                # проверка на активировано ли устройство
+                _ = await self.device.get_status()
+                if self.device.is_activated:
+                    self.checkBoxActivated.setChecked(True)
 
                 # enable settings for storage
                 self.comboBoxFormat.setEnabled(True)
@@ -241,6 +256,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.pushButtonConnect.hide()
         finally:
             dlg.close()
+
+    async def on_activated_clicked(self):
+        if self.device.is_activated:
+            logger.info("Устройство деактивировано")
+            self.checkBoxActivated.setChecked(False)
+            await self.device.deactivate()
+        else:
+            logger.info("Устройство активировано")
+            self.checkBoxActivated.setChecked(True)
+            await self.device.activate()
 
     async def disconnect_device(self):
         self.reset()
@@ -285,6 +310,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     async def start_device(self):
         logger.debug("Start device")
+        # очищение очередей перед стартом
+        while not self.event_queue.empty():
+            self.event_queue.get_nowait()
+        while not self.ecg_queue.empty():
+            self.ecg_queue.get_nowait()
 
         if not self.device.is_connected:
             info = QMessageBox.information(
@@ -292,20 +322,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 f"Lost connection with device {self.device.name}",
                 buttons=QMessageBox.StandardButton.Ok
             )
-
             # reset all
             await self.lost_connection()
             return
 
-        # try:
-            await self.device.get_ecg(ecg_queue=self.ecg_queue)
-        # except Exception as exc:
-        #     info = QMessageBox.information(
-        #         self, "Start error",
-        #         f"An error occurred while starting the device\n\nInfo:\n{exc}\n\nPlease, restart application!",
-        #         QMessageBox.StandardButton.Ok
-        #     )
-        # else:
+        res = await self.device.start_acquisition(ecg_queue=self.ecg_queue, event_queue=self.event_queue)
+        if res:
             self.timer.start()
 
             # disable
@@ -322,55 +344,99 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # when draw signal in online - disable mouse
             self.plotWidget.setMouseEnabled(x=False, y=False)
 
-    async def updatePlot(self):
-        # check device connection
-        if not self.device.is_connected:
-            self.timer.stop()  # stop update plot
+            self._running = True
+            self._work = Thread(target=self._worker_thread)
+            self._work.start()
 
-            info = QMessageBox.information(
-                self, "Lost device connection",
-                f"Lost connection with device {self.device.name}",
-                buttons=QMessageBox.StandardButton.Ok
-            )
-
-            # reset all
-            await self.lost_connection()
-
-        ecg = await self.ecg_queue.get()
-        self.ecg_queue.task_done()
-
-        self.ecg = np.append(self.ecg, ecg["ecg"])
-        logger.debug(f"Current {ecg['counter']=}")
-        # calculate time
-        if len(self.time) == 0:
-            self.time = np.arange(1, len(ecg["ecg"]) + 1) * 0.01 # ToDo: check it
         else:
-            self.time = np.append(self.time, np.arange(1, len(ecg["ecg"]) + 1) * 1 / HZ + self.time[-1])
-        # check shape ecg and time
-        if self.ecg.shape != self.time.shape:
-            raise ValueError("Arrays time and ecg have not same shape!")
+            # ToDo: добавить действия на случай если не получилось запустить устройство
+            ...
 
-        if self.storage.is_recording:
-            self.storage(ecg["ecg"]) # save ecg in storage
-            str_time = str(datetime.datetime.now() - self.storage.start_time).split(".")[0]
-            str_time = "0" + str_time if len(str_time) != 8 else str_time
-            self.labelRTvalue.setText(f"{str_time}")
+    def _worker_thread(self):
+        """ поток обработки очередей """
+        while self._running:
+            # вывод сигналов
+            try:
+                ecg = self.ecg_queue.get_nowait()
+            except asyncio.QueueEmpty:
+                ecg = None
+            else:
+                self.update_plot(ecg)
+                self.ecg_queue.task_done()
+            time.sleep(0.001)
 
-        # add data in plot
-        self.plot_ecg.setData(self.time, self.ecg, antialias=False, clipToView=True)
+            # обработка событий
+            try:
+                event = self.event_queue.get_nowait()
+            except asyncio.QueueEmpty:
+                event = None
+            time.sleep(0.001)
 
-        if self.time[-1] < self.timebase:
-            self.plotWidget.setXRange(0, self.timebase)
-        else:
-            self.plotWidget.setXRange(self.time[-1] - self.timebase, self.time[-1])
+    def update_plot(self, ecg: dict):
+        signal, counter = ecg["ecg"], ecg["counter"]
 
-        slide = self.ecg[- int(self.timebase * HZ):]
-        self.plotWidget.setYRange(
-            min(slide), max(slide), # padding=0.15
+        # кольцевой сдвиг
+        self.ecg_buffer = np.roll(self.ecg_buffer, -len(signal))
+        self.ecg_buffer[-len(signal):] = signal
+
+        # Обновляем время (проще пересоздавать)
+        self.time_buffer = np.arange(0, self.max_timebase, self.dt)
+
+        # Отображаем
+        self.plot_ecg.setData(
+            self.time_buffer[-self.timebase * HZ:],
+            self.ecg_buffer[-self.timebase * HZ:],
+            antialias=False, clipToView=True
         )
+
+        # Настройка отображения
+        visible_start = max(0, self.time_buffer[-1] - self.timebase)
+        self.plotWidget.setXRange(visible_start, self.time_buffer[-1])
+
+        visible_data = self.ecg_buffer[-int(self.timebase * HZ):]
+        self.plotWidget.setYRange(visible_data.min(), visible_data.max())
+        self.plotWidget.replot()
+        time.sleep(0.01)
+
+    # def update_plot(self, ecg: dict):
+    #     signal, counter = ecg["ecg"], ecg["counter"]
+    #
+    #     self.ecg = np.append(self.ecg, )
+    #     logger.debug(f"Current {ecg['counter']=}")
+    #     # calculate time
+    #     if len(self.time) == 0:
+    #         self.time = np.arange(1, len(ecg["ecg"]) + 1) * 0.01  # ToDo: check it
+    #     else:
+    #         self.time = np.append(self.time, np.arange(1, len(ecg["ecg"]) + 1) * 1 / HZ + self.time[-1])
+    #     # check shape ecg and time
+    #     if self.ecg.shape != self.time.shape:
+    #         raise ValueError("Arrays time and ecg have not same shape!")
+    #
+    #     if self.storage.is_recording:
+    #         self.storage(ecg["ecg"])  # save ecg in storage
+    #         str_time = str(datetime.datetime.now() - self.storage.start_time).split(".")[0]
+    #         str_time = "0" + str_time if len(str_time) != 8 else str_time
+    #         self.labelRTvalue.setText(f"{str_time}")
+    #
+    #     # add data in plot
+    #     self.plot_ecg.setData(self.time, self.ecg, antialias=False, clipToView=True)
+    #
+    #     if self.time[-1] < self.timebase:
+    #         self.plotWidget.setXRange(0, self.timebase)
+    #     else:
+    #         self.plotWidget.setXRange(self.time[-1] - self.timebase, self.time[-1])
+    #
+    #     slide = self.ecg[- int(self.timebase * HZ):]
+    #     self.plotWidget.setYRange(min(slide), max(slide),)
+
 
     async def stop_device(self):
         logger.debug("Stop device")
+        # остановка потока обработки очереди
+        self._running = False
+        if self._work:
+            self._work.join(5.0)
+            self._work = None
 
         try:
             await self.device.stop()

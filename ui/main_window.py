@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'main_windowkTsIkK.ui'
+## Form generated from reading UI file 'main_windowjfsNCy.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -15,10 +15,11 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QComboBox, QFrame, QGridLayout,
-    QHBoxLayout, QLabel, QLineEdit, QMainWindow,
-    QMenuBar, QPushButton, QSizePolicy, QSpacerItem,
-    QStatusBar, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFormLayout,
+    QFrame, QGridLayout, QHBoxLayout, QLabel,
+    QLineEdit, QMainWindow, QMenuBar, QPushButton,
+    QSizePolicy, QSpacerItem, QStatusBar, QVBoxLayout,
+    QWidget)
 
 from pyqtgraph import PlotWidget
 
@@ -26,7 +27,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(1088, 868)
+        MainWindow.resize(1084, 890)
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.gridLayout = QGridLayout(self.centralwidget)
@@ -106,6 +107,39 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.addWidget(self.pushButtonTurnOff)
 
+        self.formLayout = QFormLayout()
+        self.formLayout.setObjectName(u"formLayout")
+        self.labelActivated = QLabel(self.centralwidget)
+        self.labelActivated.setObjectName(u"labelActivated")
+        self.labelActivated.setEnabled(True)
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.labelActivated.sizePolicy().hasHeightForWidth())
+        self.labelActivated.setSizePolicy(sizePolicy)
+        self.labelActivated.setMinimumSize(QSize(100, 0))
+        self.labelActivated.setMaximumSize(QSize(100, 100))
+        self.labelActivated.setFont(font)
+        self.labelActivated.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.formLayout.setWidget(0, QFormLayout.ItemRole.LabelRole, self.labelActivated)
+
+        self.checkBoxActivated = QCheckBox(self.centralwidget)
+        self.checkBoxActivated.setObjectName(u"checkBoxActivated")
+        self.checkBoxActivated.setEnabled(False)
+        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
+        sizePolicy1.setHorizontalStretch(0)
+        sizePolicy1.setVerticalStretch(0)
+        sizePolicy1.setHeightForWidth(self.checkBoxActivated.sizePolicy().hasHeightForWidth())
+        self.checkBoxActivated.setSizePolicy(sizePolicy1)
+        self.checkBoxActivated.setFont(font)
+        self.checkBoxActivated.setIconSize(QSize(32, 32))
+
+        self.formLayout.setWidget(0, QFormLayout.ItemRole.FieldRole, self.checkBoxActivated)
+
+
+        self.verticalLayout.addLayout(self.formLayout)
+
         self.line = QFrame(self.centralwidget)
         self.line.setObjectName(u"line")
         self.line.setFrameShape(QFrame.Shape.HLine)
@@ -127,11 +161,11 @@ class Ui_MainWindow(object):
         self.lineEditSave = QLineEdit(self.centralwidget)
         self.lineEditSave.setObjectName(u"lineEditSave")
         self.lineEditSave.setEnabled(False)
-        sizePolicy = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.lineEditSave.sizePolicy().hasHeightForWidth())
-        self.lineEditSave.setSizePolicy(sizePolicy)
+        sizePolicy2 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+        sizePolicy2.setHorizontalStretch(0)
+        sizePolicy2.setVerticalStretch(0)
+        sizePolicy2.setHeightForWidth(self.lineEditSave.sizePolicy().hasHeightForWidth())
+        self.lineEditSave.setSizePolicy(sizePolicy2)
         self.lineEditSave.setFont(font)
 
         self.gridLayout_7.addWidget(self.lineEditSave, 1, 1, 1, 1)
@@ -146,11 +180,11 @@ class Ui_MainWindow(object):
         self.pushButtonSelectDirSave = QPushButton(self.centralwidget)
         self.pushButtonSelectDirSave.setObjectName(u"pushButtonSelectDirSave")
         self.pushButtonSelectDirSave.setEnabled(True)
-        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
-        sizePolicy1.setHorizontalStretch(0)
-        sizePolicy1.setVerticalStretch(0)
-        sizePolicy1.setHeightForWidth(self.pushButtonSelectDirSave.sizePolicy().hasHeightForWidth())
-        self.pushButtonSelectDirSave.setSizePolicy(sizePolicy1)
+        sizePolicy3 = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        sizePolicy3.setHorizontalStretch(0)
+        sizePolicy3.setVerticalStretch(0)
+        sizePolicy3.setHeightForWidth(self.pushButtonSelectDirSave.sizePolicy().hasHeightForWidth())
+        self.pushButtonSelectDirSave.setSizePolicy(sizePolicy3)
         self.pushButtonSelectDirSave.setMinimumSize(QSize(5, 0))
         self.pushButtonSelectDirSave.setFont(font)
 
@@ -367,7 +401,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 1088, 22))
+        self.menubar.setGeometry(QRect(0, 0, 1084, 22))
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QStatusBar(MainWindow)
         self.statusbar.setObjectName(u"statusbar")
@@ -388,6 +422,8 @@ class Ui_MainWindow(object):
         self.pushButtonStart.setText(QCoreApplication.translate("MainWindow", u"Start", None))
         self.pushButtonStop.setText(QCoreApplication.translate("MainWindow", u"Stop", None))
         self.pushButtonTurnOff.setText(QCoreApplication.translate("MainWindow", u"Turn Off", None))
+        self.labelActivated.setText(QCoreApplication.translate("MainWindow", u"Activated", None))
+        self.checkBoxActivated.setText("")
         self.labelDataStorage.setText(QCoreApplication.translate("MainWindow", u"Data storage", None))
         self.labelRT.setText(QCoreApplication.translate("MainWindow", u"Recording time:", None))
         self.pushButtonSelectDirSave.setText(QCoreApplication.translate("MainWindow", u"Change", None))
