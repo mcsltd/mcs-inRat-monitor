@@ -30,6 +30,7 @@ def decode_ecg(raw_data: bytearray) -> (int, np.ndarray):
 
         prev = ecg[i]
     ecg *= Const.EcgResolution * 1e6
+    # ecg *= Const.EcgResolution
     return counter, ecg
 
 def decode_event(raw_data):

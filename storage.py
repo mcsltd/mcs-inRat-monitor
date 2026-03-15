@@ -1,3 +1,4 @@
+import csv
 import datetime
 import logging
 import os.path
@@ -7,11 +8,15 @@ import wfdb
 from pyedflib import EdfWriter
 from typing import Optional
 
+from structure import EventData
+
 logger = logging.getLogger(__name__)
 
 class Storage:
     def __init__(self, path_to_save: str, fs: int):
         self.ecg = np.array([])
+        self.buffer_temp = []
+        self.buffer_activity = []
 
         self.is_recording = None
 
@@ -51,9 +56,7 @@ class Storage:
         filename = f"{str_st}_dur_{dur}_sec"
         return filename
 
-    def save(
-        self,
-    ):
+    def save(self):
         """ Save in select format """
         logger.debug(f"ECG buffer size: {self.ecg.shape}")
 
@@ -70,18 +73,24 @@ class Storage:
         if self._format == "WFDB":
             self._to_wfdb(record_name=filename, write_dir=write_dir)
 
-        filename = f"{write_dir}\\{filename}.edf"
         if self._format == "EDF":
-            self._to_edf(filename)
+            self._to_edf(f"{write_dir}\\{filename}.edf")
+
+        if len(self.buffer_temp) != 0:
+            filename_csv = f"{write_dir}\\temperature_{filename}.csv"
+            self.to_csv(data=self.buffer_temp, filednames=list(self.buffer_temp[0].keys()), filepath=filename_csv)
+
+        if len(self.buffer_activity) != 0:
+            filename_csv = f"{write_dir}\\activity_{filename}.csv"
+            self.to_csv(data=self.buffer_activity, filednames=list(self.buffer_activity[0].keys()), filepath=filename_csv)
 
         self.ecg = np.array([])
+        self.buffer_temp = []
+        self.buffer_activity = []
         self.start_time = None
 
     def _to_wfdb(
-            self,
-            record_name: str, write_dir: str,
-
-            sig_name:list[str]=["ECG"], units: list[str] = ["uV"],
+            self, record_name: str, write_dir: str, sig_name:list[str]=["ECG"], units: list[str] = ["uV"],
     ):
         """
         Save data in wfdb format.
@@ -131,3 +140,25 @@ class Storage:
         if self.ecg.shape[0] == 0:
             self.start_time = datetime.datetime.now()
         self.ecg = np.append(self.ecg, ecg)
+
+    def process_temperature(self, ev_temp: EventData):
+        try:
+            self.buffer_temp.append({"time": int(ev_temp.counter / self.fs), "temp_celsius": round(ev_temp.data / 1000, 1)})
+        except Exception as err:
+            logger.error(f"Ошибка добавления в буфер температуры: {err}")
+
+    def process_activity(self, ev_activity: EventData):
+        try:
+            self.buffer_activity.append({"time": ev_activity.counter / self.fs, "description": ev_activity.type})
+        except Exception as err:
+            logger.error(f"Ошибка добавления в буфер активности: {err}")
+
+    def to_csv(self, data: list[dict], filednames: list[str], filepath: str) -> None:
+        try:
+            with open(filepath, "w", newline='', encoding='utf-8') as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=filednames)
+                writer.writeheader()
+                writer.writerows(data)
+            logger.info(f"Данные успешно сохранены в {filepath}")
+        except Exception as err:
+            logger.info(f"Возникла ошибка при сохранении в {filepath}: {err}")

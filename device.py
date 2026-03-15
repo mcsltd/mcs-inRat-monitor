@@ -105,7 +105,6 @@ class RatSens(BleakClient):
 
         async def event_handler(_, raw_data: bytearray):
             for event in decode_event(raw_data):
-                print(f"{event.type=}")
                 await event_queue.put(event)
 
         if not self.is_connected:

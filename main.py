@@ -99,11 +99,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.plotWidget.setBackground("w")
         # self.plotWidget.setDownsampling(auto=True, mode='peak', ds=50)
 
-        # timer for get ecg from device and draw plot
-        self.time_update = 2
-        self.timer = QTimer()
-        self.timer.setInterval(self.time_update) # in msec
-
         # create scanner and run it
         self.scanner.run(self.qt_loop)
         self.scanner.signal_found.connect(self.set_combobox_items)
@@ -141,7 +136,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # таймер для обновления графика
         self.update_timer = QtCore.QTimer()
         self.update_timer.timeout.connect(self._delayed_update_plot)
-        # self.update_timer.timeout.connect(self._delayed_update_scatter)
         self.update_timer.start(16)  # 60 fps
 
 
@@ -171,7 +165,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.comboBoxDevice.count() != 0:
             self.pushButtonConnect.setEnabled(True)
 
-    def change_recording(self): # ToDo: rename method
+    def change_recording(self):
         """
         Change state recording.
         """
@@ -187,10 +181,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             logger.debug("Select stop recording ECG.")
 
             self.labelRTvalue.setText("00:00:00")
-            # check if device running when change button state (when press stop recording)
             if self.device.is_running:
                 self.storage.save()
-                self.add_marker(pos=self.time_buffer[-1], text="Stop recording")
+
+                if not self.buffer_filled:
+                    pos = self.time_buffer[self.current_position]
+                else:
+                    pos = self.time_buffer[-1]
+                self.add_marker(pos=pos, text="Stop recording")
 
         elif self.storage.is_recording is None or not self.storage.is_recording:
             self.storage.is_recording = True
@@ -203,7 +201,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             logger.debug("Select start recording ECG.")
 
-            self.add_marker(pos=self.time_buffer[-1], text="Start recording")
+            if not self.buffer_filled:
+                pos = self.time_buffer[self.current_position]
+            else:
+                pos = self.time_buffer[-1]
+            self.add_marker(pos=pos, text="Start recording")
 
     async def connect_device(self):
         # raise waiting dialog
@@ -354,7 +356,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         res = await self.device.start_acquisition(ecg_queue=self.ecg_queue, event_queue=self.event_queue)
         if res:
-            self.timer.start()
 
             # disable
             # self.pushButtonConnect.setEnabled(False)
@@ -413,13 +414,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             )
             self.plotWidget.addItem(line)
             self.marker_temp.append(line)
+
+            if self.storage.is_recording:
+                self.storage.process_temperature(event)
         else:
             y = min(self.ecg_buffer) * 1.05
             if event.type == "Activity":
+                if self.storage.is_recording:
+                    self.storage.process_activity(event)
                 self.scatter_activity.addPoints([{'pos': (x, y)}])
             elif event.type == "Freefall":
+                if self.storage.is_recording:
+                    self.storage.process_activity(event)
                 self.scatter_freefall.addPoints([{'pos': (x, y)}])
             elif event.type == "Orientation":
+                if self.storage.is_recording:
+                    self.storage.process_activity(event)
                 self.scatter_orientation.addPoints([{'pos': (x, y)}])
 
     def set_data(self, ecg: dict):
@@ -441,6 +451,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.ecg_buffer = np.roll(self.ecg_buffer, -len(signal))
             self.ecg_buffer[-len(signal):] = signal
             self.time_buffer += len(signal) * self.dt
+
+        # сохранение данных
+        if self.storage.is_recording:
+            self.storage(signal)
+            str_time = str(datetime.datetime.now() - self.storage.start_time).split(".")[0]
+            str_time = "0" + str_time if len(str_time) != 8 else str_time
+            self.labelRTvalue.setText(f"[{str_time}]")
 
         self.pending_update = True
 
@@ -499,11 +516,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 QMessageBox.StandardButton.Ok
             )
         finally:
-            self.timer.stop()
 
             if self.storage.is_recording:
                 self.storage.save()
-                # self.add_marker(pos=self.time[-1], text="Stop recording")
+
+                if not self.buffer_filled:
+                    pos = self.time_buffer[self.current_position]
+                else:
+                    pos = self.time_buffer[-1]
+                self.add_marker(pos=pos, text="Stop recording")
                 self.change_recording()
 
             # activate and disable btn when stop device
@@ -549,7 +570,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # save data in storage
         if self.storage.is_recording:
             self.storage.save()
-            self.add_marker(pos=self.time_buffer[-1], text="Stop recording")
+            if not self.buffer_filled:
+                pos = self.time_buffer[self.current_position]
+            else:
+                pos = self.time_buffer[-1]
+            self.add_marker(pos=pos, text="Stop recording")
             self.change_recording()
 
         # disable button
@@ -574,13 +599,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def reset(self) -> None:
         """ reset data """
-        self.reset_event()
-        self.reset_signal()
-
+        self.plotWidget.clear()
         # удаление значений температуры
         for marker in self.marker_temp:
             self.plotWidget.removeItem(marker)
         self.marker_temp = []
+
+        self.reset_event()
+        self.reset_signal()
 
         if not self.device or not self.device.is_connected:
             self.set_device_information()
@@ -625,12 +651,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             labelOpts={'color': 'k', 'position': 0.1}
         )
         self.plotWidget.addItem(line)
+        self.marker_temp.append(line)
 
     def closeEvent(self, event):
-        if self.timer.isActive():
+        if self._running:
             self.pushButtonStop.click()
-            self.timer.stop()
-
         # stop scanner
         self.scanner.stop()
 
