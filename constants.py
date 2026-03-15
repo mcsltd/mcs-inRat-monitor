@@ -33,6 +33,7 @@ class EventType(IntFlag):
     START = auto()
     TEMP = auto()
 
+
 UUID_TEMPLATE = "0000{:0>4x}-0000-1000-8000-00805f9b34fb"
 
 

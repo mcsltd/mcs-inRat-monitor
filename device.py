@@ -105,6 +105,7 @@ class RatSens(BleakClient):
 
         async def event_handler(_, raw_data: bytearray):
             for event in decode_event(raw_data):
+                print(f"{event.type=}")
                 await event_queue.put(event)
 
         if not self.is_connected:
@@ -117,7 +118,7 @@ class RatSens(BleakClient):
                     DataRateEcg=DataRateEcg.HZ_500.value, HighPassFilterEcg=0,
                     FullScaleAccelerometer=FullScaleAccelerometer.G_0.value,
                     EnabledChannels=EnabledChannels.ENABLED_ECG.value,
-                    EnabledEvents=EventType.TEMP | EventType.ACTIVITY | EventType.FREEFALL | EventType.ORIENTATION,
+                    EnabledEvents=63,
                     ActivityThreshold=2,
                 )
             )
@@ -181,5 +182,4 @@ class RatSens(BleakClient):
 
 
 
-if __name__ == "__main__":
-    asyncio.run(main())
+

@@ -55,12 +55,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.dt = 1 / HZ
         self.ecg_buffer = np.zeros(int(self.max_timebase * HZ))
         self.time_buffer = np.arange(0, self.max_timebase, self.dt)
-
         # переменные для управления отображением
         self.buffer_filled = False  # флаг заполнения буфера
         self.current_position = 0   # текущая позиция для заполнения буфера
-        self.display_start = 0      # начало отображаемого окна
-        self.display_end = self.timebase    # конец отображаемого окна
 
         # main classes
         self.device: Optional[RatSens] = None
@@ -69,17 +66,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # легенда
         self.legend = self.plotWidget.addLegend()
+        self.legend.setLabelTextColor(0,0,0)
 
         # setup plot
         self.plot_ecg = self.plotWidget.plot(pen=RED)
 
         # scatter plot for activity, freefall, orientation
-        # self.scatter_activity = pg.ScatterPlotItem(name="Activity", symbol='t', brush=pg.mkBrush(0, 255, 0, 180), size=10,)
-        # self.plotWidget.addItem(self.scatter_activity)
-        # self.scatter_orientation = pg.ScatterPlotItem(name="Orientation", symbol="o", brush=pg.mkBrush(0, 0, 255, 180), size=10,)
-        # self.plotWidget.addItem(self.scatter_orientation)
-        # self.scatter_freefall = pg.ScatterPlotItem(name="Freefall", symbol='s', brush=pg.mkBrush(255, 0, 0, 180), size=10,)
-        # self.plotWidget.addItem(self.scatter_freefall)
+        self.scatter_activity = pg.ScatterPlotItem(name="Activity", symbol='t', brush=pg.mkBrush(0, 255, 0, 180),  size=10,)
+        self.plotWidget.addItem(self.scatter_activity)
+        self.scatter_orientation = pg.ScatterPlotItem(name="Orientation", symbol="o", brush=pg.mkBrush(0, 0, 255, 180), size=10,)
+        self.plotWidget.addItem(self.scatter_orientation)
+        self.scatter_freefall = pg.ScatterPlotItem(name="Freefall", symbol='s', brush=pg.mkBrush(255, 0, 0, 180), size=10,)
+        self.plotWidget.addItem(self.scatter_freefall)
+        self.marker_temp = []
 
         font = QFont()
         font.setPointSize(12)
@@ -138,11 +137,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # Буфер для накопления данных
         self.pending_update = False
-        self.offset = 0
 
         # таймер для обновления графика
         self.update_timer = QtCore.QTimer()
-        self.update_timer.timeout.connect(self._delayed_update)
+        self.update_timer.timeout.connect(self._delayed_update_plot)
+        # self.update_timer.timeout.connect(self._delayed_update_scatter)
         self.update_timer.start(16)  # 60 fps
 
 
@@ -191,7 +190,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # check if device running when change button state (when press stop recording)
             if self.device.is_running:
                 self.storage.save()
-                self.add_marker(pos=self.time[-1], text="Stop recording")
+                self.add_marker(pos=self.time_buffer[-1], text="Stop recording")
 
         elif self.storage.is_recording is None or not self.storage.is_recording:
             self.storage.is_recording = True
@@ -204,7 +203,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             logger.debug("Select start recording ECG.")
 
-            self.add_marker(pos=self.time[-1], text="Start recording")
+            self.add_marker(pos=self.time_buffer[-1], text="Start recording")
 
     async def connect_device(self):
         # raise waiting dialog
@@ -294,14 +293,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             await self.device.activate()
 
     async def disconnect_device(self):
-        self.reset()
 
         if self.device.is_connected:
             await self.device.close()
             self.scanner.run(self.qt_loop)
-
         else:
             await self.lost_connection()
+
+        self.reset()
 
         # disable
         self.pushButtonStart.setEnabled(False)
@@ -315,7 +314,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.pushButtonDisconnect.hide()
 
     def set_device_information(self, device_information: Optional[dict] = None):
-        if device_information is not None:
+        if device_information:
             self.labelModelValue.setText(device_information["model"])
             self.labelSerialNumberValue.setText(device_information["serial"])
             self.labelStatusValue.setText(device_information["status"])
@@ -323,7 +322,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.labelSFValue.setText("500 Hz")
             self.labelHardwareValue.setText(device_information["hardware"])
             self.labelFirmwareValue.setText(device_information["firmware"])
-
 
         else:
             self.labelModelValue.setText("None")
@@ -341,6 +339,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.event_queue.get_nowait()
         while not self.ecg_queue.empty():
             self.ecg_queue.get_nowait()
+
+        self.reset() # cбросить графики
 
         if not self.device.is_connected:
             info = QMessageBox.information(
@@ -387,7 +387,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             except asyncio.QueueEmpty:
                 ecg = None
             else:
-                self.update_plot(ecg)
+                self.set_data(ecg)
                 self.ecg_queue.task_done()
 
             # обработка событий
@@ -396,36 +396,35 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             except asyncio.QueueEmpty:
                 event = None
             else:
-                # self.process_event(event)
+                self.process_event(event)
                 self.event_queue.task_done()
             time.sleep(0.001)
 
     def process_event(self, event: EventData):
         """ обработка событий """
         event_type = event.type
-        x = event.counter * Pkt.SamplesCountECG * HZ
-        y = self.ecg_buffer[-1]
+        x = event.counter * self.dt
 
         if event_type == "Temp":
             line = pg.InfiniteLine(
                 pos=x, angle=90,
                 pen=pg.mkPen('gray', width=1.5, style=QtCore.Qt.PenStyle.DashLine),
-                movable=True,
-                label=f"T={round(event.data / 1000, 1)} °C",
-                labelOpts={'color': 'k', 'position': 0.1}
+                movable=True, label=f"T={round(event.data / 1000, 1)} °C", labelOpts={'color': 'k', 'position': 0.1}
             )
             self.plotWidget.addItem(line)
-        elif event.type == "Activity":
-            self.scatter_activity.addPoints([{'pos': (x, y)}])
-        elif event.type == "Freefall":
-            self.scatter_freefall.addPoints([{'pos': (x, y)}])
-        elif event.type == "Orientation":
-            self.scatter_orientation.addPoints([{'pos': (x, y)}])
+            self.marker_temp.append(line)
+        else:
+            y = min(self.ecg_buffer) * 1.05
+            if event.type == "Activity":
+                self.scatter_activity.addPoints([{'pos': (x, y)}])
+            elif event.type == "Freefall":
+                self.scatter_freefall.addPoints([{'pos': (x, y)}])
+            elif event.type == "Orientation":
+                self.scatter_orientation.addPoints([{'pos': (x, y)}])
 
-    def update_plot(self, ecg: dict):
+    def set_data(self, ecg: dict):
         """ добавление данных сигнала в буфер """
         signal, counter = ecg["ecg"], ecg["counter"]
-
         if not self.buffer_filled:
             # вставка данных в незаполненный буфер
             if self.current_position + Pkt.SamplesCountECG < len(self.ecg_buffer):
@@ -443,18 +442,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.ecg_buffer[-len(signal):] = signal
             self.time_buffer += len(signal) * self.dt
 
-        # настройка индексов отображения
-        if self.time_buffer[self.current_position] + self.timebase <= self.max_timebase:
-            self.display_start = self.current_position
-            self.display_end = self.current_position + self.timebase * HZ
-        else:
-            # индексы отображения
-            self.display_start = len(self.ecg_buffer) - self.timebase * HZ
-            self.display_end = len(self.ecg_buffer)
-
         self.pending_update = True
 
-    def _delayed_update(self):
+    def _delayed_update_plot(self):
         """Обновление графика по таймеру"""
         if not self.pending_update:
             return
@@ -513,7 +503,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             if self.storage.is_recording:
                 self.storage.save()
-                self.add_marker(pos=self.time[-1], text="Stop recording")
+                # self.add_marker(pos=self.time[-1], text="Stop recording")
                 self.change_recording()
 
             # activate and disable btn when stop device
@@ -559,7 +549,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # save data in storage
         if self.storage.is_recording:
             self.storage.save()
-            self.add_marker(pos=self.time[-1], text="Stop recording")
+            self.add_marker(pos=self.time_buffer[-1], text="Stop recording")
             self.change_recording()
 
         # disable button
@@ -583,14 +573,46 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.comboBoxDevice.setEnabled(True)
 
     def reset(self) -> None:
-        """
-        Reset data.
-        """
-        self.plotWidget.clear()
-        self.ecg = np.array([])
-        self.time = np.array([])
-        self.plot_ecg = self.plotWidget.plot(self.time, self.ecg, pen=RED)
-        self.set_device_information()
+        """ reset data """
+        self.reset_event()
+        self.reset_signal()
+
+        # удаление значений температуры
+        for marker in self.marker_temp:
+            self.plotWidget.removeItem(marker)
+        self.marker_temp = []
+
+        if not self.device or not self.device.is_connected:
+            self.set_device_information()
+
+    def reset_signal(self):
+        self.plotWidget.removeItem(self.plot_ecg)
+        self.plot_ecg = self.plotWidget.plot(pen=RED)
+
+        # data
+        self.max_timebase = 60
+        self.timebase = 30
+        self.dt = 1 / HZ
+        self.ecg_buffer = np.zeros(int(self.max_timebase * HZ))
+        self.time_buffer = np.arange(0, self.max_timebase, self.dt)
+        self.buffer_filled = False  # флаг заполнения буфера
+        self.current_position = 0  # текущая позиция для заполнения буфера
+
+    def reset_event(self):
+        for item in [self.scatter_activity, self.scatter_orientation, self.scatter_freefall]:
+            self.plotWidget.removeItem(item)
+
+        # scatter plot for activity, freefall, orientation
+        self.scatter_activity = pg.ScatterPlotItem(name="Activity", symbol='t', brush=pg.mkBrush(0, 255, 0, 180),
+                                                   size=10, )
+        self.plotWidget.addItem(self.scatter_activity)
+        self.scatter_orientation = pg.ScatterPlotItem(name="Orientation", symbol="o", brush=pg.mkBrush(0, 0, 255, 180),
+                                                      size=10, )
+        self.plotWidget.addItem(self.scatter_orientation)
+        self.scatter_freefall = pg.ScatterPlotItem(name="Freefall", symbol='s', brush=pg.mkBrush(255, 0, 0, 180),
+                                                   size=10, )
+        self.plotWidget.addItem(self.scatter_freefall)
+        self.marker_temp = []
 
     def add_marker(self, pos, text:str="event"):
         """ Add vertical line and text on the plot."""
