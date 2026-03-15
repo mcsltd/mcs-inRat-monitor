@@ -55,7 +55,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.dt = 1 / HZ
         self.ecg_buffer = np.zeros(int(self.max_timebase * HZ))
         self.time_buffer = np.arange(0, self.max_timebase, self.dt)
-        assert self.ecg_buffer.shape == self.time_buffer.shape
+
+        # переменные для управления отображением
+        self.buffer_filled = False  # флаг заполнения буфера
+        self.current_position = 0   # текущая позиция для заполнения буфера
+        self.display_start = 0      # начало отображаемого окна
+        self.display_end = self.timebase    # конец отображаемого окна
 
         # main classes
         self.device: Optional[RatSens] = None
@@ -69,14 +74,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.plot_ecg = self.plotWidget.plot(pen=RED)
 
         # scatter plot for activity, freefall, orientation
-        self.scatter_activity = pg.ScatterPlotItem(name="Activity", symbol='t', brush=pg.mkBrush(0, 255, 0, 180), size=10,)
-        self.plotWidget.addItem(self.scatter_activity)
-
-        self.scatter_orientation = pg.ScatterPlotItem(name="Orientation", symbol="o", brush=pg.mkBrush(0, 0, 255, 180), size=10,)
-        self.plotWidget.addItem(self.scatter_orientation)
-
-        self.scatter_freefall = pg.ScatterPlotItem(name="Freefall", symbol='s', brush=pg.mkBrush(255, 0, 0, 180), size=10,)
-        self.plotWidget.addItem(self.scatter_freefall)
+        # self.scatter_activity = pg.ScatterPlotItem(name="Activity", symbol='t', brush=pg.mkBrush(0, 255, 0, 180), size=10,)
+        # self.plotWidget.addItem(self.scatter_activity)
+        # self.scatter_orientation = pg.ScatterPlotItem(name="Orientation", symbol="o", brush=pg.mkBrush(0, 0, 255, 180), size=10,)
+        # self.plotWidget.addItem(self.scatter_orientation)
+        # self.scatter_freefall = pg.ScatterPlotItem(name="Freefall", symbol='s', brush=pg.mkBrush(255, 0, 0, 180), size=10,)
+        # self.plotWidget.addItem(self.scatter_freefall)
 
         font = QFont()
         font.setPointSize(12)
@@ -135,11 +138,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # Буфер для накопления данных
         self.pending_update = False
+        self.offset = 0
 
-        # Таймер для обновления графика (60 FPS)
+        # таймер для обновления графика
         self.update_timer = QtCore.QTimer()
         self.update_timer.timeout.connect(self._delayed_update)
-        self.update_timer.start(16)  # ~60 FPS (1000/60 ≈ 16ms)
+        self.update_timer.start(16)  # 60 fps
+
 
     def set_timebase(self):
         self.timebase = self.comboBoxTimebase.currentData()
@@ -384,7 +389,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             else:
                 self.update_plot(ecg)
                 self.ecg_queue.task_done()
-            time.sleep(0.001)
 
             # обработка событий
             try:
@@ -393,7 +397,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 event = None
             else:
                 # self.process_event(event)
-                ...
+                self.event_queue.task_done()
             time.sleep(0.001)
 
     def process_event(self, event: EventData):
@@ -419,16 +423,35 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.scatter_orientation.addPoints([{'pos': (x, y)}])
 
     def update_plot(self, ecg: dict):
+        """ добавление данных сигнала в буфер """
         signal, counter = ecg["ecg"], ecg["counter"]
 
-        # кольцевой сдвиг (ВСЕГДА обновляем буфер)
-        self.ecg_buffer = np.roll(self.ecg_buffer, -len(signal))
-        self.ecg_buffer[-len(signal):] = signal
+        if not self.buffer_filled:
+            # вставка данных в незаполненный буфер
+            if self.current_position + Pkt.SamplesCountECG < len(self.ecg_buffer):
+                self.ecg_buffer[self.current_position:self.current_position+Pkt.SamplesCountECG] = signal
+                self.current_position += Pkt.SamplesCountECG
+            else:
+                offset = len(self.ecg_buffer) - self.current_position
+                self.ecg_buffer[self.current_position:] = signal[:offset]
+                signal = signal[offset:]
+                self.buffer_filled = True
 
-        # Обновляем время (проще пересоздавать)
-        self.time_buffer = np.arange(0, self.max_timebase, self.dt)
+        # вставка данных в заполненный буфер
+        if self.buffer_filled:
+            self.ecg_buffer = np.roll(self.ecg_buffer, -len(signal))
+            self.ecg_buffer[-len(signal):] = signal
+            self.time_buffer += len(signal) * self.dt
 
-        # Отмечаем, что нужно обновить график
+        # настройка индексов отображения
+        if self.time_buffer[self.current_position] + self.timebase <= self.max_timebase:
+            self.display_start = self.current_position
+            self.display_end = self.current_position + self.timebase * HZ
+        else:
+            # индексы отображения
+            self.display_start = len(self.ecg_buffer) - self.timebase * HZ
+            self.display_end = len(self.ecg_buffer)
+
         self.pending_update = True
 
     def _delayed_update(self):
@@ -436,21 +459,37 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if not self.pending_update:
             return
 
-        # Отображаем
-        self.plot_ecg.setData(
-            self.time_buffer[-self.timebase * HZ:],
-            self.ecg_buffer[-self.timebase * HZ:],
-        )
+        if not self.buffer_filled:
+            end_idx = self.current_position
+            start_idx = 0
 
-        # Настройка отображения
-        visible_start = max(0, self.time_buffer[-1] - self.timebase)
-        self.plotWidget.setXRange(visible_start, self.time_buffer[-1])
+            if end_idx > self.timebase * HZ:
+                start_idx = end_idx - int(self.timebase * HZ)
+        else:
+            end_idx = len(self.ecg_buffer)
+            start_idx = end_idx - int(self.timebase * HZ)
+        visible_time = self.time_buffer[start_idx:end_idx]
+        visible_ecg = self.ecg_buffer[start_idx:end_idx]
 
-        visible_data = self.ecg_buffer[-int(self.timebase * HZ):]
-        self.plotWidget.setYRange(visible_data.min(), visible_data.max())
+        # установка данных из буфера на дисплей
+        self.plot_ecg.setData(visible_time, visible_ecg)
+
+        # отображение по оси времени
+        if not self.buffer_filled and end_idx <= self.timebase * HZ:
+            self.plotWidget.setXRange(0, self.timebase, padding=0)
+        else:
+            current_time = visible_time[-1] if len(visible_time) > 0 else 0
+            self.plotWidget.setXRange(current_time - self.timebase, current_time, padding=0)
+
+        # отображение по оси напряжения
+        if len(visible_ecg) > 0:
+            data_min = visible_ecg.min()
+            data_max = visible_ecg.max()
+            if data_max > data_min:
+                padding = (data_max - data_min) * 0.05
+                self.plotWidget.setYRange(data_min - padding, data_max + padding)
+
         self.plotWidget.replot()
-        logger.debug("plot data")
-
         self.pending_update = False
 
     async def stop_device(self):
