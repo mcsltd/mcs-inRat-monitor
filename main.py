@@ -92,13 +92,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         font = QFont()
         font.setPointSize(12)
 
-        self.plotWidget.setLabel("left", "uV", pen=pg.mkPen(color='k'), font=font)
+        self.plotWidget.setLabel("left", units="V", pen=pg.mkPen(color='k'), font=font)
         self.plotWidget.getAxis("left").label.setFont(font)
         self.plotWidget.getAxis("left").setPen(pg.mkPen(color='k'))
         self.plotWidget.getAxis("left").setTextPen(pg.mkPen(color='k'))
         self.plotWidget.getAxis("left").setTickFont(font)
 
-        self.plotWidget.setLabel("bottom", "Time (sec)", pen=pg.mkPen(color='k'), font=font)
+        # "Time (sec)",
+        self.plotWidget.setLabel("bottom", "Time", units="t",  pen=pg.mkPen(color='k'), font=font)
         self.plotWidget.getAxis("bottom").label.setFont(font)
         self.plotWidget.getAxis("bottom").setPen(pg.mkPen(color='k'))
         self.plotWidget.getAxis("bottom").setTextPen(pg.mkPen(color='k'))
@@ -410,7 +411,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if self.storage.is_recording:
                 self.storage.process_temperature(event)
         else:
-            y = min(self.ecg_buffer) * 1.05
+            # определение минимального значения для вывода события
+            if self.buffer_filled:
+                y = min(self.ecg_buffer[-self.timebase * HZ:]) * 1.05
+            else:
+                idx = self.current_position - self.timebase * HZ
+                if idx < 0:
+                    idx = 0
+                y = min(self.ecg_buffer[idx:self.current_position]) * 1.05
 
             if event.type == "Activity":
                 if self.storage.is_recording:
@@ -440,6 +448,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def set_data(self, ecg: dict):
         """ добавление данных сигнала в буфер """
         signal, counter = ecg["ecg"], ecg["counter"]
+        print(signal)
         if not self.buffer_filled:
             # вставка данных в незаполненный буфер
             if self.current_position + Pkt.SamplesCountECG < len(self.ecg_buffer):

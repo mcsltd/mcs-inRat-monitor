@@ -147,7 +147,6 @@ class Storage:
         writer.setSignalHeader(0, channel_info)
         writer.setEquipment("None" if self._device_name is None else self._device_name)
         writer.writeSamples(self.ecg[np.newaxis])
-        writer.cancel()
         writer.close()
 
     def __call__(self, ecg):

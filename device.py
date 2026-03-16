@@ -97,7 +97,6 @@ class RatSens(BleakClient):
         """ запуск устройства на получение сигнала и событий"""
         async def ecg_handler(_, raw_data: bytearray):
             counter, ecg = decode_ecg(raw_data)
-            ecg *= 1e6  # in μV
 
             if ecg_queue is not None:
                 logger.debug("Put ecg in queue.")

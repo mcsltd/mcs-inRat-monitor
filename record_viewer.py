@@ -5,6 +5,7 @@ import os.path
 import numpy as np
 import pyedflib
 import wfdb
+from PySide6.QtGui import QIcon
 
 from PySide6.QtWidgets import QDialog
 
@@ -19,6 +20,7 @@ class RecordViewer(QDialog, Ui_DlgRecordViewer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
+        self.setWindowIcon(QIcon("ui/iconMCS.ico"))
         self.setWindowTitle("Record Viewer")
 
         self.widget_ecg = PlotWidgetEcg()
@@ -100,7 +102,7 @@ class RecordViewer(QDialog, Ui_DlgRecordViewer):
             duration = file.getFileDuration()
             sample_rate = file.getSampleFrequency(0)
             signal = file.readSignal(0)
-            print(f"{signal=} {duration=} {sample_rate=}")
+            # print(f"{signal=} {duration=} {sample_rate=}")
 
     def load_wfdb(self, file_wfdb):
         """ чтение данных из WFDB файла """
