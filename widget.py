@@ -20,10 +20,10 @@ class WaitingDialog(QDialog):
         self.label.setFont(font)
 
         self.progress = QProgressBar()
+        self.progress.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.progress.setRange(0, 0)
 
         self.progress.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        layout.setContentsMargins(10, 10, 10, 10)  # Добавляем отступы
 
         layout.addWidget(self.label)
         layout.addWidget(self.progress)

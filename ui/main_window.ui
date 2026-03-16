@@ -373,22 +373,41 @@
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="pushButtonShowRecords">
-        <property name="enabled">
-         <bool>true</bool>
+       <widget class="Line" name="line_2">
+        <property name="orientation">
+         <enum>Qt::Orientation::Horizontal</enum>
         </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label">
         <property name="font">
          <font>
           <pointsize>12</pointsize>
          </font>
         </property>
         <property name="text">
-         <string>Show Records</string>
+         <string>Viewer</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignmentFlag::AlignCenter</set>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="Line" name="line_2">
+       <widget class="QPushButton" name="pushButtonViewRecording">
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>View Recording</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="Line" name="line_5">
         <property name="orientation">
          <enum>Qt::Orientation::Horizontal</enum>
         </property>

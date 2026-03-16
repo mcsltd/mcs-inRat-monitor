@@ -64,25 +64,41 @@ class Storage:
             return
 
         # write_dir = f"{self.path_to_save}\\{self._device_name}\\{self.start_time.date()}\\{self._format.lower()}"
-        write_dir = f"{self.path_to_save}\\{self._device_name}\\{self._format.lower()}\\"
+        # write_dir = f"{self.path_to_save}\\{self._device_name}\\{self._format.lower()}\\"
+
+        filename = self.get_file_name()
+        write_dir = f"{self.path_to_save}\\{self._device_name}\\{filename}"
 
         # create dir for saving files with selected format
         os.makedirs(write_dir, exist_ok=True)
 
-        filename = self.get_file_name()
-        if self._format == "WFDB":
-            self._to_wfdb(record_name=filename, write_dir=write_dir)
+        try:
+            if self._format == "WFDB":
+                filename = "ecg"
+                self._to_wfdb(record_name=filename, write_dir=write_dir)
+        except Exception as err:
+            logger.error(f"Ошибка сохранения в WFDB: {err=}")
 
-        if self._format == "EDF":
-            self._to_edf(f"{write_dir}\\{filename}.edf")
+        try:
+            if self._format == "EDF":
+                filename = "ecg"
+                self._to_edf(f"{write_dir}\\{filename}.edf")
+        except Exception as err:
+            logger.error(f"Ошибка сохранения в EDF: {err=}")
 
-        if len(self.buffer_temp) != 0:
-            filename_csv = f"{write_dir}\\temperature_{filename}.csv"
-            self.to_csv(data=self.buffer_temp, filednames=list(self.buffer_temp[0].keys()), filepath=filename_csv)
+        try:
+            if len(self.buffer_temp) != 0:
+                filename_csv = f"{write_dir}\\temperature.csv"
+                self.to_csv(data=self.buffer_temp, filednames=list(self.buffer_temp[0].keys()), filepath=filename_csv)
+        except Exception as err:
+            logger.error(f"Ошибка сохранения температуры в CSV: {err=}")
 
-        if len(self.buffer_activity) != 0:
-            filename_csv = f"{write_dir}\\activity_{filename}.csv"
-            self.to_csv(data=self.buffer_activity, filednames=list(self.buffer_activity[0].keys()), filepath=filename_csv)
+        try:
+            if len(self.buffer_activity) != 0:
+                filename_csv = f"{write_dir}\\activity.csv"
+                self.to_csv(data=self.buffer_activity, filednames=list(self.buffer_activity[0].keys()), filepath=filename_csv)
+        except Exception as err:
+            logger.error(f"Ошибка сохранения активности в CSV: {err=}")
 
         self.ecg = np.array([])
         self.buffer_temp = []
@@ -110,10 +126,7 @@ class Storage:
         Save data in edf format.
         """
         logger.debug("Save ecg in EDF format.")
-        writer = EdfWriter(
-            n_channels=1,
-            file_name=filename,
-        )
+        writer = EdfWriter( n_channels=1, file_name=filename, )
         self.ecg = np.round(self.ecg, decimals=3)
 
         margin = 0.15
@@ -134,6 +147,7 @@ class Storage:
         writer.setSignalHeader(0, channel_info)
         writer.setEquipment("None" if self._device_name is None else self._device_name)
         writer.writeSamples(self.ecg[np.newaxis])
+        writer.cancel()
         writer.close()
 
     def __call__(self, ecg):

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'main_windowxdTjgp.ui'
+## Form generated from reading UI file 'main_windowTjuXlb.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -226,19 +226,32 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.addWidget(self.pushButtonRecording)
 
-        self.pushButtonShowRecords = QPushButton(self.centralwidget)
-        self.pushButtonShowRecords.setObjectName(u"pushButtonShowRecords")
-        self.pushButtonShowRecords.setEnabled(True)
-        self.pushButtonShowRecords.setFont(font)
-
-        self.verticalLayout.addWidget(self.pushButtonShowRecords)
-
         self.line_2 = QFrame(self.centralwidget)
         self.line_2.setObjectName(u"line_2")
         self.line_2.setFrameShape(QFrame.Shape.HLine)
         self.line_2.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.verticalLayout.addWidget(self.line_2)
+
+        self.label = QLabel(self.centralwidget)
+        self.label.setObjectName(u"label")
+        self.label.setFont(font)
+        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.verticalLayout.addWidget(self.label)
+
+        self.pushButtonViewRecording = QPushButton(self.centralwidget)
+        self.pushButtonViewRecording.setObjectName(u"pushButtonViewRecording")
+        self.pushButtonViewRecording.setFont(font)
+
+        self.verticalLayout.addWidget(self.pushButtonViewRecording)
+
+        self.line_5 = QFrame(self.centralwidget)
+        self.line_5.setObjectName(u"line_5")
+        self.line_5.setFrameShape(QFrame.Shape.HLine)
+        self.line_5.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.verticalLayout.addWidget(self.line_5)
 
         self.label_2 = QLabel(self.centralwidget)
         self.label_2.setObjectName(u"label_2")
@@ -330,7 +343,8 @@ class Ui_MainWindow(object):
         self.labelRTvalue.setText(QCoreApplication.translate("MainWindow", u"00:00:00", None))
         self.labelFormat.setText(QCoreApplication.translate("MainWindow", u"Format:", None))
         self.pushButtonRecording.setText(QCoreApplication.translate("MainWindow", u"Start Recording", None))
-        self.pushButtonShowRecords.setText(QCoreApplication.translate("MainWindow", u"Show Records", None))
+        self.label.setText(QCoreApplication.translate("MainWindow", u"Viewer", None))
+        self.pushButtonViewRecording.setText(QCoreApplication.translate("MainWindow", u"View Recording", None))
         self.label_2.setText(QCoreApplication.translate("MainWindow", u"Display", None))
         self.labelPage.setText(QCoreApplication.translate("MainWindow", u"/ Page", None))
         self.labelTimebase.setText(QCoreApplication.translate("MainWindow", u"Timebase", None))
