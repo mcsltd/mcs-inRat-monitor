@@ -143,13 +143,13 @@ class Storage:
 
     def process_temperature(self, ev_temp: EventData):
         try:
-            self.buffer_temp.append({"time": int(ev_temp.counter / self.fs), "temp_celsius": round(ev_temp.data / 1000, 1)})
+            self.buffer_temp.append({"time_sec": int(ev_temp.counter / self.fs), "temp_celsius": round(ev_temp.data / 1000, 1)})
         except Exception as err:
             logger.error(f"Ошибка добавления в буфер температуры: {err}")
 
     def process_activity(self, ev_activity: EventData):
         try:
-            self.buffer_activity.append({"time": ev_activity.counter / self.fs, "description": ev_activity.type})
+            self.buffer_activity.append({"time_sec": ev_activity.counter / self.fs, "description": ev_activity.type})
         except Exception as err:
             logger.error(f"Ошибка добавления в буфер активности: {err}")
 

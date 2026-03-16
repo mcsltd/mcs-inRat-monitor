@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'main_windowjfsNCy.ui'
+## Form generated from reading UI file 'main_windowxdTjgp.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -99,13 +99,6 @@ class Ui_MainWindow(object):
         self.pushButtonStop.setFont(font)
 
         self.verticalLayout.addWidget(self.pushButtonStop)
-
-        self.pushButtonTurnOff = QPushButton(self.centralwidget)
-        self.pushButtonTurnOff.setObjectName(u"pushButtonTurnOff")
-        self.pushButtonTurnOff.setEnabled(False)
-        self.pushButtonTurnOff.setFont(font)
-
-        self.verticalLayout.addWidget(self.pushButtonTurnOff)
 
         self.formLayout = QFormLayout()
         self.formLayout.setObjectName(u"formLayout")
@@ -284,102 +277,6 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.addWidget(self.line_4)
 
-        self.labelDeviceInformation = QLabel(self.centralwidget)
-        self.labelDeviceInformation.setObjectName(u"labelDeviceInformation")
-        self.labelDeviceInformation.setFont(font)
-        self.labelDeviceInformation.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        self.verticalLayout.addWidget(self.labelDeviceInformation)
-
-        self.gridLayout_5 = QGridLayout()
-        self.gridLayout_5.setObjectName(u"gridLayout_5")
-        self.labelSFValue = QLabel(self.centralwidget)
-        self.labelSFValue.setObjectName(u"labelSFValue")
-        self.labelSFValue.setFont(font)
-
-        self.gridLayout_5.addWidget(self.labelSFValue, 4, 1, 1, 1)
-
-        self.labelStatus = QLabel(self.centralwidget)
-        self.labelStatus.setObjectName(u"labelStatus")
-        self.labelStatus.setFont(font)
-
-        self.gridLayout_5.addWidget(self.labelStatus, 3, 0, 1, 1)
-
-        self.labelSerialNumberValue = QLabel(self.centralwidget)
-        self.labelSerialNumberValue.setObjectName(u"labelSerialNumberValue")
-        self.labelSerialNumberValue.setFont(font)
-
-        self.gridLayout_5.addWidget(self.labelSerialNumberValue, 1, 1, 1, 1)
-
-        self.labelFirmware = QLabel(self.centralwidget)
-        self.labelFirmware.setObjectName(u"labelFirmware")
-        self.labelFirmware.setFont(font)
-
-        self.gridLayout_5.addWidget(self.labelFirmware, 5, 0, 1, 1)
-
-        self.labelModelValue = QLabel(self.centralwidget)
-        self.labelModelValue.setObjectName(u"labelModelValue")
-        self.labelModelValue.setFont(font)
-
-        self.gridLayout_5.addWidget(self.labelModelValue, 2, 1, 1, 1)
-
-        self.labelName = QLabel(self.centralwidget)
-        self.labelName.setObjectName(u"labelName")
-        self.labelName.setFont(font)
-
-        self.gridLayout_5.addWidget(self.labelName, 0, 0, 1, 1)
-
-        self.labelNameValue = QLabel(self.centralwidget)
-        self.labelNameValue.setObjectName(u"labelNameValue")
-        self.labelNameValue.setFont(font)
-
-        self.gridLayout_5.addWidget(self.labelNameValue, 0, 1, 1, 1)
-
-        self.labelSF = QLabel(self.centralwidget)
-        self.labelSF.setObjectName(u"labelSF")
-        self.labelSF.setFont(font)
-
-        self.gridLayout_5.addWidget(self.labelSF, 4, 0, 1, 1)
-
-        self.labelModel = QLabel(self.centralwidget)
-        self.labelModel.setObjectName(u"labelModel")
-        self.labelModel.setFont(font)
-
-        self.gridLayout_5.addWidget(self.labelModel, 2, 0, 1, 1)
-
-        self.labelStatusValue = QLabel(self.centralwidget)
-        self.labelStatusValue.setObjectName(u"labelStatusValue")
-        self.labelStatusValue.setFont(font)
-
-        self.gridLayout_5.addWidget(self.labelStatusValue, 3, 1, 1, 1)
-
-        self.labelSerialNumber = QLabel(self.centralwidget)
-        self.labelSerialNumber.setObjectName(u"labelSerialNumber")
-        self.labelSerialNumber.setFont(font)
-
-        self.gridLayout_5.addWidget(self.labelSerialNumber, 1, 0, 1, 1)
-
-        self.labelHardware = QLabel(self.centralwidget)
-        self.labelHardware.setObjectName(u"labelHardware")
-        self.labelHardware.setFont(font)
-
-        self.gridLayout_5.addWidget(self.labelHardware, 6, 0, 1, 1)
-
-        self.labelFirmwareValue = QLabel(self.centralwidget)
-        self.labelFirmwareValue.setObjectName(u"labelFirmwareValue")
-        self.labelFirmwareValue.setFont(font)
-
-        self.gridLayout_5.addWidget(self.labelFirmwareValue, 5, 1, 1, 1)
-
-        self.labelHardwareValue = QLabel(self.centralwidget)
-        self.labelHardwareValue.setObjectName(u"labelHardwareValue")
-        self.labelHardwareValue.setFont(font)
-
-        self.gridLayout_5.addWidget(self.labelHardwareValue, 6, 1, 1, 1)
-
-
-        self.verticalLayout.addLayout(self.gridLayout_5)
-
         self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout.addItem(self.verticalSpacer)
@@ -387,16 +284,16 @@ class Ui_MainWindow(object):
 
         self.gridLayout.addLayout(self.verticalLayout, 0, 1, 1, 1)
 
-        self.horizontalLayout = QHBoxLayout()
-        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.verticalLayoutDisplay = QVBoxLayout()
+        self.verticalLayoutDisplay.setObjectName(u"verticalLayoutDisplay")
         self.plotWidget = PlotWidget(self.centralwidget)
         self.plotWidget.setObjectName(u"plotWidget")
         self.plotWidget.setFont(font)
 
-        self.horizontalLayout.addWidget(self.plotWidget)
+        self.verticalLayoutDisplay.addWidget(self.plotWidget)
 
 
-        self.gridLayout.addLayout(self.horizontalLayout, 0, 0, 1, 1)
+        self.gridLayout.addLayout(self.verticalLayoutDisplay, 0, 0, 1, 1)
 
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
@@ -421,7 +318,6 @@ class Ui_MainWindow(object):
         self.label_3.setText(QCoreApplication.translate("MainWindow", u"Device control", None))
         self.pushButtonStart.setText(QCoreApplication.translate("MainWindow", u"Start", None))
         self.pushButtonStop.setText(QCoreApplication.translate("MainWindow", u"Stop", None))
-        self.pushButtonTurnOff.setText(QCoreApplication.translate("MainWindow", u"Turn Off", None))
         self.labelActivated.setText(QCoreApplication.translate("MainWindow", u"Activated", None))
         self.checkBoxActivated.setText("")
         self.labelDataStorage.setText(QCoreApplication.translate("MainWindow", u"Data storage", None))
@@ -438,20 +334,5 @@ class Ui_MainWindow(object):
         self.label_2.setText(QCoreApplication.translate("MainWindow", u"Display", None))
         self.labelPage.setText(QCoreApplication.translate("MainWindow", u"/ Page", None))
         self.labelTimebase.setText(QCoreApplication.translate("MainWindow", u"Timebase", None))
-        self.labelDeviceInformation.setText(QCoreApplication.translate("MainWindow", u"Device information", None))
-        self.labelSFValue.setText(QCoreApplication.translate("MainWindow", u"None", None))
-        self.labelStatus.setText(QCoreApplication.translate("MainWindow", u"Status:", None))
-        self.labelSerialNumberValue.setText(QCoreApplication.translate("MainWindow", u"None", None))
-        self.labelFirmware.setText(QCoreApplication.translate("MainWindow", u"Firmware:", None))
-        self.labelModelValue.setText(QCoreApplication.translate("MainWindow", u"None", None))
-        self.labelName.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
-        self.labelNameValue.setText(QCoreApplication.translate("MainWindow", u"None", None))
-        self.labelSF.setText(QCoreApplication.translate("MainWindow", u"Sample Frequency:", None))
-        self.labelModel.setText(QCoreApplication.translate("MainWindow", u"Model:", None))
-        self.labelStatusValue.setText(QCoreApplication.translate("MainWindow", u"Not connected", None))
-        self.labelSerialNumber.setText(QCoreApplication.translate("MainWindow", u"Serial:", None))
-        self.labelHardware.setText(QCoreApplication.translate("MainWindow", u"Hardware:", None))
-        self.labelFirmwareValue.setText(QCoreApplication.translate("MainWindow", u"None", None))
-        self.labelHardwareValue.setText(QCoreApplication.translate("MainWindow", u"None", None))
     # retranslateUi
 
