@@ -47,13 +47,11 @@ class Storage:
         self._device_name = name
 
     def get_file_name(self):
-        str_st:str = str(self.start_time.date()) + "_" + str(self.start_time.time().replace(microsecond=0))
-        for v in ["h", "m"]:
-            str_st = str_st.replace(":", v, 1)
-        str_st += "s"
+        str_st: str = str(self.start_time.date()) + "_" + str(self.start_time.time().replace(microsecond=0))
+        for _ in range(str_st.count(":")): str_st = str_st.replace(":", "-")
 
         dur = int(self.ecg.shape[0] / self.fs)
-        filename = f"{str_st}_dur_{dur}_sec"
+        filename = f"{str_st}_dur-{dur}"
         return filename
 
     def save(self):
