@@ -99,7 +99,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.plotWidget.getAxis("left").setTickFont(font)
 
         # "Time (sec)",
-        self.plotWidget.setLabel("bottom", "Time", units="t",  pen=pg.mkPen(color='k'), font=font)
+        self.plotWidget.setLabel("bottom", "Time", units="s",  pen=pg.mkPen(color='k'), font=font)
         self.plotWidget.getAxis("bottom").label.setFont(font)
         self.plotWidget.getAxis("bottom").setPen(pg.mkPen(color='k'))
         self.plotWidget.getAxis("bottom").setTextPen(pg.mkPen(color='k'))
@@ -124,6 +124,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.comboBoxTimebase.addItem(v[1], userData=v[0])
         self.comboBoxTimebase.setCurrentIndex(3)
         self.comboBoxTimebase.currentTextChanged.connect(self.set_timebase)
+
+        # setup checkbox
+        self.checkBoxActivated.setEnabled(False)
 
         # connection
         self.pushButtonConnect.clicked.connect(lambda: asyncio.ensure_future(self.connect_device()))
@@ -260,6 +263,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             # add in storage device name (for write additional info in edf)
             self.storage.set_device_name(self.device.name)
+            self.checkBoxActivated.setEnabled(True)
 
         except Exception as exc:
             self.device = None
@@ -318,18 +322,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             )
 
     async def disconnect_device(self):
-
         if self.device.is_connected:
             await self.device.close()
-            self.scanner.run(self.qt_loop)
         else:
             await self.lost_connection()
 
+        self.scanner.run(self.qt_loop)
         self.reset()
 
         # disable
         self.pushButtonStart.setEnabled(False)
         self.comboBoxFormat.setEnabled(False)
+
+        # reset checkbox
+        self.checkBoxActivated.setChecked(False)
+        self.checkBoxActivated.setEnabled(False)
 
         # activate
         self.comboBoxDevice.clear()
@@ -355,7 +362,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 buttons=QMessageBox.StandardButton.Ok
             )
             # reset all
-            await self.lost_connection()
+            await self.disconnect_device()
             return
 
         res = await self.device.start_acquisition(ecg_queue=self.ecg_queue, event_queue=self.event_queue)
@@ -403,6 +410,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             else:
                 self.process_event(event)
                 self.event_queue.task_done()
+
+            if not self.device.is_connected:
+                asyncio.run_coroutine_threadsafe(self.disconnect_device(), self.qt_loop)
             time.sleep(0.001)
 
     def process_event(self, event: EventData):
@@ -451,7 +461,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     self.scatter_orientation.addPoints([{'pos': (x, y)}])
                 except Exception as err:
                     logger.debug(f"Возникла ошибка при добавлении события 'Orientation': {err}")
-
 
     def set_data(self, ecg: dict):
         """ добавление данных сигнала в буфер """
@@ -562,9 +571,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         Action when lost connection with device.
         :return: None
         """
-        logger.info("Lost device connetion.")
+        logger.info("Lost device connection.")
+        self._running = False
+        try:
+            await self.device.stop()
+        except Exception as err:
+            ...
 
-        await self.device.disconnect()
+        try:
+            await self.device.disconnect()
+        except Exception as err:
+            logger.info(f"Возникла ошибка при сбросе соединения: {err}")
 
         # save data in storage
         if self.storage.is_recording:
@@ -588,13 +605,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.pushButtonConnect.show()
 
         # when lost connection - activate mouse
-        self.plotWidget.setMouseEnabled(x=True, y=True)
+        # self.plotWidget.setMouseEnabled(x=True, y=True)
 
         # run scanner
         self.scanner.run(self.qt_loop)
-
+        self.checkBoxActivated.setEnabled(True)
         # activate combobox
         self.comboBoxDevice.setEnabled(True)
+
+        QMessageBox.information(
+            self, "Connect error",
+            f"An error occurred while connect to the device.\nCheck if the device has turned off.",
+            QMessageBox.StandardButton.Ok
+        )
+
 
     def reset(self) -> None:
         """ reset data """
