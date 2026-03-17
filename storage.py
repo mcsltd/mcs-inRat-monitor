@@ -27,7 +27,6 @@ class Storage:
         self._format = "WFDB" # default format
         self.start_time: Optional[datetime.datetime] = None
 
-
     def set_format(self, frmt):
         """
         Change format save file.
@@ -102,9 +101,11 @@ class Storage:
         self.buffer_temp = []
         self.buffer_activity = []
         self.start_time = None
+        self.is_recording = False
+
 
     def _to_wfdb(
-            self, record_name: str, write_dir: str, sig_name:list[str]=["ECG"], units: list[str] = ["uV"],
+            self, record_name: str, write_dir: str, sig_name:list[str]=["ECG"], units: list[str] = ["V"],
     ):
         """
         Save data in wfdb format.
@@ -118,13 +119,13 @@ class Storage:
 
     def _to_edf(
         self,
-        filename:str, units: str = "uV", sig_name:str="ECG",
+        filename:str, units: str = "V", sig_name:str="ECG",
     ):
         """
         Save data in edf format.
         """
         logger.debug("Save ecg in EDF format.")
-        writer = EdfWriter( n_channels=1, file_name=filename, )
+        writer = EdfWriter(n_channels=1, file_name=filename)
         self.ecg = np.round(self.ecg, decimals=3)
 
         margin = 0.15

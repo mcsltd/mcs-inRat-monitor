@@ -112,9 +112,9 @@ class RecordViewer(QDialog, Ui_DlgRecordViewer):
         """Чтение данных из EDF файла"""
         with pyedflib.EdfReader(file_edf) as file:
             duration = file.getFileDuration()
-            sample_rate = file.getSampleFrequency(0)
+            sample_rate = int(file.getSampleFrequency(0))
             signal = file.readSignal(0)
-            # print(f"{signal=} {duration=} {sample_rate=}")
+            self.widget_ecg.load_ecg(ecg=signal, sec_duration=duration, sample_rate=sample_rate)
 
     def load_wfdb(self, file_wfdb):
         """ чтение данных из WFDB файла """
