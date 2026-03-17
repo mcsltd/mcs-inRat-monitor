@@ -198,7 +198,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             logger.debug("Select stop recording ECG.")
 
-            self.labelRTvalue.setText("00:00:00")
+            self.labelRTvalue.setText("[00:00:00]")
             if self.device.is_running:
                 self.storage.save()
 
@@ -210,7 +210,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         elif self.storage.is_recording is None or not self.storage.is_recording:
             self.storage.is_recording = True
-
             self.pushButtonRecording.setText("Stop Recording")
 
             # deactivate elements when press "Start Recording"
@@ -218,7 +217,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.comboBoxFormat.setEnabled(False)
 
             logger.debug("Select start recording ECG.")
-
             if not self.buffer_filled:
                 pos = self.time_buffer[self.current_position]
             else:
@@ -238,7 +236,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # stop scanner
         self.scanner.stop()
         # remove all device in combobox
-        self.comboBoxDevice.clear()
+        # self.comboBoxDevice.clear()
         # disable combobox and button connect
         self.comboBoxDevice.setDisabled(True)
         self.pushButtonConnect.setDisabled(True)
@@ -297,13 +295,27 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     async def on_activated_clicked(self):
         if self.device.is_activated:
-            logger.info("Устройство деактивировано")
-            self.checkBoxActivated.setChecked(False)
-            await self.device.deactivate()
+            res, msg = await self.device.deactivate()
+            if res:
+                logger.info("Устройство деактивировано")
+                self.checkBoxActivated.setChecked(False)
+                return
+            QMessageBox.warning(
+                self, "Device deactivation error!",
+                f"Couldn't deactivate the device.\n{msg}",
+                QMessageBox.StandardButton.Ok
+            )
         else:
-            logger.info("Устройство активировано")
-            self.checkBoxActivated.setChecked(True)
-            await self.device.activate()
+            res, msg = await self.device.activate()
+            if res:
+                logger.info("Устройство активировано")
+                self.checkBoxActivated.setChecked(True)
+                return
+            QMessageBox.warning(
+                self, "Device activation error!",
+                f"Couldn't activate the device.\n{msg}",
+                QMessageBox.StandardButton.Ok
+            )
 
     async def disconnect_device(self):
 
@@ -320,6 +332,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.comboBoxFormat.setEnabled(False)
 
         # activate
+        self.comboBoxDevice.clear()
         self.comboBoxDevice.setEnabled(True)
 
         self.pushButtonConnect.show()

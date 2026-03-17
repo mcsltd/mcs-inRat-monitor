@@ -139,13 +139,25 @@ class RatSens(BleakClient):
         status = status.to_dataclass()
         return status
 
-    async def activate(self):
+    async def activate(self) -> (bool, str):
         """ активация устройства """
-        await self.setup(cmd=Command.Activate)
+        try:
+            await self.setup(cmd=Command.Activate)
+            self._is_activated = True
+            return True, "Ok!"
+        except Exception as err:
+            logger.debug("Возникла ошибка активации устройства")
+            return False, f"Возникла ошибка активации устройства: {err}"
 
-    async def deactivate(self):
+    async def deactivate(self) -> (bool, str):
         """ деактивация устройства """
-        await self.setup(cmd=Command.Deactivate)
+        try:
+            await self.setup(cmd=Command.Deactivate)
+            self._is_activated = False
+            return True, "Ok!"
+        except Exception as err:
+            logger.debug("Возникла ошибка деактивации устройства")
+            return False, f"Возникла ошибка деактивации устройства: {err}"
 
     async def stop(self):
         logger.debug("Set settings to the BLE device.")
