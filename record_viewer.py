@@ -7,7 +7,7 @@ import pyedflib
 import wfdb
 from PySide6.QtGui import QIcon
 
-from PySide6.QtWidgets import QDialog
+from PySide6.QtWidgets import QDialog, QMessageBox
 
 from display import PlotWidgetEcg, PlotWidgetTemperature
 from ui.dlg_record_viewer import Ui_DlgRecordViewer
@@ -66,16 +66,28 @@ class RecordViewer(QDialog, Ui_DlgRecordViewer):
                 self.load_wfdb(ecg_wfdb)
             except Exception as err:
                 logger.error(f"возникла ошибка чтения wfdb файла: {err=}")
+
         if temp_csv:
             try:
                 self.load_temperature(temp_csv)
             except Exception as err:
                 logger.error(f"возникла ошибка чтения csv файла: {err=}")
+
         if activity_csv:
             try:
                 self.load_activity(activity_csv)
             except Exception as err:
                 logger.error(f"возникла ошибка чтения csv файла: {err=}")
+
+        if not activity_csv and not temp_csv and not ecg_wfdb and not ecg_edf:
+            QMessageBox.warning(
+                self,
+                "Warning! Don't find recording",
+                "Сouldn't find records. Please check recordings in the selected folder.",
+                buttons=QMessageBox.StandardButton.Ok
+            )
+            return False
+        return True
 
     def load_temperature(self, file_csv: str):
         t, temp = [], []

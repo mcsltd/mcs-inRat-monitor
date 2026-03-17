@@ -163,13 +163,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.storage.set_save_dir(path_to_save)
         self.lineEditSave.setText(path_to_save)
 
-    def open_savedir(self):
-        if os.name == 'nt':  # Windows
-            os.system(f'start "" "{self.storage.path_to_save}"')
-        elif os.name == 'posix':  # Linux, macOS
-            os.system(f'open "{self.storage.path_to_save}"')
-
     def on_view_recording_clicked(self):
+        """ обработка нажатия кнопки просмотра записей """
         path_to_record = QFileDialog.getExistingDirectory(
             self,
             "Select folder",
@@ -179,8 +174,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         if path_to_record:
             viewer = RecordViewer()
-            viewer.load_record(path_to_record)
-            viewer.exec()
+            if viewer.load_record(path_to_record):
+                viewer.exec()
 
     def set_combobox_items(self, devices: set[BLEDevice]):
         for device in devices:
@@ -448,7 +443,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def set_data(self, ecg: dict):
         """ добавление данных сигнала в буфер """
         signal, counter = ecg["ecg"], ecg["counter"]
-        print(signal)
         if not self.buffer_filled:
             # вставка данных в незаполненный буфер
             if self.current_position + Pkt.SamplesCountECG < len(self.ecg_buffer):
