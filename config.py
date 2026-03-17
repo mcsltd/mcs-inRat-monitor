@@ -15,7 +15,7 @@ def parse_ble_key(key: str):
     return bytearray([int(b, 16) for b in hex_values])
 
 
-BLE_KEY = parse_ble_key(os.getenv('BLE_KEY'))
+BLE_KEY = parse_ble_key(os.getenv("INRAT"))
 DATA_PATH = r".\data"
 
 if not os.path.exists(DATA_PATH):
