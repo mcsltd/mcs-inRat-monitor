@@ -1,9 +1,9 @@
 # mcs-inRat-monitor
-Application for viewing and saving signals from InRat.
+Application for viewing and saving signals from inRat.
 
 ## Functional
 
-`InRat monitor` supports the following functions:
+`inRat monitor` supports the following functions:
 
 1. Show real-time signal from InRat
 
@@ -13,7 +13,7 @@ Application for viewing and saving signals from InRat.
 
 ### Requirements
 * filled .env file
-* Python 3.13
+* Python 3.12
 
 ### System requirements
 * OS: Windows 10
@@ -24,4 +24,8 @@ You can find other requirements for the library in the [requirements.txt](requir
 ## Release History
 ### v0.0.1
 * First release
-
+### v1.0.0
+* Added display of temperature and events
+* Added saving of events and temperatures to csv files
+* Added a dialog box for viewing completed recordings
+* Added functionality for activating/deactivating devices
