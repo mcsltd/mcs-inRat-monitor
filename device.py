@@ -147,7 +147,7 @@ class RatSens(BleakClient):
             return True, "Ok!"
         except Exception as err:
             logger.debug("Возникла ошибка активации устройства")
-            return False, f"Возникла ошибка активации устройства: {err}"
+            return False, f"{err}"
 
     async def deactivate(self) -> (bool, str):
         """ деактивация устройства """
@@ -157,19 +157,36 @@ class RatSens(BleakClient):
             return True, "Ok!"
         except Exception as err:
             logger.debug("Возникла ошибка деактивации устройства")
-            return False, f"Возникла ошибка деактивации устройства: {err}"
+            return False, f"{err}"
 
     async def stop(self):
         logger.debug("Set settings to the BLE device.")
         self.is_running = False
-        await self.stop_notify(RatSens.UUID_CHARACTERISTIC_DATA_ECG) # need stop notify
-        await self.setup(cmd=Command.AcquisitionStop)
+        try:
+            await self.stop_notify(RatSens.UUID_CHARACTERISTIC_DATA_ECG) # need stop notify
+        except Exception as exc:
+            ...
+        try:
+            await self.setup(cmd=Command.AcquisitionStop)
+        except Exception as exc:
+            ...
 
     async def close(self):
         logger.debug("Close connection to the BLE device")
-        self.is_running = False
-        await self.setup(cmd=Command.ConnectionClose)
-        await self.disconnect()
+
+        try:
+            await self.stop()
+        except Exception as exc:
+            ...
+
+        try:
+            await self.setup(cmd=Command.ConnectionClose)
+        except Exception as exc:
+            ...
+        try:
+            await self.disconnect()
+        except Exception as exc:
+            ...
 
     async def turn_off(self, time=1):
         logger.debug("Turn off device")
