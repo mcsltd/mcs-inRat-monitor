@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'dlg_record_viewerbulJDi.ui'
+## Form generated from reading UI file 'dlg_record_vieweriXoNAC.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -17,12 +17,16 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QDialog, QGridLayout, QSizePolicy,
     QVBoxLayout, QWidget)
+import ui.resources
 
 class Ui_DlgRecordViewer(object):
     def setupUi(self, DlgRecordViewer):
         if not DlgRecordViewer.objectName():
             DlgRecordViewer.setObjectName(u"DlgRecordViewer")
         DlgRecordViewer.resize(1131, 730)
+        icon = QIcon()
+        icon.addFile(u":/iconMCS.ico", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        DlgRecordViewer.setWindowIcon(icon)
         self.gridLayout = QGridLayout(DlgRecordViewer)
         self.gridLayout.setObjectName(u"gridLayout")
         self.verticalLayoutDisplay = QVBoxLayout()

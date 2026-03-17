@@ -40,8 +40,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, qt_loop: QtAsyncio.QAsyncioEventLoop, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
-        self.setWindowTitle("InRat monitor")
-        self.setWindowIcon(QIcon("ui/iconMCS.ico"))
+        # self.setWindowTitle("InRat monitor")
+        # self.setWindowIcon(QIcon("ui/iconMCS.ico"))
 
         # hide
         self.pushButtonDisconnect.hide()

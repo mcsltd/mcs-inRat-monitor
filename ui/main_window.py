@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'main_windowTjuXlb.ui'
+## Form generated from reading UI file 'main_windowECowQS.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -22,12 +22,16 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFormLayout,
     QWidget)
 
 from pyqtgraph import PlotWidget
+import ui.resources
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
         MainWindow.resize(1084, 890)
+        icon = QIcon()
+        icon.addFile(u":/iconMCS.ico", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        MainWindow.setWindowIcon(icon)
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.gridLayout = QGridLayout(self.centralwidget)
@@ -323,7 +327,7 @@ class Ui_MainWindow(object):
     # setupUi
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"MainWindow", None))
+        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"inRat monitor", None))
         self.label_4.setText(QCoreApplication.translate("MainWindow", u"Device connection", None))
         self.labelDevice.setText(QCoreApplication.translate("MainWindow", u"Device:", None))
         self.pushButtonConnect.setText(QCoreApplication.translate("MainWindow", u"Connect", None))
