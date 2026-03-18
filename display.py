@@ -104,7 +104,7 @@ class PlotWidgetEcg(pg.PlotWidget):
         self.getAxis("left").setPen(pg.mkPen(color='k'))
         self.getAxis("left").setTextPen(pg.mkPen(color='k'))
         self.getAxis("left").setTickFont(font)
-        self.setLabel("bottom", "Time (sec)", pen=pg.mkPen(color='k'), font=font)
+        self.setLabel("bottom", "Time (s)", pen=pg.mkPen(color='k'), font=font)
         self.getAxis("bottom").label.setFont(font)
         self.getAxis("bottom").setPen(pg.mkPen(color='k'))
         self.getAxis("bottom").setTextPen(pg.mkPen(color='k'))
