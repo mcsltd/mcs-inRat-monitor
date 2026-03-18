@@ -27,7 +27,7 @@ class RecordViewer(QDialog, Ui_DlgRecordViewer):
         self.widget_temperature = PlotWidgetTemperature()
 
         self.verticalLayoutDisplay.addWidget(self.widget_ecg)
-        self.verticalLayoutDisplay.addWidget(self.widget_temperature)
+        # self.verticalLayoutDisplay.addWidget(self.widget_temperature)
 
 
     def load_record(self, path_to_record):

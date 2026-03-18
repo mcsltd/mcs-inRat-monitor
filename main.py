@@ -75,18 +75,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.plotWidget.setDownsampling(auto=True, mode='peak', ds=50)
 
         self.widget_temp = PlotWidgetTemperature()
-        self.plotWidget.setTitle("ECG", color="k", size="12pt")
-
-        self.widget_temp.setFixedHeight(250)
-        self.verticalLayoutDisplay.addWidget(self.widget_temp)
+        # self.plotWidget.setTitle("ECG", color="k", size="12pt")
+        # self.widget_temp.setFixedHeight(250)
+        # self.verticalLayoutDisplay.addWidget(self.widget_temp)
 
         # scatter plot for activity, freefall, orientation
         self.scatter_activity = pg.ScatterPlotItem(name="Activity", symbol='t', brush=pg.mkBrush(0, 255, 0, 180),  size=10,)
-        self.plotWidget.addItem(self.scatter_activity)
+        # self.plotWidget.addItem(self.scatter_activity)
         self.scatter_orientation = pg.ScatterPlotItem(name="Orientation", symbol="o", brush=pg.mkBrush(0, 0, 255, 180), size=10,)
-        self.plotWidget.addItem(self.scatter_orientation)
+        # self.plotWidget.addItem(self.scatter_orientation)
         self.scatter_freefall = pg.ScatterPlotItem(name="Freefall", symbol='s', brush=pg.mkBrush(255, 0, 0, 180), size=10,)
-        self.plotWidget.addItem(self.scatter_freefall)
+        # self.plotWidget.addItem(self.scatter_freefall)
         self.marker_temp = []
 
         font = QFont()
@@ -248,7 +247,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.device is not None and not self.device.is_connected:
             self.device = None
             self.reset()
-
+        device_info = None
         try:
             self.device = RatSens(device)
 
@@ -287,6 +286,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 if self.device.is_activated:
                     self.checkBoxActivated.setChecked(True)
 
+                # получение данных об устройстве
+                device_info = await self.device.get_device_information()
+
                 # enable settings for storage
                 self.comboBoxFormat.setEnabled(True)
                 # enable button for start device
@@ -294,8 +296,23 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
                 self.pushButtonDisconnect.show()
                 self.pushButtonConnect.hide()
+
         finally:
             dlg.close()
+
+            if device_info:
+                QMessageBox.information(
+                    self,
+                    "Info",
+                    f"{self.device.name} is connected!\n\n"
+                    f"Device information:\n"
+                    f" - model: {device_info['model']}\n"
+                    f" - serial number: {device_info['serial']}\n"
+                    f" - firmware: {device_info['firmware']}\n"
+                    f" - hardware: {device_info['hardware']}",
+                    defaultButton=QMessageBox.StandardButton.Ok
+                )
+
 
     async def on_activated_clicked(self):
         if self.device.is_activated:
@@ -622,7 +639,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def reset(self) -> None:
         """ reset data """
-        self.plotWidget.clear()
+        # self.plotWidget.clear()
         # удаление значений температуры
         for marker in self.marker_temp:
             self.plotWidget.removeItem(marker)
@@ -633,9 +650,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.reset_signal()
 
     def reset_signal(self):
-        self.plotWidget.removeItem(self.plot_ecg)
-        self.plot_ecg = self.plotWidget.plot(pen=RED)
-
         # data
         self.max_timebase = 60
         self.timebase = 30
@@ -644,6 +658,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.time_buffer = np.arange(0, self.max_timebase, self.dt)
         self.buffer_filled = False  # флаг заполнения буфера
         self.current_position = 0  # текущая позиция для заполнения буфера
+        self.plot_ecg.setData(np.array([]), np.array([])) # clear signal
 
     def reset_event(self):
         for item in [self.scatter_activity, self.scatter_orientation, self.scatter_freefall]:
@@ -652,13 +667,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # scatter plot for activity, freefall, orientation
         self.scatter_activity = pg.ScatterPlotItem(name="Activity", symbol='t', brush=pg.mkBrush(0, 255, 0, 180),
                                                    size=10, )
-        self.plotWidget.addItem(self.scatter_activity)
+        # self.plotWidget.addItem(self.scatter_activity)
         self.scatter_orientation = pg.ScatterPlotItem(name="Orientation", symbol="o", brush=pg.mkBrush(0, 0, 255, 180),
                                                       size=10, )
-        self.plotWidget.addItem(self.scatter_orientation)
+        # self.plotWidget.addItem(self.scatter_orientation)
         self.scatter_freefall = pg.ScatterPlotItem(name="Freefall", symbol='s', brush=pg.mkBrush(255, 0, 0, 180),
                                                    size=10, )
-        self.plotWidget.addItem(self.scatter_freefall)
+        # self.plotWidget.addItem(self.scatter_freefall)
         self.marker_temp = []
 
     def add_marker(self, pos, text:str="event"):
