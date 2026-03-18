@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>inRat monitor</string>
+   <string>inRat monitor 1.0.1</string>
   </property>
   <property name="windowIcon">
    <iconset resource="resources.qrc">

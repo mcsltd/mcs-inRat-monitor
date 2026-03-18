@@ -91,20 +91,20 @@ class PlotWidgetEcg(pg.PlotWidget):
         # scatter plot for activity, freefall, orientation
         self.scatter_activity = pg.ScatterPlotItem(name="Activity", symbol='t', brush=pg.mkBrush(0, 255, 0, 180),
                                                    size=10, )
-        self.addItem(self.scatter_activity)
+        # self.addItem(self.scatter_activity)
         self.scatter_orientation = pg.ScatterPlotItem(name="Orientation", symbol="o", brush=pg.mkBrush(0, 0, 255, 180),
                                                       size=10, )
-        self.addItem(self.scatter_orientation)
+        # self.addItem(self.scatter_orientation)
         self.scatter_freefall = pg.ScatterPlotItem(name="Freefall", symbol='s', brush=pg.mkBrush(255, 0, 0, 180),
                                                    size=10, )
-        self.addItem(self.scatter_freefall)
+        # self.addItem(self.scatter_freefall)
 
         self.setLabel("left", "V", pen=pg.mkPen(color='k'), font=font)
         self.getAxis("left").label.setFont(font)
         self.getAxis("left").setPen(pg.mkPen(color='k'))
         self.getAxis("left").setTextPen(pg.mkPen(color='k'))
         self.getAxis("left").setTickFont(font)
-        self.setLabel("bottom", "Time (sec)", pen=pg.mkPen(color='k'), font=font)
+        self.setLabel("bottom", "Time (s)", pen=pg.mkPen(color='k'), font=font)
         self.getAxis("bottom").label.setFont(font)
         self.getAxis("bottom").setPen(pg.mkPen(color='k'))
         self.getAxis("bottom").setTextPen(pg.mkPen(color='k'))

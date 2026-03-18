@@ -118,21 +118,46 @@ class Storage:
         )
 
     def _to_edf(
-        self,
-        filename:str, units: str = "V", sig_name:str="ECG",
+            self,
+            filename: str,
+            units: str = "V",
+            sig_name: str = "ECG",
     ):
         """
         Save data in edf format.
         """
         logger.debug("Save ecg in EDF format.")
         writer = EdfWriter(n_channels=1, file_name=filename)
-        self.ecg = np.round(self.ecg, decimals=3)
+        self.ecg = np.round(self.ecg, decimals=6)
 
         margin = 0.15
+
+        # Проверяем, есть ли ненулевой сигнал
         signal_max = np.max(self.ecg)
         signal_min = np.min(self.ecg)
-        physical_max = np.round(signal_max * (1 + margin) if signal_max > 0 else signal_max * (1 - margin), decimals=3)
-        physical_min = np.round(signal_min * (1 - margin) if signal_min > 0 else signal_min * (1 + margin), decimals=3)
+
+        # Если сигнал нулевой или все значения близки к нулю
+        if np.allclose(signal_max, 0.0) and np.allclose(signal_min, 0.0):
+            # Устанавливаем небольшой ненулевой диапазон
+            physical_max = 1.0  # или другое подходящее значение
+            physical_min = -1.0
+        else:
+            # Обрабатываем нормальный случай
+            if signal_max > 0:
+                physical_max = np.round(signal_max * (1 + margin), decimals=3)
+            else:
+                physical_max = np.round(signal_max * (1 - margin), decimals=3)
+
+            if signal_min > 0:
+                physical_min = np.round(signal_min * (1 - margin), decimals=3)
+            else:
+                physical_min = np.round(signal_min * (1 + margin), decimals=3)
+
+        # Дополнительная проверка на равенство min и max
+        if np.allclose(physical_max, physical_min):
+            # Расширяем диапазон
+            physical_max = physical_max + 1.0
+            physical_min = physical_min - 1.0
 
         channel_info = {
             'label': sig_name,
@@ -143,6 +168,7 @@ class Storage:
             'digital_max': 32767,
             'digital_min': -32768,
         }
+
         writer.setSignalHeader(0, channel_info)
         writer.setEquipment("None" if self._device_name is None else self._device_name)
         writer.writeSamples(self.ecg[np.newaxis])
