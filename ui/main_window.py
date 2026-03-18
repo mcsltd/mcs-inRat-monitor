@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'main_windowECowQS.ui'
+## Form generated from reading UI file 'main_windowdVBYXR.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -327,7 +327,7 @@ class Ui_MainWindow(object):
     # setupUi
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"inRat monitor", None))
+        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"inRat monitor 1.0.1", None))
         self.label_4.setText(QCoreApplication.translate("MainWindow", u"Device connection", None))
         self.labelDevice.setText(QCoreApplication.translate("MainWindow", u"Device:", None))
         self.pushButtonConnect.setText(QCoreApplication.translate("MainWindow", u"Connect", None))
