@@ -117,37 +117,6 @@ class Storage:
             sig_name=sig_name, write_dir=write_dir, base_datetime=self.start_time
         )
 
-    # def _to_edf(
-    #     self,
-    #     filename:str, units: str = "V", sig_name:str="ECG",
-    # ):
-    #     """
-    #     Save data in edf format.
-    #     """
-    #     logger.debug("Save ecg in EDF format.")
-    #     writer = EdfWriter(n_channels=1, file_name=filename)
-    #     self.ecg = np.round(self.ecg, decimals=6)
-    #
-    #     margin = 0.15
-    #     signal_max = np.max(self.ecg)
-    #     signal_min = np.min(self.ecg)
-    #     physical_max = np.round(signal_max * (1 + margin) if signal_max > 0 else signal_max * (1 - margin), decimals=3)
-    #     physical_min = np.round(signal_min * (1 - margin) if signal_min > 0 else signal_min * (1 + margin), decimals=3)
-    #
-    #     channel_info = {
-    #         'label': sig_name,
-    #         'dimension': units,
-    #         'sample_frequency': self.fs,
-    #         'physical_max': physical_max,
-    #         'physical_min': physical_min,
-    #         'digital_max': 32767,
-    #         'digital_min': -32768,
-    #     }
-    #     writer.setSignalHeader(0, channel_info)
-    #     writer.setEquipment("None" if self._device_name is None else self._device_name)
-    #     writer.writeSamples(self.ecg[np.newaxis])
-    #     writer.close()
-
     def _to_edf(
             self,
             filename: str,
