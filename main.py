@@ -49,6 +49,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # build queue
         self.ecg_queue = asyncio.Queue()
         self.event_queue = asyncio.Queue()
+        self.acceleration_queue = asyncio.Queue()
 
         # data
         self.max_timebase = 60
@@ -371,7 +372,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             await self.disconnect_device()
             return
 
-        await self.device.start_acquisition(signal_queue=self.ecg_queue, event_queue=self.event_queue)
+        await self.device.start_acquisition(signal_queue=self.ecg_queue,
+                                            event_queue=self.event_queue,
+                                            acceleration_queue=self.acceleration_queue)
 
         # disable
         # self.pushButtonConnect.setEnabled(False)
@@ -413,6 +416,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             else:
                 self.process_event(event)
                 self.event_queue.task_done()
+
+            # обработка событий
+            try:
+                acceleration = self.acceleration_queue.get_nowait()
+                print(f"{acceleration=}")
+            except asyncio.QueueEmpty:
+                acceleration = None
+            else:
+                # self.process_event(event)
+                self.acceleration_queue.task_done()
 
             if not self.device.is_connected:
                 asyncio.run_coroutine_threadsafe(self.disconnect_device(), self.qt_loop)

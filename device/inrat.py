@@ -141,6 +141,12 @@ class InRat:
             self._activity_threshold = value
             return
         raise ValueError(f"Порог активности: {self._activity_threshold} не поддерживается")
+    @property
+    def enabled_channels(self):
+        return self._enabled_channels
+    @enabled_channels.setter
+    def enabled_channels(self, value: EnabledChannels | int):
+        self._enabled_channels = value
 
     @property
     def name(self) -> str | None:
@@ -222,6 +228,7 @@ class InRat:
     ):
         """ запуск на получение данных """
         async def event_handler(sender, data: bytearray):
+            print(f"{sender=} {data=}")
             event_size = ctypes.sizeof(Event)
             cnt = int(len(data) / event_size)
             for idx in range(cnt):
@@ -229,11 +236,19 @@ class InRat:
                 await event_queue.put(event)
 
         async def signal_handler(sender, data):
+            print(f"{sender=} {data=}")
+
             cnt, signal = decode_signal(data)
             await signal_queue.put({"counter":cnt, "signal":signal})
 
         async def acceleration_handler(sender, data):
-            cnt, accel = decode_acceleration(data, self._enabled_channels)
+            print(f"{sender=} {data=}")
+
+            try:
+                cnt, accel = decode_acceleration(data, self._enabled_channels)
+            except Exception as exc:
+                cnt, accel = None, None
+
             await acceleration_queue.put({"counter":cnt, "acceleration":accel})
 
         settings = self._get_settings()
