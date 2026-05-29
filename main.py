@@ -16,11 +16,11 @@ from bleak import BLEDevice
 
 from device.inrat import InRat
 from config import DATA_PATH
-from constants import HZ, Pkt
+from device.constants import Pkt
+from device.ui.config_dialog import DlgConfigDevice
 from device.ui.control_pane import FrmControlPane
 from record_viewer import RecordViewer
 from scanner import BLEScannerWorker
-from structure import EventData
 from utils.check_bluetooth import check_bluetooth_status
 from storage import Storage
 from resources.main_window import Ui_MainWindow
@@ -28,7 +28,7 @@ from widget import WaitingDialog
 
 logger = logging.getLogger(__name__)
 
-
+HZ = 500
 RED = pg.mkPen(color=(255, 0, 0), width=1.5)
 
 
@@ -112,6 +112,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.verticalLayout.insertWidget(5, self.device_control_pane)
         self.device_control_pane.pushButtonStart.clicked.connect(lambda: asyncio.ensure_future(self.start_device()))
         self.device_control_pane.pushButtonStop.clicked.connect(lambda: asyncio.ensure_future(self.stop_device()))
+        self.device_control_pane.pushButtonConfig.clicked.connect(self.on_config_clicked)
 
         # connection
         self.pushButtonConnect.clicked.connect(lambda: asyncio.ensure_future(self.connect_device()))
@@ -169,6 +170,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.comboBoxDevice.addItem(device.name, userData=device)
         if self.comboBoxDevice.count() != 0:
             self.pushButtonConnect.setEnabled(True)
+
+    def on_config_clicked(self):
+        dlg = DlgConfigDevice()
+        dlg.exec()
 
     def change_recording(self):
         """
@@ -414,7 +419,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             time.sleep(0.001)
 
-    def process_event(self, event: EventData):
+    def process_event(self, event):
         """ обработка событий """
         event_type = event.type
         x = event.counter * self.dt
@@ -470,9 +475,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         signal, counter = ecg["signal"], ecg["counter"]
         if not self.buffer_filled:
             # вставка данных в незаполненный буфер
-            if self.current_position + Pkt.SamplesCountECG < len(self.ecg_buffer):
-                self.ecg_buffer[self.current_position:self.current_position+Pkt.SamplesCountECG] = signal
-                self.current_position += Pkt.SamplesCountECG
+            if self.current_position + Pkt.SamplesCountEcg < len(self.ecg_buffer):
+                self.ecg_buffer[self.current_position:self.current_position+Pkt.SamplesCountEcg] = signal
+                self.current_position += Pkt.SamplesCountEcg
             else:
                 offset = len(self.ecg_buffer) - self.current_position
                 self.ecg_buffer[self.current_position:] = signal[:offset]

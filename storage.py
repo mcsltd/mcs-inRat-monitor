@@ -8,7 +8,6 @@ import wfdb
 from pyedflib import EdfWriter
 from typing import Optional
 
-from structure import EventData
 
 logger = logging.getLogger(__name__)
 
@@ -179,13 +178,13 @@ class Storage:
             self.start_time = datetime.datetime.now()
         self.ecg = np.append(self.ecg, ecg)
 
-    def process_temperature(self, ev_temp: EventData):
+    def process_temperature(self, ev_temp):
         try:
             self.buffer_temp.append({"time_sec": int(ev_temp.counter / self.fs), "temp_celsius": round(ev_temp.data / 1000, 1)})
         except Exception as err:
             logger.error(f"Ошибка добавления в буфер температуры: {err}")
 
-    def process_activity(self, ev_activity: EventData):
+    def process_activity(self, ev_activity):
         try:
             self.buffer_activity.append({"time_sec": ev_activity.counter / self.fs, "description": ev_activity.type})
         except Exception as err:

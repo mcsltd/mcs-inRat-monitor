@@ -12,7 +12,7 @@ from device.structures import Event, Settings
 from device.utils import get_control_sum
 from config import BLE_KEY
 
-from structure import Status
+from device.structures import Status
 
 # BLE_KEY = ...
 

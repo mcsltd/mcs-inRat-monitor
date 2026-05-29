@@ -8,6 +8,7 @@ class FrmControlPane(QFrame, Ui_FrmOnlineControlDevice):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
+
     def state_acquisition(self):
         self.pushButtonStart.setEnabled(False)
         self.pushButtonStop.setEnabled(True)

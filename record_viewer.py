@@ -10,7 +10,7 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QDialog, QMessageBox
 
 from display import PlotWidgetEcg, PlotWidgetTemperature
-from ui.dlg_record_viewer import Ui_DlgRecordViewer
+from resources.dlg_record_viewer import Ui_DlgRecordViewer
 
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ class RecordViewer(QDialog, Ui_DlgRecordViewer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
-        self.setWindowIcon(QIcon("ui/iconMCS.ico"))
+        self.setWindowIcon(QIcon("resources/iconMCS.ico"))
         self.setWindowTitle("Record Viewer")
 
         self.widget_ecg = PlotWidgetEcg()
