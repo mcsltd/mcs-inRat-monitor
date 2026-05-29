@@ -1,7 +1,6 @@
 import asyncio
 import datetime
 import logging
-import os
 import time
 from threading import Thread
 from typing import Optional
@@ -10,12 +9,12 @@ import pyqtgraph as pg
 
 import numpy as np
 from PySide6 import QtAsyncio, QtCore
-from PySide6.QtCore import QTimer, Signal
-from PySide6.QtGui import QIcon, QFont
+from PySide6.QtCore import Signal
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QComboBox, QFileDialog
 from bleak import BLEDevice
 
-from device import RatSens
+from device.inrat import InRat
 from config import DATA_PATH
 from constants import HZ, Pkt
 from display import PlotWidgetTemperature
@@ -62,7 +61,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.current_position = 0   # текущая позиция для заполнения буфера
 
         # main classes
-        self.device: Optional[RatSens] = None
+        self.device: Optional[InRat] = None
         self.storage = Storage(path_to_save=DATA_PATH, fs=HZ)
         self.scanner = BLEScannerWorker()
 
@@ -135,7 +134,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.pushButtonSelectDirSave.clicked.connect(self._set_storage)
         self.pushButtonDisconnect.clicked.connect(lambda: asyncio.ensure_future(self.disconnect_device()))
         # self.pushButtonShowRecords.clicked.connect(self.open_savedir)
-        self.checkBoxActivated.clicked.connect(lambda: asyncio.ensure_future(self.on_activated_clicked()))
+        # self.checkBoxActivated.clicked.connect(lambda: asyncio.ensure_future(self.on_activated_clicked()))
         self.pushButtonViewRecording.clicked.connect(self.on_view_recording_clicked)
 
         self.lineEditSave.setText(self.storage.path_to_save) # set default folder
@@ -148,7 +147,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.update_timer = QtCore.QTimer()
         self.update_timer.timeout.connect(self._delayed_update_plot)
         self.update_timer.start(16)  # 60 fps
-
 
     def set_timebase(self):
         self.timebase = self.comboBoxTimebase.currentData()
@@ -249,7 +247,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.reset()
         device_info = None
         try:
-            self.device = RatSens(device)
+            self.device = InRat(ble_device=device)
 
             attempt_connection = 1
             while not self.device.is_connected and attempt_connection <= 5:
@@ -282,12 +280,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.checkBoxActivated.setEnabled(True)
 
                 # проверка на активировано ли устройство
-                _ = await self.device.get_status()
+                # _ = await self.device.get_status()
                 if self.device.is_activated:
                     self.checkBoxActivated.setChecked(True)
 
                 # получение данных об устройстве
-                device_info = await self.device.get_device_information()
+                # device_info = await self.device.get_device_information()
 
                 # enable settings for storage
                 self.comboBoxFormat.setEnabled(True)
@@ -306,13 +304,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     "Info",
                     f"{self.device.name} is connected!\n\n"
                     f"Device information:\n"
-                    f" - model: {device_info['model']}\n"
-                    f" - serial number: {device_info['serial']}\n"
-                    f" - firmware: {device_info['firmware']}\n"
-                    f" - hardware: {device_info['hardware']}",
+                    f" - model: {self.device.model}\n"
+                    f" - serial number: {self.device.serial}\n"
+                    f" - firmware: {self.device.firmware}\n"
+                    f" - hardware: {self.device.hardware}",
                     defaultButton=QMessageBox.StandardButton.Ok
                 )
-
 
     async def on_activated_clicked(self):
         if self.device.is_activated:
@@ -340,7 +337,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     async def disconnect_device(self):
         if self.device.is_connected:
-            await self.device.close()
+            await self.device.disconnect()
         else:
             await self.lost_connection()
 
@@ -382,30 +379,26 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             await self.disconnect_device()
             return
 
-        res = await self.device.start_acquisition(ecg_queue=self.ecg_queue, event_queue=self.event_queue)
-        if res:
+        await self.device.start_acquisition(signal_queue=self.ecg_queue, event_queue=self.event_queue)
 
-            # disable
-            # self.pushButtonConnect.setEnabled(False)
-            self.pushButtonDisconnect.setEnabled(False)
-            self.comboBoxDevice.setEnabled(False)
-            self.pushButtonStart.setEnabled(False)
-            # self.pushButtonTurnOff.setEnabled(False)
+        # disable
+        # self.pushButtonConnect.setEnabled(False)
+        self.pushButtonDisconnect.setEnabled(False)
+        self.comboBoxDevice.setEnabled(False)
+        self.pushButtonStart.setEnabled(False)
+        # self.pushButtonTurnOff.setEnabled(False)
 
-            # enable
-            self.pushButtonRecording.setEnabled(True)
-            self.pushButtonStop.setEnabled(True)
+        # enable
+        self.pushButtonRecording.setEnabled(True)
+        self.pushButtonStop.setEnabled(True)
 
-            # when draw signal in online - disable mouse
-            self.plotWidget.setMouseEnabled(x=False, y=False)
+        # when draw signal in online - disable mouse
+        self.plotWidget.setMouseEnabled(x=False, y=False)
 
-            self._running = True
-            self._work = Thread(target=self._worker_thread)
-            self._work.start()
+        self._running = True
+        self._work = Thread(target=self._worker_thread)
+        self._work.start()
 
-        else:
-            # ToDo: добавить действия на случай если не получилось запустить устройство
-            ...
 
     def _worker_thread(self):
         """ поток обработки очередей """
@@ -413,6 +406,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # вывод сигналов
             try:
                 ecg = self.ecg_queue.get_nowait()
+                print(f"{ecg=}")
             except asyncio.QueueEmpty:
                 ecg = None
             else:
@@ -422,6 +416,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # обработка событий
             try:
                 event = self.event_queue.get_nowait()
+                print(f"{event=}")
             except asyncio.QueueEmpty:
                 event = None
             else:
@@ -430,6 +425,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             if not self.device.is_connected:
                 asyncio.run_coroutine_threadsafe(self.disconnect_device(), self.qt_loop)
+
             time.sleep(0.001)
 
     def process_event(self, event: EventData):
@@ -481,7 +477,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def set_data(self, ecg: dict):
         """ добавление данных сигнала в буфер """
-        signal, counter = ecg["ecg"], ecg["counter"]
+        signal, counter = ecg["signal"], ecg["counter"]
         if not self.buffer_filled:
             # вставка данных в незаполненный буфер
             if self.current_position + Pkt.SamplesCountECG < len(self.ecg_buffer):
@@ -555,7 +551,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self._work = None
 
         try:
-            await self.device.stop()
+            await self.device.stop_acquisition()
         except Exception as exc:
             info = QMessageBox.information(
                 self, "Stop error",
@@ -591,7 +587,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         logger.info("Lost device connection.")
         self._running = False
         try:
-            await self.device.stop()
+            await self.device.stop_acquisition()
         except Exception as err:
             ...
 
@@ -635,7 +631,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             f"An error occurred while connect to the device.\nCheck if the device has turned off.",
             QMessageBox.StandardButton.Ok
         )
-
 
     def reset(self) -> None:
         """ reset data """
