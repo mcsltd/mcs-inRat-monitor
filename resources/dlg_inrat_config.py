@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'dlg_inrat_configYcCbLW.ui'
+## Form generated from reading UI file 'dlg_inrat_configUIbMtU.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -25,93 +25,12 @@ class Ui_DlgDeviceConfig(object):
     def setupUi(self, DlgDeviceConfig):
         if not DlgDeviceConfig.objectName():
             DlgDeviceConfig.setObjectName(u"DlgDeviceConfig")
-        DlgDeviceConfig.resize(676, 424)
+        DlgDeviceConfig.resize(680, 432)
         icon = QIcon()
         icon.addFile(u":/images/icon.ico", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         DlgDeviceConfig.setWindowIcon(icon)
         self.gridLayout = QGridLayout(DlgDeviceConfig)
         self.gridLayout.setObjectName(u"gridLayout")
-        self.horizontalLayout = QHBoxLayout()
-        self.horizontalLayout.setObjectName(u"horizontalLayout")
-        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout.addItem(self.horizontalSpacer)
-
-        self.pushButtonOk = QPushButton(DlgDeviceConfig)
-        self.pushButtonOk.setObjectName(u"pushButtonOk")
-
-        self.horizontalLayout.addWidget(self.pushButtonOk)
-
-        self.pushButtonCancel = QPushButton(DlgDeviceConfig)
-        self.pushButtonCancel.setObjectName(u"pushButtonCancel")
-
-        self.horizontalLayout.addWidget(self.pushButtonCancel)
-
-
-        self.gridLayout.addLayout(self.horizontalLayout, 5, 0, 1, 1)
-
-        self.formLayout = QFormLayout()
-        self.formLayout.setObjectName(u"formLayout")
-        self.comboBoxMode = QComboBox(DlgDeviceConfig)
-        self.comboBoxMode.setObjectName(u"comboBoxMode")
-        sizePolicy = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.comboBoxMode.sizePolicy().hasHeightForWidth())
-        self.comboBoxMode.setSizePolicy(sizePolicy)
-        self.comboBoxMode.setMinimumSize(QSize(150, 0))
-        self.comboBoxMode.setMaximumSize(QSize(150, 16777215))
-
-        self.formLayout.setWidget(0, QFormLayout.ItemRole.FieldRole, self.comboBoxMode)
-
-        self.labelSampleRate = QLabel(DlgDeviceConfig)
-        self.labelSampleRate.setObjectName(u"labelSampleRate")
-
-        self.formLayout.setWidget(1, QFormLayout.ItemRole.LabelRole, self.labelSampleRate)
-
-        self.comboBoxSampleRate = QComboBox(DlgDeviceConfig)
-        self.comboBoxSampleRate.setObjectName(u"comboBoxSampleRate")
-        sizePolicy.setHeightForWidth(self.comboBoxSampleRate.sizePolicy().hasHeightForWidth())
-        self.comboBoxSampleRate.setSizePolicy(sizePolicy)
-        self.comboBoxSampleRate.setMinimumSize(QSize(150, 0))
-        self.comboBoxSampleRate.setMaximumSize(QSize(150, 16777215))
-
-        self.formLayout.setWidget(1, QFormLayout.ItemRole.FieldRole, self.comboBoxSampleRate)
-
-        self.labelFullScaleAccelerometer = QLabel(DlgDeviceConfig)
-        self.labelFullScaleAccelerometer.setObjectName(u"labelFullScaleAccelerometer")
-
-        self.formLayout.setWidget(2, QFormLayout.ItemRole.LabelRole, self.labelFullScaleAccelerometer)
-
-        self.comboBoxFullScaleAccelerometer = QComboBox(DlgDeviceConfig)
-        self.comboBoxFullScaleAccelerometer.setObjectName(u"comboBoxFullScaleAccelerometer")
-        sizePolicy.setHeightForWidth(self.comboBoxFullScaleAccelerometer.sizePolicy().hasHeightForWidth())
-        self.comboBoxFullScaleAccelerometer.setSizePolicy(sizePolicy)
-        self.comboBoxFullScaleAccelerometer.setMinimumSize(QSize(150, 0))
-
-        self.formLayout.setWidget(2, QFormLayout.ItemRole.FieldRole, self.comboBoxFullScaleAccelerometer)
-
-        self.labelActivityThreshold = QLabel(DlgDeviceConfig)
-        self.labelActivityThreshold.setObjectName(u"labelActivityThreshold")
-
-        self.formLayout.setWidget(3, QFormLayout.ItemRole.LabelRole, self.labelActivityThreshold)
-
-        self.comboBoxActivityThreshold = QComboBox(DlgDeviceConfig)
-        self.comboBoxActivityThreshold.setObjectName(u"comboBoxActivityThreshold")
-        sizePolicy.setHeightForWidth(self.comboBoxActivityThreshold.sizePolicy().hasHeightForWidth())
-        self.comboBoxActivityThreshold.setSizePolicy(sizePolicy)
-        self.comboBoxActivityThreshold.setMinimumSize(QSize(150, 0))
-
-        self.formLayout.setWidget(3, QFormLayout.ItemRole.FieldRole, self.comboBoxActivityThreshold)
-
-        self.labelMode = QLabel(DlgDeviceConfig)
-        self.labelMode.setObjectName(u"labelMode")
-
-        self.formLayout.setWidget(0, QFormLayout.ItemRole.LabelRole, self.labelMode)
-
-
-        self.gridLayout.addLayout(self.formLayout, 0, 0, 1, 1)
-
         self.groupBoxEnabledEvents = QGroupBox(DlgDeviceConfig)
         self.groupBoxEnabledEvents.setObjectName(u"groupBoxEnabledEvents")
         self.groupBoxEnabledEvents.setFlat(False)
@@ -180,7 +99,152 @@ class Ui_DlgDeviceConfig(object):
         self.gridLayout_2.addLayout(self.gridLayoutEvents, 0, 0, 1, 1)
 
 
-        self.gridLayout.addWidget(self.groupBoxEnabledEvents, 2, 0, 1, 1)
+        self.gridLayout.addWidget(self.groupBoxEnabledEvents, 4, 0, 1, 1)
+
+        self.horizontalLayout_2 = QHBoxLayout()
+        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
+        self.formLayout = QFormLayout()
+        self.formLayout.setObjectName(u"formLayout")
+        self.labelMode = QLabel(DlgDeviceConfig)
+        self.labelMode.setObjectName(u"labelMode")
+
+        self.formLayout.setWidget(0, QFormLayout.ItemRole.LabelRole, self.labelMode)
+
+        self.comboBoxMode = QComboBox(DlgDeviceConfig)
+        self.comboBoxMode.setObjectName(u"comboBoxMode")
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.comboBoxMode.sizePolicy().hasHeightForWidth())
+        self.comboBoxMode.setSizePolicy(sizePolicy)
+        self.comboBoxMode.setMinimumSize(QSize(150, 0))
+        self.comboBoxMode.setMaximumSize(QSize(150, 16777215))
+
+        self.formLayout.setWidget(0, QFormLayout.ItemRole.FieldRole, self.comboBoxMode)
+
+        self.labelSampleRate = QLabel(DlgDeviceConfig)
+        self.labelSampleRate.setObjectName(u"labelSampleRate")
+
+        self.formLayout.setWidget(1, QFormLayout.ItemRole.LabelRole, self.labelSampleRate)
+
+        self.comboBoxSampleRate = QComboBox(DlgDeviceConfig)
+        self.comboBoxSampleRate.setObjectName(u"comboBoxSampleRate")
+        sizePolicy.setHeightForWidth(self.comboBoxSampleRate.sizePolicy().hasHeightForWidth())
+        self.comboBoxSampleRate.setSizePolicy(sizePolicy)
+        self.comboBoxSampleRate.setMinimumSize(QSize(150, 0))
+        self.comboBoxSampleRate.setMaximumSize(QSize(150, 16777215))
+
+        self.formLayout.setWidget(1, QFormLayout.ItemRole.FieldRole, self.comboBoxSampleRate)
+
+        self.labelFullScaleAccelerometer = QLabel(DlgDeviceConfig)
+        self.labelFullScaleAccelerometer.setObjectName(u"labelFullScaleAccelerometer")
+
+        self.formLayout.setWidget(2, QFormLayout.ItemRole.LabelRole, self.labelFullScaleAccelerometer)
+
+        self.comboBoxFullScaleAccelerometer = QComboBox(DlgDeviceConfig)
+        self.comboBoxFullScaleAccelerometer.setObjectName(u"comboBoxFullScaleAccelerometer")
+        sizePolicy.setHeightForWidth(self.comboBoxFullScaleAccelerometer.sizePolicy().hasHeightForWidth())
+        self.comboBoxFullScaleAccelerometer.setSizePolicy(sizePolicy)
+        self.comboBoxFullScaleAccelerometer.setMinimumSize(QSize(150, 0))
+
+        self.formLayout.setWidget(2, QFormLayout.ItemRole.FieldRole, self.comboBoxFullScaleAccelerometer)
+
+        self.labelActivityThreshold = QLabel(DlgDeviceConfig)
+        self.labelActivityThreshold.setObjectName(u"labelActivityThreshold")
+
+        self.formLayout.setWidget(3, QFormLayout.ItemRole.LabelRole, self.labelActivityThreshold)
+
+        self.comboBoxActivityThreshold = QComboBox(DlgDeviceConfig)
+        self.comboBoxActivityThreshold.setObjectName(u"comboBoxActivityThreshold")
+        sizePolicy.setHeightForWidth(self.comboBoxActivityThreshold.sizePolicy().hasHeightForWidth())
+        self.comboBoxActivityThreshold.setSizePolicy(sizePolicy)
+        self.comboBoxActivityThreshold.setMinimumSize(QSize(150, 0))
+
+        self.formLayout.setWidget(3, QFormLayout.ItemRole.FieldRole, self.comboBoxActivityThreshold)
+
+
+        self.horizontalLayout_2.addLayout(self.formLayout)
+
+        self.horizontalSpacer_6 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_2.addItem(self.horizontalSpacer_6)
+
+        self.formLayout_5 = QFormLayout()
+        self.formLayout_5.setObjectName(u"formLayout_5")
+        self.labelDevice = QLabel(DlgDeviceConfig)
+        self.labelDevice.setObjectName(u"labelDevice")
+
+        self.formLayout_5.setWidget(0, QFormLayout.ItemRole.LabelRole, self.labelDevice)
+
+        self.labelSn = QLabel(DlgDeviceConfig)
+        self.labelSn.setObjectName(u"labelSn")
+
+        self.formLayout_5.setWidget(1, QFormLayout.ItemRole.LabelRole, self.labelSn)
+
+        self.labelModel = QLabel(DlgDeviceConfig)
+        self.labelModel.setObjectName(u"labelModel")
+
+        self.formLayout_5.setWidget(2, QFormLayout.ItemRole.LabelRole, self.labelModel)
+
+        self.labelFirmware = QLabel(DlgDeviceConfig)
+        self.labelFirmware.setObjectName(u"labelFirmware")
+
+        self.formLayout_5.setWidget(3, QFormLayout.ItemRole.LabelRole, self.labelFirmware)
+
+        self.labelHardware = QLabel(DlgDeviceConfig)
+        self.labelHardware.setObjectName(u"labelHardware")
+
+        self.formLayout_5.setWidget(4, QFormLayout.ItemRole.LabelRole, self.labelHardware)
+
+        self.labelDeviceValue = QLabel(DlgDeviceConfig)
+        self.labelDeviceValue.setObjectName(u"labelDeviceValue")
+
+        self.formLayout_5.setWidget(0, QFormLayout.ItemRole.FieldRole, self.labelDeviceValue)
+
+        self.labelSnValue = QLabel(DlgDeviceConfig)
+        self.labelSnValue.setObjectName(u"labelSnValue")
+
+        self.formLayout_5.setWidget(1, QFormLayout.ItemRole.FieldRole, self.labelSnValue)
+
+        self.labelModelValue = QLabel(DlgDeviceConfig)
+        self.labelModelValue.setObjectName(u"labelModelValue")
+
+        self.formLayout_5.setWidget(2, QFormLayout.ItemRole.FieldRole, self.labelModelValue)
+
+        self.labelFirmwareValue = QLabel(DlgDeviceConfig)
+        self.labelFirmwareValue.setObjectName(u"labelFirmwareValue")
+
+        self.formLayout_5.setWidget(3, QFormLayout.ItemRole.FieldRole, self.labelFirmwareValue)
+
+        self.labelHardwareValue = QLabel(DlgDeviceConfig)
+        self.labelHardwareValue.setObjectName(u"labelHardwareValue")
+
+        self.formLayout_5.setWidget(4, QFormLayout.ItemRole.FieldRole, self.labelHardwareValue)
+
+
+        self.horizontalLayout_2.addLayout(self.formLayout_5)
+
+
+        self.gridLayout.addLayout(self.horizontalLayout_2, 0, 0, 1, 1)
+
+        self.horizontalLayout = QHBoxLayout()
+        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout.addItem(self.horizontalSpacer)
+
+        self.pushButtonOk = QPushButton(DlgDeviceConfig)
+        self.pushButtonOk.setObjectName(u"pushButtonOk")
+
+        self.horizontalLayout.addWidget(self.pushButtonOk)
+
+        self.pushButtonCancel = QPushButton(DlgDeviceConfig)
+        self.pushButtonCancel.setObjectName(u"pushButtonCancel")
+
+        self.horizontalLayout.addWidget(self.pushButtonCancel)
+
+
+        self.gridLayout.addLayout(self.horizontalLayout, 7, 0, 1, 1)
 
         self.groupBox = QGroupBox(DlgDeviceConfig)
         self.groupBox.setObjectName(u"groupBox")
@@ -193,20 +257,20 @@ class Ui_DlgDeviceConfig(object):
 
         self.gridLayout_3.addWidget(self.checkBoxSignal, 0, 0, 1, 1)
 
-        self.checkBox_2 = QCheckBox(self.groupBox)
-        self.checkBox_2.setObjectName(u"checkBox_2")
+        self.checkBoxAcceleration = QCheckBox(self.groupBox)
+        self.checkBoxAcceleration.setObjectName(u"checkBoxAcceleration")
 
-        self.gridLayout_3.addWidget(self.checkBox_2, 1, 0, 1, 1)
+        self.gridLayout_3.addWidget(self.checkBoxAcceleration, 1, 0, 1, 1)
 
 
         self.gridLayout_4.addLayout(self.gridLayout_3, 0, 0, 1, 1)
 
 
-        self.gridLayout.addWidget(self.groupBox, 1, 0, 1, 1)
+        self.gridLayout.addWidget(self.groupBox, 3, 0, 1, 1)
 
         self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.gridLayout.addItem(self.verticalSpacer, 3, 0, 1, 1)
+        self.gridLayout.addItem(self.verticalSpacer, 5, 0, 1, 1)
 
 
         self.retranslateUi(DlgDeviceConfig)
@@ -216,12 +280,6 @@ class Ui_DlgDeviceConfig(object):
 
     def retranslateUi(self, DlgDeviceConfig):
         DlgDeviceConfig.setWindowTitle(QCoreApplication.translate("DlgDeviceConfig", u"\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430 inRat", None))
-        self.pushButtonOk.setText(QCoreApplication.translate("DlgDeviceConfig", u"\u041e\u043a", None))
-        self.pushButtonCancel.setText(QCoreApplication.translate("DlgDeviceConfig", u"\u041e\u0442\u043c\u0435\u043d\u0430", None))
-        self.labelSampleRate.setText(QCoreApplication.translate("DlgDeviceConfig", u"\u0427\u0430\u0441\u0442\u043e\u0442\u0430 \u043e\u0446\u0438\u0444\u0440\u043e\u0432\u043a\u0438, \u0413\u0446", None))
-        self.labelFullScaleAccelerometer.setText(QCoreApplication.translate("DlgDeviceConfig", u"\u0410\u043a\u0441\u0435\u043b\u0435\u0440\u043e\u043c\u0435\u0442\u0440, \u00b1g", None))
-        self.labelActivityThreshold.setText(QCoreApplication.translate("DlgDeviceConfig", u"\u041f\u043e\u0440\u043e\u0433 \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u0438 \u0430\u043a\u0442\u0438\u0432\u043d\u043e\u0441\u0442\u0438", None))
-        self.labelMode.setText(QCoreApplication.translate("DlgDeviceConfig", u"\u0420\u0435\u0436\u0438\u043c \u0441\u044a\u0435\u043c\u0430", None))
         self.groupBoxEnabledEvents.setTitle(QCoreApplication.translate("DlgDeviceConfig", u"\u0421\u043e\u0431\u044b\u0442\u0438\u044f", None))
         self.checkBoxOrientation.setText(QCoreApplication.translate("DlgDeviceConfig", u"\u041e\u0440\u0438\u0435\u043d\u0442\u0430\u0446\u0438\u0438 (O)", None))
         self.checkBoxFreefall.setText(QCoreApplication.translate("DlgDeviceConfig", u"\u041f\u0440\u044b\u0436\u043e\u043a (F)", None))
@@ -248,8 +306,24 @@ class Ui_DlgDeviceConfig(object):
         self.labelInfoActivity.setToolTip(QCoreApplication.translate("DlgDeviceConfig", u"<html><head/><body><p>\u0421\u043e\u0431\u044b\u0442\u0438\u0435 &quot;\u0410\u043a\u0442\u0438\u0432\u043d\u043e\u0441\u0442\u044c&quot;</p><p>\u0423\u0441\u043b\u043e\u0432\u0438\u0435 \u0441\u0440\u0430\u0431\u0430\u0442\u044b\u0432\u0430\u043d\u0438\u044f: \u043f\u0440\u0435\u0432\u044b\u0448\u0435\u043d\u0438\u0435 \u043f\u043e\u0440\u043e\u0433\u0430 \u0443\u0441\u043a\u043e\u0440\u0435\u043d\u0438\u044f \u043f\u043e \u043e\u0434\u043d\u043e\u0439 \u0438\u0437 \u043e\u0441\u0435\u0439.<br/>\u0424\u043e\u0440\u043c\u0430\u0442 \u0437\u0430\u043f\u0438\u0441\u0438: A {x} {y} {z}</p><p> - \u0443\u0441\u043a\u043e\u0440\u0435\u043d\u0438\u0435 \u0432 \u043c\u0438\u043b\u043b\u0438-g (mg) \u043f\u043e \u043e\u0441\u044f\u043c X, Y, Z.</p></body></html>", None))
 #endif // QT_CONFIG(tooltip)
         self.labelInfoActivity.setText(QCoreApplication.translate("DlgDeviceConfig", u"?", None))
+        self.labelMode.setText(QCoreApplication.translate("DlgDeviceConfig", u"\u0420\u0435\u0436\u0438\u043c \u0441\u044a\u0435\u043c\u0430", None))
+        self.labelSampleRate.setText(QCoreApplication.translate("DlgDeviceConfig", u"\u0427\u0430\u0441\u0442\u043e\u0442\u0430 \u043e\u0446\u0438\u0444\u0440\u043e\u0432\u043a\u0438, \u0413\u0446", None))
+        self.labelFullScaleAccelerometer.setText(QCoreApplication.translate("DlgDeviceConfig", u"\u0410\u043a\u0441\u0435\u043b\u0435\u0440\u043e\u043c\u0435\u0442\u0440, \u00b1g", None))
+        self.labelActivityThreshold.setText(QCoreApplication.translate("DlgDeviceConfig", u"\u041f\u043e\u0440\u043e\u0433 \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u0438 \u0430\u043a\u0442\u0438\u0432\u043d\u043e\u0441\u0442\u0438", None))
+        self.labelDevice.setText(QCoreApplication.translate("DlgDeviceConfig", u"\u0423\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u043e", None))
+        self.labelSn.setText(QCoreApplication.translate("DlgDeviceConfig", u"SN", None))
+        self.labelModel.setText(QCoreApplication.translate("DlgDeviceConfig", u"Model", None))
+        self.labelFirmware.setText(QCoreApplication.translate("DlgDeviceConfig", u"Firmware", None))
+        self.labelHardware.setText(QCoreApplication.translate("DlgDeviceConfig", u"Hardware", None))
+        self.labelDeviceValue.setText(QCoreApplication.translate("DlgDeviceConfig", u"None", None))
+        self.labelSnValue.setText(QCoreApplication.translate("DlgDeviceConfig", u"None", None))
+        self.labelModelValue.setText(QCoreApplication.translate("DlgDeviceConfig", u"None", None))
+        self.labelFirmwareValue.setText(QCoreApplication.translate("DlgDeviceConfig", u"None", None))
+        self.labelHardwareValue.setText(QCoreApplication.translate("DlgDeviceConfig", u"None", None))
+        self.pushButtonOk.setText(QCoreApplication.translate("DlgDeviceConfig", u"\u041e\u043a", None))
+        self.pushButtonCancel.setText(QCoreApplication.translate("DlgDeviceConfig", u"\u041e\u0442\u043c\u0435\u043d\u0430", None))
         self.groupBox.setTitle(QCoreApplication.translate("DlgDeviceConfig", u"\u041a\u0430\u043d\u0430\u043b\u044b", None))
         self.checkBoxSignal.setText(QCoreApplication.translate("DlgDeviceConfig", u"\u042d\u041a\u0413", None))
-        self.checkBox_2.setText(QCoreApplication.translate("DlgDeviceConfig", u"\u0410\u043a\u0441\u0435\u043b\u0435\u0440\u043e\u043c\u0435\u0442\u0440", None))
+        self.checkBoxAcceleration.setText(QCoreApplication.translate("DlgDeviceConfig", u"\u0410\u043a\u0441\u0435\u043b\u0435\u0440\u043e\u043c\u0435\u0442\u0440", None))
     # retranslateUi
 

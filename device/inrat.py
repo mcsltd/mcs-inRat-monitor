@@ -46,7 +46,7 @@ class InRat:
         self._activated: bool = False
 
         # information
-        self._name: None | str = None
+        self._name: None | str = ble_device.name
         self._manufacturer: None | str = None
         self._model: None | str = None
         self._serial: None | str = None
@@ -62,6 +62,12 @@ class InRat:
         self._activity_threshold = 2
         self._enabled_channels = EnabledChannels.ECG # | EnabledChannels.ACC_X | EnabledChannels.ACC_Y | EnabledChannels.ACC_Z
 
+    @property
+    def mode(self):
+        return self._mode
+    @mode.setter
+    def mode(self, value):
+        self._mode = value
     @property
     def sample_rate(self):
         if self._sample_rate is SampleRateEcg.HZ_500:

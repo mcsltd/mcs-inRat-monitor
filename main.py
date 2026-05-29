@@ -172,7 +172,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.pushButtonConnect.setEnabled(True)
 
     def on_config_clicked(self):
-        dlg = DlgConfigDevice()
+        dlg = DlgConfigDevice(self.device)
         dlg.exec()
 
     def change_recording(self):
