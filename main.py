@@ -17,13 +17,13 @@ from bleak import BLEDevice
 from device.inrat import InRat
 from config import DATA_PATH
 from constants import HZ, Pkt
-from display import PlotWidgetTemperature
+from device.ui.control_pane import FrmControlPane
 from record_viewer import RecordViewer
 from scanner import BLEScannerWorker
 from structure import EventData
 from utils.check_bluetooth import check_bluetooth_status
 from storage import Storage
-from ui.main_window import Ui_MainWindow
+from resources.main_window import Ui_MainWindow
 from widget import WaitingDialog
 
 logger = logging.getLogger(__name__)
@@ -65,27 +65,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.storage = Storage(path_to_save=DATA_PATH, fs=HZ)
         self.scanner = BLEScannerWorker()
 
-        # легенда
-        self.legend = self.plotWidget.addLegend()
-        self.legend.setLabelTextColor(0,0,0)
-
         # setup plot
         self.plot_ecg = self.plotWidget.plot(pen=RED)
         self.plotWidget.setDownsampling(auto=True, mode='peak', ds=50)
-
-        self.widget_temp = PlotWidgetTemperature()
-        # self.plotWidget.setTitle("ECG", color="k", size="12pt")
-        # self.widget_temp.setFixedHeight(250)
-        # self.verticalLayoutDisplay.addWidget(self.widget_temp)
-
-        # scatter plot for activity, freefall, orientation
-        self.scatter_activity = pg.ScatterPlotItem(name="Activity", symbol='t', brush=pg.mkBrush(0, 255, 0, 180),  size=10,)
-        # self.plotWidget.addItem(self.scatter_activity)
-        self.scatter_orientation = pg.ScatterPlotItem(name="Orientation", symbol="o", brush=pg.mkBrush(0, 0, 255, 180), size=10,)
-        # self.plotWidget.addItem(self.scatter_orientation)
-        self.scatter_freefall = pg.ScatterPlotItem(name="Freefall", symbol='s', brush=pg.mkBrush(255, 0, 0, 180), size=10,)
-        # self.plotWidget.addItem(self.scatter_freefall)
-        self.marker_temp = []
 
         font = QFont()
         font.setPointSize(12)
@@ -124,12 +106,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.comboBoxTimebase.currentTextChanged.connect(self.set_timebase)
 
         # setup checkbox
-        self.checkBoxActivated.setEnabled(False)
+        # self.checkBoxActivated.setEnabled(False)
+
+        self.device_control_pane = FrmControlPane()
+        self.verticalLayout.insertWidget(5, self.device_control_pane)
+        self.device_control_pane.pushButtonStart.clicked.connect(lambda: asyncio.ensure_future(self.start_device()))
+        self.device_control_pane.pushButtonStop.clicked.connect(lambda: asyncio.ensure_future(self.stop_device()))
 
         # connection
         self.pushButtonConnect.clicked.connect(lambda: asyncio.ensure_future(self.connect_device()))
-        self.pushButtonStart.clicked.connect(lambda: asyncio.ensure_future(self.start_device()))
-        self.pushButtonStop.clicked.connect(lambda: asyncio.ensure_future(self.stop_device()))
+
         self.pushButtonRecording.clicked.connect(self.change_recording)
         self.pushButtonSelectDirSave.clicked.connect(self._set_storage)
         self.pushButtonDisconnect.clicked.connect(lambda: asyncio.ensure_future(self.disconnect_device()))
@@ -260,7 +246,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             # add in storage device name (for write additional info in edf)
             self.storage.set_device_name(self.device.name)
-            self.checkBoxActivated.setEnabled(True)
+            self.device_control_pane.state_connection()
 
         except Exception as exc:
             self.device = None
@@ -277,12 +263,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             # disable and activate btn state when connect to device
             if self.device.is_connected:
-                self.checkBoxActivated.setEnabled(True)
+                self.device_control_pane.setEnabled(True)
 
                 # проверка на активировано ли устройство
                 # _ = await self.device.get_status()
                 if self.device.is_activated:
-                    self.checkBoxActivated.setChecked(True)
+                    self.device_control_pane.checkBoxActivated.setChecked(True)
 
                 # получение данных об устройстве
                 # device_info = await self.device.get_device_information()
@@ -290,7 +276,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 # enable settings for storage
                 self.comboBoxFormat.setEnabled(True)
                 # enable button for start device
-                self.pushButtonStart.setEnabled(True)
+
+                self.device_control_pane.state_connection()
 
                 self.pushButtonDisconnect.show()
                 self.pushButtonConnect.hide()
@@ -316,7 +303,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             res, msg = await self.device.deactivate()
             if res:
                 logger.info("Устройство деактивировано")
-                self.checkBoxActivated.setChecked(False)
+                self.device_control_pane.checkBoxActivated.setChecked(False)
                 return
             QMessageBox.warning(
                 self, "Device deactivation error!",
@@ -327,7 +314,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             res, msg = await self.device.activate()
             if res:
                 logger.info("Устройство активировано")
-                self.checkBoxActivated.setChecked(True)
+                self.device_control_pane.checkBoxActivated.setChecked(True)
                 return
             QMessageBox.warning(
                 self, "Device activation error!",
@@ -345,12 +332,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.reset()
 
         # disable
-        self.pushButtonStart.setEnabled(False)
         self.comboBoxFormat.setEnabled(False)
 
         # reset checkbox
-        self.checkBoxActivated.setChecked(False)
-        self.checkBoxActivated.setEnabled(False)
+        self.device_control_pane.checkBoxActivated.setChecked(False)
+        self.device_control_pane.checkBoxActivated.setEnabled(False)
+        self.device_control_pane.state_disconnect()
 
         # activate
         self.comboBoxDevice.clear()
@@ -385,12 +372,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # self.pushButtonConnect.setEnabled(False)
         self.pushButtonDisconnect.setEnabled(False)
         self.comboBoxDevice.setEnabled(False)
-        self.pushButtonStart.setEnabled(False)
         # self.pushButtonTurnOff.setEnabled(False)
+        self.device_control_pane.state_acquisition()
 
         # enable
         self.pushButtonRecording.setEnabled(True)
-        self.pushButtonStop.setEnabled(True)
 
         # when draw signal in online - disable mouse
         self.plotWidget.setMouseEnabled(x=False, y=False)
@@ -406,7 +392,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # вывод сигналов
             try:
                 ecg = self.ecg_queue.get_nowait()
-                print(f"{ecg=}")
+                # print(f"{ecg=}")
             except asyncio.QueueEmpty:
                 ecg = None
             else:
@@ -416,7 +402,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # обработка событий
             try:
                 event = self.event_queue.get_nowait()
-                print(f"{event=}")
+                # print(f"{event=}")
             except asyncio.QueueEmpty:
                 event = None
             else:
@@ -435,7 +421,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         if event_type == "Temp":
             try:
-                self.widget_temp.set_data(time_sec=x, temperature=round(event.data / 1000, 1))
+                # self.widget_temp.set_data(time_sec=x, temperature=round(event.data / 1000, 1))
+                pass
             except Exception as err:
                 logger.debug(f"Ошибка установки в буфер данных: {err}")
 
@@ -455,7 +442,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 if self.storage.is_recording:
                     self.storage.process_activity(event)
                 try:
-                    self.scatter_activity.addPoints([{'pos': (x, y)}])
+                    #self.scatter_activity.addPoints([{'pos': (x, y)}])
+                    ...
                 except Exception as err:
                     logger.debug(f"Возникла ошибка при добавлении события 'Activity': {err}")
 
@@ -463,7 +451,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 if self.storage.is_recording:
                     self.storage.process_activity(event)
                 try:
-                    self.scatter_freefall.addPoints([{'pos': (x, y)}])
+                    #self.scatter_freefall.addPoints([{'pos': (x, y)}])
+                    ...
                 except Exception as err:
                     logger.debug(f"Возникла ошибка при добавлении события 'Freefall': {err}")
 
@@ -471,7 +460,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 if self.storage.is_recording:
                     self.storage.process_activity(event)
                 try:
-                    self.scatter_orientation.addPoints([{'pos': (x, y)}])
+                    #self.scatter_orientation.addPoints([{'pos': (x, y)}])
+                    ...
                 except Exception as err:
                     logger.debug(f"Возникла ошибка при добавлении события 'Orientation': {err}")
 
@@ -571,8 +561,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.change_recording()
 
             # activate and disable btn when stop device
-            self.pushButtonStop.setEnabled(False)
-            self.pushButtonStart.setEnabled(True)
+            self.device_control_pane.state_connection()
             # self.pushButtonTurnOff.setEnabled(True)
             self.pushButtonRecording.setEnabled(False)
             self.pushButtonDisconnect.setEnabled(True)
@@ -607,8 +596,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.change_recording()
 
         # disable button
-        self.pushButtonStop.setEnabled(False)
-        self.pushButtonStart.setEnabled(False)
+        self.device_control_pane.state_disconnect()
         self.pushButtonRecording.setEnabled(False)
         # self.pushButtonSelectDirSave.setEnabled(False)
         self.comboBoxFormat.setEnabled(False)
@@ -622,7 +610,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # run scanner
         self.scanner.run(self.qt_loop)
-        self.checkBoxActivated.setEnabled(True)
+        self.device_control_pane.checkBoxActivated.setEnabled(True)
         # activate combobox
         self.comboBoxDevice.setEnabled(True)
 
@@ -634,14 +622,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def reset(self) -> None:
         """ reset data """
-        # self.plotWidget.clear()
-        # удаление значений температуры
-        for marker in self.marker_temp:
-            self.plotWidget.removeItem(marker)
-        self.marker_temp = []
-
-        self.widget_temp.reset()
-        self.reset_event()
         self.reset_signal()
 
     def reset_signal(self):
@@ -655,21 +635,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.current_position = 0  # текущая позиция для заполнения буфера
         self.plot_ecg.setData(np.array([]), np.array([])) # clear signal
 
-    def reset_event(self):
-        for item in [self.scatter_activity, self.scatter_orientation, self.scatter_freefall]:
-            self.plotWidget.removeItem(item)
-
-        # scatter plot for activity, freefall, orientation
-        self.scatter_activity = pg.ScatterPlotItem(name="Activity", symbol='t', brush=pg.mkBrush(0, 255, 0, 180),
-                                                   size=10, )
-        # self.plotWidget.addItem(self.scatter_activity)
-        self.scatter_orientation = pg.ScatterPlotItem(name="Orientation", symbol="o", brush=pg.mkBrush(0, 0, 255, 180),
-                                                      size=10, )
-        # self.plotWidget.addItem(self.scatter_orientation)
-        self.scatter_freefall = pg.ScatterPlotItem(name="Freefall", symbol='s', brush=pg.mkBrush(255, 0, 0, 180),
-                                                   size=10, )
-        # self.plotWidget.addItem(self.scatter_freefall)
-        self.marker_temp = []
 
     def add_marker(self, pos, text:str="event"):
         """ Add vertical line and text on the plot."""
@@ -682,11 +647,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             labelOpts={'color': 'k', 'position': 0.1}
         )
         self.plotWidget.addItem(line)
-        self.marker_temp.append(line)
 
     def closeEvent(self, event):
         if self._running:
-            self.pushButtonStop.click()
+            self.device_control_pane.pushButtonStop.click()
         # stop scanner
         self.scanner.stop()
 
