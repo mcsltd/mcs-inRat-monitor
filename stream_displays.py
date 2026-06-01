@@ -160,6 +160,11 @@ class StreamSignalViewer(pg.PlotWidget):
         self._markers = []
         self.pending_update = False
 
+        # таймер обновления графика
+        self.update_timer = QtCore.QTimer()
+        self.update_timer.timeout.connect(self.update_plot)
+        self.update_timer.start(16)
+
 
     def set_data(self, ecg: dict):
         """ добавление данных сигнала в буфер """
