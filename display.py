@@ -167,11 +167,13 @@ class StreamAccelerationViewer(pg.PlotWidget):
         self.addLegend()
 
         # data
-        self._fs = 500
+        self._fs = 100
         self.max_timebase = 60
         self.timebase = 10
         self.dt = 1 / self._fs
         self._acceleration_buffer = np.zeros((Pkt.ChannelsCountAcc, int(self.max_timebase * self._fs)))
+        self._time_buffer = np.arange(0, self.max_timebase, self.dt)
+        self.y_max, self.y_min = None, None
 
         # переменные для управления отображением
         self.buffer_filled = False  # флаг заполнения буфера
@@ -181,32 +183,32 @@ class StreamAccelerationViewer(pg.PlotWidget):
         # таймер обновления графика
         self.update_timer = QtCore.QTimer()
         self.update_timer.timeout.connect(self.update_plot)
-        self.update_timer.setInterval(16)
+        self.update_timer.start(16)
 
     def set_data(self, data: dict | None):
         """ добавление данных сигнала в буфер """
         if not data:
             return
 
-        print(f"{data['counter']=}, {data['acceleration']=}")
-        return
+        counter, acceleration = data['counter'], data['acceleration']
+        if not self.buffer_filled:
+            # вставка данных в незаполненный буфер
+            if self.current_position + Pkt.SamplesCountAcc < self._acceleration_buffer.shape[1]:
+                self._acceleration_buffer[:,self.current_position:self.current_position + Pkt.SamplesCountAcc] = acceleration
+                self.current_position += Pkt.SamplesCountAcc
+            else:
+                offset = self._acceleration_buffer.shape[1] - self.current_position
+                self._acceleration_buffer[:,self.current_position:] = acceleration[:,:offset]
+                acceleration = acceleration[:,offset:]
+                self.buffer_filled = True
 
-        # if not self.buffer_filled:
-        #     # вставка данных в незаполненный буфер
-        #     if self.current_position + Pkt.SamplesCountAcc < len(self.ecg_buffer):
-        #         self.ecg_buffer[self.current_position:self.current_position + Pkt.SamplesCountEcg] = signal
-        #         self.current_position += Pkt.SamplesCountEcg
-        #     else:
-        #         offset = len(self.ecg_buffer) - self.current_position
-        #         self.ecg_buffer[self.current_position:] = signal[:offset]
-        #         signal = signal[offset:]
-        #         self.buffer_filled = True
-        # # вставка данных в заполненный буфер
-        # if self.buffer_filled and len(signal) != 0:
-        #     self._signal_buffer = np.roll(self.ecg_buffer, -len(signal))
-        #     self.ecg_buffer[-len(signal):] = signal
-        #     self.time_buffer += len(signal) * self.dt
-        # self.pending_update = True
+        # вставка данных в заполненный буфер
+        if self.buffer_filled and acceleration.shape[1] != 0:
+            self._acceleration_buffer = np.roll(self._acceleration_buffer, -acceleration.shape[1])
+            self._acceleration_buffer[-acceleration.shape[1]:] = acceleration
+            self.time_buffer += acceleration.shape[1] * self.dt
+
+        self.pending_update = True
 
     def update_plot(self):
         """Обновление графика по таймеру"""
@@ -217,30 +219,23 @@ class StreamAccelerationViewer(pg.PlotWidget):
             end_idx = self.current_position
             start_idx = 0
 
-            if end_idx > self.timebase * self.fs:
-                start_idx = end_idx - int(self.timebase * self.fs)
+            if end_idx > self.timebase * self._fs:
+                start_idx = end_idx - int(self.timebase * self._fs)
         else:
             end_idx = len(self.ecg_buffer)
-            start_idx = end_idx - int(self.timebase * self.fs)
-        visible_time = self.time_buffer[start_idx:end_idx]
-        visible_ecg = self.ecg_buffer[start_idx:end_idx]
+            start_idx = end_idx - int(self.timebase * self._fs)
 
-        try:
-            y_min = 0
-            if len(visible_ecg) != 0:
-                y_min = visible_ecg.min()
-            # отображение событий из буфера
-            self.event_display(y_min)
-            self.replot()
+        visible_time = self._time_buffer[start_idx:end_idx]
+        visible_ax = self._acceleration_buffer[0, start_idx:end_idx]
+        visible_ay = self._acceleration_buffer[1, start_idx:end_idx]
+        visible_az = self._acceleration_buffer[2, start_idx:end_idx]
 
-        except Exception as err:
-            ...
-
-        # установка данных из буфера на дисплей
-        self.plot_signal.setData(visible_time, visible_ecg)
+        self.plot_ax.setData(visible_time, visible_ax)
+        self.plot_ay.setData(visible_time, visible_ay)
+        self.plot_az.setData(visible_time, visible_az)
 
         # отображение по оси времени
-        if not self.buffer_filled and end_idx <= self.timebase * self.fs:
+        if not self.buffer_filled and end_idx <= self.timebase * self._fs:
             self.setXRange(0, self.timebase, padding=0)
         else:
             current_time = visible_time[-1] if len(visible_time) > 0 else 0
@@ -248,9 +243,9 @@ class StreamAccelerationViewer(pg.PlotWidget):
 
         # отображение по оси напряжения
         if not self.y_max and not self.y_min:
-            if len(visible_ecg) > 0:
-                data_min = visible_ecg.min()
-                data_max = visible_ecg.max()
+            if len(visible_ax) > 0 and len(visible_ay) > 0 and len(visible_az) > 0:
+                data_min = min(visible_ax.min(), visible_ay.min(), visible_az.min())
+                data_max = max(visible_ax.max(), visible_ay.max(), visible_az.max())
                 if data_max > data_min:
                     padding = (data_max - data_min) * 0.05
                     self.setYRange(data_min - padding, data_max + padding)
