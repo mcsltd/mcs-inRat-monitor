@@ -60,7 +60,7 @@ class InRat:
         self._full_scale_accelerometer = ScaleAccelerometer.G_2
         self._enabled_events = EventType.NONE
         self._activity_threshold = 2
-        self._enabled_channels = EnabledChannels.ECG # | EnabledChannels.ACC_X | EnabledChannels.ACC_Y | EnabledChannels.ACC_Z
+        self._enabled_channels = EnabledChannels.ECG | EnabledChannels.ACC_X | EnabledChannels.ACC_Y | EnabledChannels.ACC_Z
 
     @property
     def mode(self):
@@ -228,7 +228,8 @@ class InRat:
     ):
         """ запуск на получение данных """
         async def event_handler(sender, data: bytearray):
-            print(f"{sender=} {data=}")
+            # print(f"{sender=} {data=}")
+
             event_size = ctypes.sizeof(Event)
             cnt = int(len(data) / event_size)
             for idx in range(cnt):
@@ -236,19 +237,16 @@ class InRat:
                 await event_queue.put(event)
 
         async def signal_handler(sender, data):
-            print(f"{sender=} {data=}")
+            # print(f"{sender=} {data=}")
 
             cnt, signal = decode_signal(data)
             await signal_queue.put({"counter":cnt, "signal":signal})
 
         async def acceleration_handler(sender, data):
-            print(f"{sender=} {data=}")
 
-            try:
-                cnt, accel = decode_acceleration(data, self._enabled_channels)
-            except Exception as exc:
-                cnt, accel = None, None
+            print(f"{len(data)=}")
 
+            cnt, accel = decode_acceleration(data, self._enabled_channels)
             await acceleration_queue.put({"counter":cnt, "acceleration":accel})
 
         settings = self._get_settings()
@@ -256,8 +254,10 @@ class InRat:
 
         if event_queue:
             await self._client.start_notify(self.UUID_CHARACTERISTIC_EVENT, event_handler)
+
         if signal_queue:
             await self._client.start_notify(self.UUID_CHARACTERISTIC_ECG_EEG, signal_handler)
+
         if acceleration_queue:
             await self._client.start_notify(self.UUID_CHARACTERISTIC_ACCELERATION, acceleration_handler)
 

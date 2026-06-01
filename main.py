@@ -19,6 +19,7 @@ from config import DATA_PATH
 from device.constants import Pkt
 from device.ui.config_dialog import DlgConfigDevice
 from device.ui.control_pane import FrmControlPane
+from display import StreamAccelerationViewer
 from record_viewer import RecordViewer
 from scanner import BLEScannerWorker
 from utils.check_bluetooth import check_bluetooth_status
@@ -69,6 +70,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # setup plot
         self.plot_ecg = self.plotWidget.plot(pen=RED)
         self.plotWidget.setDownsampling(auto=True, mode='peak', ds=50)
+
+        self.plot_acceleration = StreamAccelerationViewer()
+        self.verticalLayoutDisplay.insertWidget(1, self.plot_acceleration)
 
         font = QFont()
         font.setPointSize(12)
@@ -400,7 +404,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # вывод сигналов
             try:
                 ecg = self.ecg_queue.get_nowait()
-                # print(f"{ecg=}")
             except asyncio.QueueEmpty:
                 ecg = None
             else:
@@ -410,21 +413,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # обработка событий
             try:
                 event = self.event_queue.get_nowait()
-                # print(f"{event=}")
             except asyncio.QueueEmpty:
                 event = None
             else:
                 self.process_event(event)
                 self.event_queue.task_done()
 
-            # обработка событий
+            # обработка очереди с ускорениями
             try:
-                acceleration = self.acceleration_queue.get_nowait()
-                print(f"{acceleration=}")
+                data = self.acceleration_queue.get_nowait()
             except asyncio.QueueEmpty:
-                acceleration = None
+                data = None
             else:
-                # self.process_event(event)
+                self.plot_acceleration.set_data(data)
                 self.acceleration_queue.task_done()
 
             if not self.device.is_connected:
@@ -652,7 +653,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.buffer_filled = False  # флаг заполнения буфера
         self.current_position = 0  # текущая позиция для заполнения буфера
         self.plot_ecg.setData(np.array([]), np.array([])) # clear signal
-
 
     def add_marker(self, pos, text:str="event"):
         """ Add vertical line and text on the plot."""

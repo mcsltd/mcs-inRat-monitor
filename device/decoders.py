@@ -35,21 +35,24 @@ def decode_acceleration(raw_data, enabled_channels):
     offset = 2
     counter = struct.unpack('<H', raw_data[:offset])[0]
 
-    prevs = np.zeros(Pkt.SamplesCountAcc, dtype=np.int32)
+    prevs = np.zeros(Pkt.ChannelsCountAcc, dtype=np.int32)
+    acceleration = np.zeros((Pkt.ChannelsCountAcc, Pkt.SamplesCountAcc), dtype=np.int32)
     for i in range(Pkt.SamplesCountAcc):
         code = raw_data[offset]
         offset += 1
 
         for ch in range(Pkt.ChannelsCountAcc):
-            if (enabled_channels >> (ch + 1) & 0x1) == 1:
+            if enabled_channels >> (ch + 1) & 0x1 == 1:
 
-                if (code >> i) & 0x1 == 0x0:
-                    val = prevs + int.from_bytes([raw_data[offset]], signed=True, byteorder="little")
+                if (code >> ch) & 0x1 == 0x0:
+                    val = prevs[ch] + int.from_bytes([raw_data[offset]], signed=True, byteorder="little")
                     offset += 1
 
-                if (code >> i) & 0x1 == 0x1:
+                if (code >> ch) & 0x1 == 0x1:
                     val = struct.unpack("<h", raw_data[offset:offset+2])[0]
                     offset += 2
 
             prevs[ch] = val
-    return counter, prevs
+            acceleration[ch][i] = int(val * 4000 / 0xFFFF)
+
+    return counter, acceleration
