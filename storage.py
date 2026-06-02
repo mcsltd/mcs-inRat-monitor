@@ -2,8 +2,12 @@ import csv
 import datetime
 import logging
 import os.path
+from queue import Queue
+from threading import Thread
+
 import numpy as np
 import wfdb
+from PySide6.QtCore import QObject
 
 from pyedflib import EdfWriter
 from typing import Optional
@@ -199,3 +203,47 @@ class Storage:
             logger.info(f"Данные успешно сохранены в {filepath}")
         except Exception as err:
             logger.info(f"Возникла ошибка при сохранении в {filepath}: {err}")
+
+
+
+class DataStorage(QObject):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._input_queue = Queue()
+
+        self._running = False
+        self._work: Thread | None = None
+
+    def start(self):
+        """ запуск записи данных """
+        if not self._running:
+            self._running = True
+            self._work = Thread(target=self._worker_thread)
+            self._work.start()
+
+    def _worker_thread(self):
+        while self._running:
+            # обработка очереди данных
+            try:
+                data = self._input_queue.get(False)
+                # self.process_input(data)
+            except Exception as exc:
+                pass
+
+            try:
+                # data = self.process_output()
+                pass
+            except Exception as exc:
+                pass
+                data = None
+
+    def stop(self):
+        self._running = False
+        if self._work:
+            self._work.join(5.0)
+            self._work = None
+        # todo: self.process_stop()
+
+
+
