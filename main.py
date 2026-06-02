@@ -1,35 +1,34 @@
 import asyncio
 import datetime
 import logging
-import os
 import time
 from threading import Thread
 from typing import Optional
 
 import pyqtgraph as pg
 
-import numpy as np
-from PySide6 import QtAsyncio, QtCore
-from PySide6.QtCore import QTimer, Signal
-from PySide6.QtGui import QIcon, QFont
+
+from PySide6 import QtAsyncio
+from PySide6.QtCore import Signal
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QComboBox, QFileDialog
 from bleak import BLEDevice
 
-from device import RatSens
+from device.inrat import InRat
 from config import DATA_PATH
-from constants import HZ, Pkt
-from display import PlotWidgetTemperature
+from device.ui.config_dialog import DlgConfigDevice
+from device.ui.control_pane import FrmControlPane
+from stream_displays import StreamAccelerationViewer, StreamSignalViewer
 from record_viewer import RecordViewer
 from scanner import BLEScannerWorker
-from structure import EventData
 from utils.check_bluetooth import check_bluetooth_status
 from storage import Storage
-from ui.main_window import Ui_MainWindow
+from resources.main_window import Ui_MainWindow
 from widget import WaitingDialog
 
 logger = logging.getLogger(__name__)
 
-
+HZ = 500
 RED = pg.mkPen(color=(255, 0, 0), width=1.5)
 
 
@@ -50,62 +49,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # build queue
         self.ecg_queue = asyncio.Queue()
         self.event_queue = asyncio.Queue()
-
-        # data
-        self.max_timebase = 60
-        self.timebase = 30
-        self.dt = 1 / HZ
-        self.ecg_buffer = np.zeros(int(self.max_timebase * HZ))
-        self.time_buffer = np.arange(0, self.max_timebase, self.dt)
-        # переменные для управления отображением
-        self.buffer_filled = False  # флаг заполнения буфера
-        self.current_position = 0   # текущая позиция для заполнения буфера
+        self.acceleration_queue = asyncio.Queue()
 
         # main classes
-        self.device: Optional[RatSens] = None
+        self.device: Optional[InRat] = None
         self.storage = Storage(path_to_save=DATA_PATH, fs=HZ)
         self.scanner = BLEScannerWorker()
 
-        # легенда
-        self.legend = self.plotWidget.addLegend()
-        self.legend.setLabelTextColor(0,0,0)
-
         # setup plot
-        self.plot_ecg = self.plotWidget.plot(pen=RED)
-        self.plotWidget.setDownsampling(auto=True, mode='peak', ds=50)
+        self.plot_signal = StreamSignalViewer()
+        self.verticalLayoutDisplay.insertWidget(0, self.plot_signal)
 
-        self.widget_temp = PlotWidgetTemperature()
-        # self.plotWidget.setTitle("ECG", color="k", size="12pt")
-        # self.widget_temp.setFixedHeight(250)
-        # self.verticalLayoutDisplay.addWidget(self.widget_temp)
-
-        # scatter plot for activity, freefall, orientation
-        self.scatter_activity = pg.ScatterPlotItem(name="Activity", symbol='t', brush=pg.mkBrush(0, 255, 0, 180),  size=10,)
-        # self.plotWidget.addItem(self.scatter_activity)
-        self.scatter_orientation = pg.ScatterPlotItem(name="Orientation", symbol="o", brush=pg.mkBrush(0, 0, 255, 180), size=10,)
-        # self.plotWidget.addItem(self.scatter_orientation)
-        self.scatter_freefall = pg.ScatterPlotItem(name="Freefall", symbol='s', brush=pg.mkBrush(255, 0, 0, 180), size=10,)
-        # self.plotWidget.addItem(self.scatter_freefall)
-        self.marker_temp = []
+        self.plot_acceleration = StreamAccelerationViewer()
+        self.verticalLayoutDisplay.insertWidget(1, self.plot_acceleration)
 
         font = QFont()
         font.setPointSize(12)
-
-        self.plotWidget.setLabel("left", units="V", pen=pg.mkPen(color='k'), font=font)
-        self.plotWidget.getAxis("left").label.setFont(font)
-        self.plotWidget.getAxis("left").setPen(pg.mkPen(color='k'))
-        self.plotWidget.getAxis("left").setTextPen(pg.mkPen(color='k'))
-        self.plotWidget.getAxis("left").setTickFont(font)
-
-        # "Time (sec)",
-        self.plotWidget.setLabel("bottom", "Time", units="s",  pen=pg.mkPen(color='k'), font=font)
-        self.plotWidget.getAxis("bottom").label.setFont(font)
-        self.plotWidget.getAxis("bottom").setPen(pg.mkPen(color='k'))
-        self.plotWidget.getAxis("bottom").setTextPen(pg.mkPen(color='k'))
-        self.plotWidget.getAxis("bottom").setTickFont(font)
-
-        self.plotWidget.addLegend()
-        self.plotWidget.setBackground("w")
 
         # create scanner and run it
         self.scanner.run(self.qt_loop)
@@ -119,65 +78,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.comboBoxDevice.setDuplicatesEnabled(False)
         self.comboBoxDevice.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
 
-        for v in [(1, "1 s"), (5, "5 s"), (10, "10 s"), (30, "30 s"), (60, "60 s")]:
-            self.comboBoxTimebase.addItem(v[1], userData=v[0])
-        self.comboBoxTimebase.setCurrentIndex(3)
-        self.comboBoxTimebase.currentTextChanged.connect(self.set_timebase)
-
-        # setup checkbox
-        self.checkBoxActivated.setEnabled(False)
+        self.device_control_pane = FrmControlPane()
+        self.verticalLayout.insertWidget(5, self.device_control_pane)
+        self.device_control_pane.pushButtonStart.clicked.connect(lambda: asyncio.ensure_future(self.start_device()))
+        self.device_control_pane.pushButtonStop.clicked.connect(lambda: asyncio.ensure_future(self.stop_device()))
+        self.device_control_pane.pushButtonConfig.clicked.connect(self.on_config_clicked)
 
         # connection
         self.pushButtonConnect.clicked.connect(lambda: asyncio.ensure_future(self.connect_device()))
-        self.pushButtonStart.clicked.connect(lambda: asyncio.ensure_future(self.start_device()))
-        self.pushButtonStop.clicked.connect(lambda: asyncio.ensure_future(self.stop_device()))
-        self.pushButtonRecording.clicked.connect(self.change_recording)
-        self.pushButtonSelectDirSave.clicked.connect(self._set_storage)
         self.pushButtonDisconnect.clicked.connect(lambda: asyncio.ensure_future(self.disconnect_device()))
-        # self.pushButtonShowRecords.clicked.connect(self.open_savedir)
-        self.checkBoxActivated.clicked.connect(lambda: asyncio.ensure_future(self.on_activated_clicked()))
-        self.pushButtonViewRecording.clicked.connect(self.on_view_recording_clicked)
-
-        self.lineEditSave.setText(self.storage.path_to_save) # set default folder
-        self.comboBoxFormat.currentTextChanged.connect(self.storage.set_format)
-
-        # Буфер для накопления данных
-        self.pending_update = False
-
-        # таймер для обновления графика
-        self.update_timer = QtCore.QTimer()
-        self.update_timer.timeout.connect(self._delayed_update_plot)
-        self.update_timer.start(16)  # 60 fps
-
-
-    def set_timebase(self):
-        self.timebase = self.comboBoxTimebase.currentData()
-        if not self._running:
-            self.plotWidget.setXRange(0, self.timebase)
-
-    def _set_storage(self):
-        path_to_save = QFileDialog.getExistingDirectory(
-            self,
-            "Select folder",
-            self.storage.path_to_save,
-            QFileDialog.Option.ShowDirsOnly | QFileDialog.Option.DontResolveSymlinks
-        )
-        self.storage.set_save_dir(path_to_save)
-        self.lineEditSave.setText(path_to_save)
-
-    def on_view_recording_clicked(self):
-        """ обработка нажатия кнопки просмотра записей """
-        path_to_record = QFileDialog.getExistingDirectory(
-            self,
-            "Select folder",
-            self.storage.path_to_save,
-            QFileDialog.Option.ShowDirsOnly | QFileDialog.Option.DontResolveSymlinks
-        )
-
-        if path_to_record:
-            viewer = RecordViewer()
-            if viewer.load_record(path_to_record):
-                viewer.exec()
 
     def set_combobox_items(self, devices: set[BLEDevice]):
         for device in devices:
@@ -186,44 +95,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.comboBoxDevice.count() != 0:
             self.pushButtonConnect.setEnabled(True)
 
-    def change_recording(self):
-        """
-        Change state recording.
-        """
-        if self.storage.is_recording:
-            self.storage.is_recording = False
-            self.pushButtonRecording.setText("Start Recording")
-
-            # activate elements for setup storage when press "Stop Recording"
-            self.comboBoxFormat.setEnabled(True)
-            # self.pushButtonSelectDirSave.setEnabled(True)
-
-            logger.debug("Select stop recording ECG.")
-
-            self.labelRTvalue.setText("[00:00:00]")
-            if self.device.is_running:
-                self.storage.save()
-
-                if not self.buffer_filled:
-                    pos = self.time_buffer[self.current_position]
-                else:
-                    pos = self.time_buffer[-1]
-                self.add_marker(pos=pos, text="Stop recording")
-
-        elif self.storage.is_recording is None or not self.storage.is_recording:
-            self.storage.is_recording = True
-            self.pushButtonRecording.setText("Stop Recording")
-
-            # deactivate elements when press "Start Recording"
-            # self.pushButtonSelectDirSave.setEnabled(False)
-            self.comboBoxFormat.setEnabled(False)
-
-            logger.debug("Select start recording ECG.")
-            if not self.buffer_filled:
-                pos = self.time_buffer[self.current_position]
-            else:
-                pos = self.time_buffer[-1]
-            self.add_marker(pos=pos, text="Start recording")
+    def on_config_clicked(self):
+        dlg = DlgConfigDevice(self.device)
+        dlg.exec()
 
     async def connect_device(self):
         # raise waiting dialog
@@ -238,7 +112,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # stop scanner
         self.scanner.stop()
         # remove all device in combobox
-        # self.comboBoxDevice.clear()
         # disable combobox and button connect
         self.comboBoxDevice.setDisabled(True)
         self.pushButtonConnect.setDisabled(True)
@@ -246,10 +119,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # reconnect with new device or old
         if self.device is not None and not self.device.is_connected:
             self.device = None
-            self.reset()
-        device_info = None
         try:
-            self.device = RatSens(device)
+            self.device = InRat(ble_device=device)
 
             attempt_connection = 1
             while not self.device.is_connected and attempt_connection <= 5:
@@ -262,7 +133,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             # add in storage device name (for write additional info in edf)
             self.storage.set_device_name(self.device.name)
-            self.checkBoxActivated.setEnabled(True)
+            self.device_control_pane.state_connection()
 
         except Exception as exc:
             self.device = None
@@ -279,20 +150,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             # disable and activate btn state when connect to device
             if self.device.is_connected:
-                self.checkBoxActivated.setEnabled(True)
+                self.device_control_pane.setEnabled(True)
 
                 # проверка на активировано ли устройство
-                _ = await self.device.get_status()
                 if self.device.is_activated:
-                    self.checkBoxActivated.setChecked(True)
+                    self.device_control_pane.checkBoxActivated.setChecked(True)
 
-                # получение данных об устройстве
-                device_info = await self.device.get_device_information()
-
-                # enable settings for storage
-                self.comboBoxFormat.setEnabled(True)
-                # enable button for start device
-                self.pushButtonStart.setEnabled(True)
+                self.device_control_pane.state_connection()
 
                 self.pushButtonDisconnect.show()
                 self.pushButtonConnect.hide()
@@ -300,60 +164,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         finally:
             dlg.close()
 
-            if device_info:
-                QMessageBox.information(
-                    self,
-                    "Info",
-                    f"{self.device.name} is connected!\n\n"
-                    f"Device information:\n"
-                    f" - model: {device_info['model']}\n"
-                    f" - serial number: {device_info['serial']}\n"
-                    f" - firmware: {device_info['firmware']}\n"
-                    f" - hardware: {device_info['hardware']}",
-                    defaultButton=QMessageBox.StandardButton.Ok
-                )
-
-
-    async def on_activated_clicked(self):
-        if self.device.is_activated:
-            res, msg = await self.device.deactivate()
-            if res:
-                logger.info("Устройство деактивировано")
-                self.checkBoxActivated.setChecked(False)
-                return
-            QMessageBox.warning(
-                self, "Device deactivation error!",
-                f"Couldn't deactivate the device.\n{msg}",
-                QMessageBox.StandardButton.Ok
-            )
-        else:
-            res, msg = await self.device.activate()
-            if res:
-                logger.info("Устройство активировано")
-                self.checkBoxActivated.setChecked(True)
-                return
-            QMessageBox.warning(
-                self, "Device activation error!",
-                f"Couldn't activate the device.\n{msg}",
-                QMessageBox.StandardButton.Ok
-            )
-
     async def disconnect_device(self):
         if self.device.is_connected:
-            await self.device.close()
+            await self.device.disconnect()
         else:
             await self.lost_connection()
 
         self.scanner.run(self.qt_loop)
-        self.reset()
-
-        # disable
-        self.pushButtonStart.setEnabled(False)
-        self.comboBoxFormat.setEnabled(False)
 
         # reset checkbox
-        self.checkBoxActivated.setChecked(False)
-        self.checkBoxActivated.setEnabled(False)
+        self.device_control_pane.checkBoxActivated.setChecked(False)
+        self.device_control_pane.checkBoxActivated.setEnabled(False)
+        self.device_control_pane.state_disconnect()
 
         # activate
         self.comboBoxDevice.clear()
@@ -370,8 +192,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         while not self.ecg_queue.empty():
             self.ecg_queue.get_nowait()
 
-        self.reset() # cбросить графики
-
         if not self.device.is_connected:
             info = QMessageBox.information(
                 self, "Lost device connection",
@@ -382,30 +202,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             await self.disconnect_device()
             return
 
-        res = await self.device.start_acquisition(ecg_queue=self.ecg_queue, event_queue=self.event_queue)
-        if res:
+        await self.device.start_acquisition(signal_queue=self.ecg_queue,
+                                            event_queue=self.event_queue,
+                                            acceleration_queue=self.acceleration_queue)
 
-            # disable
-            # self.pushButtonConnect.setEnabled(False)
-            self.pushButtonDisconnect.setEnabled(False)
-            self.comboBoxDevice.setEnabled(False)
-            self.pushButtonStart.setEnabled(False)
-            # self.pushButtonTurnOff.setEnabled(False)
+        # disable
+        self.pushButtonDisconnect.setEnabled(False)
+        self.comboBoxDevice.setEnabled(False)
+        self.device_control_pane.state_acquisition()
 
-            # enable
-            self.pushButtonRecording.setEnabled(True)
-            self.pushButtonStop.setEnabled(True)
-
-            # when draw signal in online - disable mouse
-            self.plotWidget.setMouseEnabled(x=False, y=False)
-
-            self._running = True
-            self._work = Thread(target=self._worker_thread)
-            self._work.start()
-
-        else:
-            # ToDo: добавить действия на случай если не получилось запустить устройство
-            ...
+        self._running = True
+        self._work = Thread(target=self._worker_thread)
+        self._work.start()
 
     def _worker_thread(self):
         """ поток обработки очередей """
@@ -416,135 +224,32 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             except asyncio.QueueEmpty:
                 ecg = None
             else:
-                self.set_data(ecg)
+                self.plot_signal.set_data(ecg)
                 self.ecg_queue.task_done()
 
-            # обработка событий
+            # # обработка событий
+            # try:
+            #     event = self.event_queue.get_nowait()
+            # except asyncio.QueueEmpty:
+            #     event = None
+            # else:
+            #     self.process_event(event)
+            #     self.event_queue.task_done()
+
+            # обработка очереди с ускорениями
             try:
-                event = self.event_queue.get_nowait()
+                data = self.acceleration_queue.get_nowait()
             except asyncio.QueueEmpty:
-                event = None
+                data = None
             else:
-                self.process_event(event)
-                self.event_queue.task_done()
+                self.plot_acceleration.set_data(data)
+                self.acceleration_queue.task_done()
 
             if not self.device.is_connected:
                 asyncio.run_coroutine_threadsafe(self.disconnect_device(), self.qt_loop)
+
             time.sleep(0.001)
 
-    def process_event(self, event: EventData):
-        """ обработка событий """
-        event_type = event.type
-        x = event.counter * self.dt
-
-        if event_type == "Temp":
-            try:
-                self.widget_temp.set_data(time_sec=x, temperature=round(event.data / 1000, 1))
-            except Exception as err:
-                logger.debug(f"Ошибка установки в буфер данных: {err}")
-
-            if self.storage.is_recording:
-                self.storage.process_temperature(event)
-        else:
-            # определение минимального значения для вывода события
-            if self.buffer_filled:
-                y = min(self.ecg_buffer[-self.timebase * HZ:]) * 1.05
-            else:
-                idx = self.current_position - self.timebase * HZ
-                if idx < 0:
-                    idx = 0
-                y = min(self.ecg_buffer[idx:self.current_position]) * 1.05
-
-            if event.type == "Activity":
-                if self.storage.is_recording:
-                    self.storage.process_activity(event)
-                try:
-                    self.scatter_activity.addPoints([{'pos': (x, y)}])
-                except Exception as err:
-                    logger.debug(f"Возникла ошибка при добавлении события 'Activity': {err}")
-
-            elif event.type == "Freefall":
-                if self.storage.is_recording:
-                    self.storage.process_activity(event)
-                try:
-                    self.scatter_freefall.addPoints([{'pos': (x, y)}])
-                except Exception as err:
-                    logger.debug(f"Возникла ошибка при добавлении события 'Freefall': {err}")
-
-            elif event.type == "Orientation":
-                if self.storage.is_recording:
-                    self.storage.process_activity(event)
-                try:
-                    self.scatter_orientation.addPoints([{'pos': (x, y)}])
-                except Exception as err:
-                    logger.debug(f"Возникла ошибка при добавлении события 'Orientation': {err}")
-
-    def set_data(self, ecg: dict):
-        """ добавление данных сигнала в буфер """
-        signal, counter = ecg["ecg"], ecg["counter"]
-        if not self.buffer_filled:
-            # вставка данных в незаполненный буфер
-            if self.current_position + Pkt.SamplesCountECG < len(self.ecg_buffer):
-                self.ecg_buffer[self.current_position:self.current_position+Pkt.SamplesCountECG] = signal
-                self.current_position += Pkt.SamplesCountECG
-            else:
-                offset = len(self.ecg_buffer) - self.current_position
-                self.ecg_buffer[self.current_position:] = signal[:offset]
-                signal = signal[offset:]
-                self.buffer_filled = True
-
-        # вставка данных в заполненный буфер
-        if self.buffer_filled:
-            self.ecg_buffer = np.roll(self.ecg_buffer, -len(signal))
-            self.ecg_buffer[-len(signal):] = signal
-            self.time_buffer += len(signal) * self.dt
-
-        # сохранение данных
-        if self.storage.is_recording:
-            self.storage(signal)
-            str_time = str(datetime.datetime.now() - self.storage.start_time).split(".")[0]
-            str_time = "0" + str_time if len(str_time) != 8 else str_time
-            self.labelRTvalue.setText(f"[{str_time}]")
-
-        self.pending_update = True
-
-    def _delayed_update_plot(self):
-        """Обновление графика по таймеру"""
-        if not self.pending_update:
-            return
-
-        if not self.buffer_filled:
-            end_idx = self.current_position
-            start_idx = 0
-
-            if end_idx > self.timebase * HZ:
-                start_idx = end_idx - int(self.timebase * HZ)
-        else:
-            end_idx = len(self.ecg_buffer)
-            start_idx = end_idx - int(self.timebase * HZ)
-        visible_time = self.time_buffer[start_idx:end_idx]
-        visible_ecg = self.ecg_buffer[start_idx:end_idx]
-
-        # установка данных из буфера на дисплей
-        self.plot_ecg.setData(visible_time, visible_ecg)
-
-        # отображение по оси времени
-        if not self.buffer_filled and end_idx <= self.timebase * HZ:
-            self.plotWidget.setXRange(0, self.timebase, padding=0)
-        else:
-            current_time = visible_time[-1] if len(visible_time) > 0 else 0
-            self.plotWidget.setXRange(current_time - self.timebase, current_time, padding=0)
-
-        # отображение по оси напряжения
-        if len(visible_ecg) > 0:
-            data_min = visible_ecg.min()
-            data_max = visible_ecg.max()
-            if data_max > data_min:
-                padding = (data_max - data_min) * 0.05
-                self.plotWidget.setYRange(data_min - padding, data_max + padding)
-
-        self.plotWidget.replot()
-        self.pending_update = False
 
     async def stop_device(self):
         logger.debug("Stop device")
@@ -555,7 +260,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self._work = None
 
         try:
-            await self.device.stop()
+            await self.device.stop_acquisition()
         except Exception as exc:
             info = QMessageBox.information(
                 self, "Stop error",
@@ -564,24 +269,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             )
         finally:
 
-            if self.storage.is_recording:
-                self.storage.save()
-
-                if not self.buffer_filled:
-                    pos = self.time_buffer[self.current_position]
-                else:
-                    pos = self.time_buffer[-1]
-                self.add_marker(pos=pos, text="Stop recording")
-                self.change_recording()
-
             # activate and disable btn when stop device
-            self.pushButtonStop.setEnabled(False)
-            self.pushButtonStart.setEnabled(True)
+            self.device_control_pane.state_connection()
             # self.pushButtonTurnOff.setEnabled(True)
-            self.pushButtonRecording.setEnabled(False)
             self.pushButtonDisconnect.setEnabled(True)
-            # when stop device - activate mouse
-            # self.plotWidget.setMouseEnabled(x=True, y=True)
+
 
     async def lost_connection(self):
         """
@@ -591,7 +283,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         logger.info("Lost device connection.")
         self._running = False
         try:
-            await self.device.stop()
+            await self.device.stop_acquisition()
         except Exception as err:
             ...
 
@@ -600,33 +292,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         except Exception as err:
             logger.info(f"Возникла ошибка при сбросе соединения: {err}")
 
-        # save data in storage
-        if self.storage.is_recording:
-            self.storage.save()
-            if not self.buffer_filled:
-                pos = self.time_buffer[self.current_position]
-            else:
-                pos = self.time_buffer[-1]
-            self.add_marker(pos=pos, text="Stop recording")
-            self.change_recording()
 
         # disable button
-        self.pushButtonStop.setEnabled(False)
-        self.pushButtonStart.setEnabled(False)
-        self.pushButtonRecording.setEnabled(False)
-        # self.pushButtonSelectDirSave.setEnabled(False)
-        self.comboBoxFormat.setEnabled(False)
+        self.device_control_pane.state_disconnect()
 
-        # hide disconnet and hide connect
+        # hide disconnect and hide connect
         self.pushButtonDisconnect.hide()
         self.pushButtonConnect.show()
 
-        # when lost connection - activate mouse
-        # self.plotWidget.setMouseEnabled(x=True, y=True)
-
         # run scanner
         self.scanner.run(self.qt_loop)
-        self.checkBoxActivated.setEnabled(True)
+        self.device_control_pane.checkBoxActivated.setEnabled(True)
         # activate combobox
         self.comboBoxDevice.setEnabled(True)
 
@@ -637,61 +313,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         )
 
 
-    def reset(self) -> None:
-        """ reset data """
-        # self.plotWidget.clear()
-        # удаление значений температуры
-        for marker in self.marker_temp:
-            self.plotWidget.removeItem(marker)
-        self.marker_temp = []
-
-        self.widget_temp.reset()
-        self.reset_event()
-        self.reset_signal()
-
-    def reset_signal(self):
-        # data
-        self.max_timebase = 60
-        self.timebase = 30
-        self.dt = 1 / HZ
-        self.ecg_buffer = np.zeros(int(self.max_timebase * HZ))
-        self.time_buffer = np.arange(0, self.max_timebase, self.dt)
-        self.buffer_filled = False  # флаг заполнения буфера
-        self.current_position = 0  # текущая позиция для заполнения буфера
-        self.plot_ecg.setData(np.array([]), np.array([])) # clear signal
-
-    def reset_event(self):
-        for item in [self.scatter_activity, self.scatter_orientation, self.scatter_freefall]:
-            self.plotWidget.removeItem(item)
-
-        # scatter plot for activity, freefall, orientation
-        self.scatter_activity = pg.ScatterPlotItem(name="Activity", symbol='t', brush=pg.mkBrush(0, 255, 0, 180),
-                                                   size=10, )
-        # self.plotWidget.addItem(self.scatter_activity)
-        self.scatter_orientation = pg.ScatterPlotItem(name="Orientation", symbol="o", brush=pg.mkBrush(0, 0, 255, 180),
-                                                      size=10, )
-        # self.plotWidget.addItem(self.scatter_orientation)
-        self.scatter_freefall = pg.ScatterPlotItem(name="Freefall", symbol='s', brush=pg.mkBrush(255, 0, 0, 180),
-                                                   size=10, )
-        # self.plotWidget.addItem(self.scatter_freefall)
-        self.marker_temp = []
-
-    def add_marker(self, pos, text:str="event"):
-        """ Add vertical line and text on the plot."""
-        line = pg.InfiniteLine(
-            pos=pos,
-            angle=90,
-            pen=pg.mkPen('gray', width=1, style=QtCore.Qt.PenStyle.DashLine),
-            movable=False,
-            label=text,
-            labelOpts={'color': 'k', 'position': 0.1}
-        )
-        self.plotWidget.addItem(line)
-        self.marker_temp.append(line)
-
     def closeEvent(self, event):
         if self._running:
-            self.pushButtonStop.click()
+            self.device_control_pane.pushButtonStop.click()
         # stop scanner
         self.scanner.stop()
 

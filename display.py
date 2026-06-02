@@ -1,6 +1,10 @@
 import numpy as np
 import pyqtgraph as pg
+from PySide6 import QtCore
 from PySide6.QtGui import QFont
+from pyqtgraph import mkPen
+
+from device.constants import Pkt
 
 RED = pg.mkPen(color=(255, 0, 0), width=1.5)
 
@@ -137,3 +141,6 @@ class PlotWidgetEcg(pg.PlotWidget):
             if ev["event"] == "Freefall":
                 self.scatter_freefall.addPoints([{'pos': (ev["time"], y_min)}])
         self.setMouseEnabled(x=True, y=True)
+
+
+
