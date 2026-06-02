@@ -14,6 +14,7 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QComboBox, QFileDialog
 from bleak import BLEDevice
 
+from device.constants import Pkt
 from device.inrat import InRat
 from config import DATA_PATH
 from device.ui.config_dialog import DlgConfigDevice
@@ -22,7 +23,7 @@ from stream_displays import StreamAccelerationViewer, StreamSignalViewer
 from record_viewer import RecordViewer
 from scanner import BLEScannerWorker
 from utils.check_bluetooth import check_bluetooth_status
-from storage import Storage
+from storage import Storage, DataStorage
 from resources.main_window import Ui_MainWindow
 from widget import WaitingDialog
 
@@ -56,15 +57,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.storage = Storage(path_to_save=DATA_PATH, fs=HZ)
         self.scanner = BLEScannerWorker()
 
-        # setup plot
+        # графики отображения сигналов
         self.plot_signal = StreamSignalViewer()
         self.verticalLayoutDisplay.insertWidget(0, self.plot_signal)
-
         self.plot_acceleration = StreamAccelerationViewer()
         self.verticalLayoutDisplay.insertWidget(1, self.plot_acceleration)
 
-        font = QFont()
-        font.setPointSize(12)
+        # класс для сохранения данных с устройства
+        self.data_storage = DataStorage()
+        self.verticalLayout.insertWidget(6, self.data_storage.control_pane)
 
         # create scanner and run it
         self.scanner.run(self.qt_loop)
@@ -202,9 +203,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             await self.disconnect_device()
             return
 
-        await self.device.start_acquisition(signal_queue=self.ecg_queue,
-                                            event_queue=self.event_queue,
-                                            acceleration_queue=self.acceleration_queue)
+        await self.device.start_acquisition(signal_queue=self.ecg_queue,event_queue=self.event_queue, acceleration_queue=self.acceleration_queue)
+
+        # настройка параметров записи
+        self.data_storage.set_recording_params(sample_rate=self.device.sample_rate, samples_count=Pkt.SamplesCountEcg, frmt="EDF")
+        self.data_storage.start()
 
         # disable
         self.pushButtonDisconnect.setEnabled(False)
@@ -221,10 +224,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # вывод сигналов
             try:
                 ecg = self.ecg_queue.get_nowait()
+
             except asyncio.QueueEmpty:
                 ecg = None
             else:
                 self.plot_signal.set_data(ecg)
+                self.data_storage._input_queue.put(ecg)
                 self.ecg_queue.task_done()
 
             # # обработка событий
@@ -259,6 +264,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self._work.join(5.0)
             self._work = None
 
+        self.data_storage.stop()
         try:
             await self.device.stop_acquisition()
         except Exception as exc:

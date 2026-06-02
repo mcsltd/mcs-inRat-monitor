@@ -9,10 +9,12 @@ from threading import Thread
 import numpy as np
 import wfdb
 from PySide6.QtCore import QObject
+from PySide6.QtWidgets import QFrame
 
 from pyedflib import EdfWriter
 from typing import Optional
 
+from resources.frm_online_control_recording import Ui_FrmOnlineControlRecording
 
 logger = logging.getLogger(__name__)
 
@@ -208,6 +210,7 @@ class Storage:
 
 
 class DataStorage(QObject):
+    """ Класс для сохранения сигналов с устройства в форматы EDF/WFDB"""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -232,8 +235,17 @@ class DataStorage(QObject):
         self._running = False
         self._work: Thread | None = None
 
+        self._control_pane = FrmOnlineControlRecording()
+        self._control_pane.pushButtonStartRecording.clicked.connect(self._prepare_recording)
+        self._control_pane.pushButtonStopRecording.clicked.connect(self._close_recording)
+
+    @property
+    def control_pane(self):
+        return self._control_pane
+
     def start(self):
         """ запуск записи данных """
+        self._control_pane.set_enable()
         if not self._running:
             self._running = True
             self._work = Thread(target=self._worker_thread)
@@ -242,23 +254,28 @@ class DataStorage(QObject):
     def _worker_thread(self):
         """ Рабочий поток получает данные из входной очереди
             и помещает обработанные данные в выходную очередь """
+        logger.debug(f"Запуск рабочего потока для {DataStorage.__name__}")
         while self._running:
             # обработка очереди данных
             try:
                 data = self._input_queue.get(False)
                 self.process_input(data)
             except Exception as exc:
-                pass
+                ...
+            time.sleep(0.001)
 
     def stop(self):
         """ остановка записи данных """
+        logger.debug(f"Остановка рабочего потока для {DataStorage.__name__}")
+
         self._running = False
+        self._control_pane.set_disable()
         if self._work:
             self._work.join(5.0)
             self._work = None
 
     def set_recording_params(self, sample_rate: int, frmt: str, samples_count: int):
-        """ установка параметров записи"""
+        """ установка параметров записи """
         self._sample_rate = sample_rate
         self._format = frmt
         self._samples_count = samples_count
@@ -272,10 +289,15 @@ class DataStorage(QObject):
 
     def _prepare_recording(self):
         """ подготовка и запись данных """
+        logger.debug(f"Подготовка для начала записи {DataStorage.__name__}")
+
         self._recording = True
+        self._control_pane.pushButtonStopRecording.setEnabled(True)
+        self._control_pane.pushButtonStartRecording.setEnabled(False)
 
     def _close_recording(self):
         """ остановка записи"""
+        logger.debug(f"Остановка записи {DataStorage.__name__}")
         self._recording = False
 
         idx_start = 0
@@ -289,12 +311,17 @@ class DataStorage(QObject):
         if self._format == "EDF":
             self._save_to_edf(signal)
 
+        self._control_pane.pushButtonStartRecording.setEnabled(True)
+        self._control_pane.pushButtonStopRecording.setEnabled(False)
+
     def process_input(self, data: dict):
         """ сохранение данных в буфер
         # TODO: добавить обработку пропущенных семплов
         """
-        if not self._running:
+        if not self._recording:
             return data
+
+        logger.debug(f"Получены данные для сохранения в {DataStorage.__name__}: {data=}")
 
         sample = data["counter"]
         signal = data["signal"]
@@ -318,7 +345,7 @@ class DataStorage(QObject):
 
     def _save_to_edf(self, signal: np.ndarray):
         """ сохранение сигнала в edf файл """
-        writer = EdfWriter(n_channels=1, file_name="some_signal")
+        writer = EdfWriter(n_channels=1, file_name="signal.edf")
         signal = np.round(signal, decimals=6)
         margin = 0.15
 
@@ -360,3 +387,20 @@ class DataStorage(QObject):
         writer.setSignalHeader(0, channel_info)
         writer.writeSamples(signal[np.newaxis])
         writer.close()
+
+
+class FrmOnlineControlRecording(QFrame, Ui_FrmOnlineControlRecording):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setupUi(self)
+
+    def set_enable(self):
+        self.pushButtonStartRecording.setEnabled(True)
+        self.pushButtonStopRecording.setEnabled(False)
+        self.comboBoxFormat.setEnabled(True)
+
+    def set_disable(self):
+        self.pushButtonStartRecording.setEnabled(False)
+        self.pushButtonStopRecording.setEnabled(False)
+        self.comboBoxFormat.setEnabled(False)
