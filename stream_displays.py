@@ -6,6 +6,11 @@ from pyqtgraph import mkPen
 
 from device.constants import Pkt
 
+# ToDo: переписать на единый класс
+# ToDo: сделать адаптацию под выбранные настройки устройства
+# ToDo: сделать виджеты для контроля параметров отрисовки
+
+
 class StreamAccelerationViewer(pg.PlotWidget):
     """ класс для отображения сигналов в стриме"""
     def __init__(self, *args, **kwargs):

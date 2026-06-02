@@ -21,7 +21,13 @@ logger = logging.getLogger(__name__)
 
 class DataStorage(QObject):
 
-    """ Класс для сохранения сигналов с устройства в форматы EDF/WFDB"""
+    """ Класс для сохранения сигналов с устройства в форматы EDF/WFDB
+        # ToDo: определение типа сигнала для его записи при сохранении
+        # ToDo: возможность синхронной записи экг/ээг, акселерометра и событий
+        # ToDo: обновление параметров под выбранную частоту
+        # ToDo: сброс параметров при перезапуске модуля
+        # ToDo: добавления нескольких каналов в signal_buffer
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -32,7 +38,7 @@ class DataStorage(QObject):
         self._recording = False
 
         # параметры записи
-        self._format = None         # выбранный формат записи
+        self._format = "EDF"         # выбранный формат записи
         self._sample_rate = None    # частота записи
         self._samples_count = None  # количество отсчётов в семпле
         self._samples_written = 0    # количество записанных в буфер семплов
@@ -55,8 +61,9 @@ class DataStorage(QObject):
 
     def _set_format(self, type_format: str):
         """ установка формата сохранения сигнала """
-        logger.info(f"Выбран формат записи: {type_format}")
-        self._format = type_format
+        self._format = "EDF"
+        logger.info(f"Выбран формат записи: {self._format}")
+        # self._format = type_format
 
     @property
     def control_pane(self):
@@ -94,10 +101,9 @@ class DataStorage(QObject):
             self._work.join(5.0)
             self._work = None
 
-    def set_recording_params(self, sample_rate: int, frmt: str, samples_count: int, device_name: str):
+    def set_recording_params(self, sample_rate: int, samples_count: int, device_name: str):
         """ установка параметров записи """
         self._sample_rate = sample_rate
-        self._format = frmt
         self._samples_count = samples_count
         self._device_name = device_name
 

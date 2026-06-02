@@ -208,7 +208,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.data_storage.set_recording_params(
             sample_rate=self.device.sample_rate,
             samples_count=Pkt.SamplesCountEcg,
-            frmt="EDF",
             device_name=self.device.name
         )
         self.data_storage.start()
