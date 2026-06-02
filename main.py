@@ -22,7 +22,7 @@ from device.ui.control_pane import FrmControlPane
 from stream_displays import StreamAccelerationViewer, StreamSignalViewer
 from scanner import BLEScannerWorker
 from utils.check_bluetooth import check_bluetooth_status
-from storage import Storage, DataStorage
+from storage import DataStorage
 from resources.main_window import Ui_MainWindow
 from widget import WaitingDialog
 
@@ -205,7 +205,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         await self.device.start_acquisition(signal_queue=self.ecg_queue,event_queue=self.event_queue, acceleration_queue=self.acceleration_queue)
 
         # настройка параметров записи
-        self.data_storage.set_recording_params(sample_rate=self.device.sample_rate, samples_count=Pkt.SamplesCountEcg, frmt="EDF")
+        self.data_storage.set_recording_params(
+            sample_rate=self.device.sample_rate,
+            samples_count=Pkt.SamplesCountEcg,
+            frmt="EDF",
+            device_name=self.device.name
+        )
         self.data_storage.start()
 
         # disable
