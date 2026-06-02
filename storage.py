@@ -51,7 +51,12 @@ class DataStorage(QObject):
         self._control_pane = FrmOnlineControlRecording(self)
         self._control_pane.pushButtonStartRecording.clicked.connect(self._prepare_recording)
         self._control_pane.pushButtonStopRecording.clicked.connect(self._close_recording)
+        self._control_pane.comboBoxFormat.currentTextChanged.connect(self._set_format)
 
+    def _set_format(self, type_format: str):
+        """ установка формата сохранения сигнала """
+        logger.info(f"Выбран формат записи: {type_format}")
+        self._format = type_format
 
     @property
     def control_pane(self):
@@ -124,7 +129,7 @@ class DataStorage(QObject):
         signal = self._signal_buffer[idx_start:idx_finish]
 
         if self._format == "WFDB":
-            # self._save_to_wfdb(signal)
+            logger.error(f"Формат WFDB не поддерживается!")
             pass
 
         if self._format == "EDF":
@@ -224,6 +229,11 @@ class FrmOnlineControlRecording(QFrame, Ui_FrmOnlineControlRecording):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
         self.module = module
+
+        # установка формата
+        formats = ["EDF", "WFDB"]
+        for f in formats:
+            self.comboBoxFormat.addItem(f)
 
         self._timer = 0
         self.startTimer(1000)
