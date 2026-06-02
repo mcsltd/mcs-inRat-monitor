@@ -8,7 +8,7 @@ from threading import Thread
 
 import numpy as np
 import wfdb
-from PySide6.QtCore import QObject
+from PySide6.QtCore import QObject, QTimer
 from PySide6.QtWidgets import QFrame
 
 from pyedflib import EdfWriter
@@ -210,7 +210,9 @@ class Storage:
 
 
 class DataStorage(QObject):
+
     """ Класс для сохранения сигналов с устройства в форматы EDF/WFDB"""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -235,9 +237,10 @@ class DataStorage(QObject):
         self._running = False
         self._work: Thread | None = None
 
-        self._control_pane = FrmOnlineControlRecording()
+        self._control_pane = FrmOnlineControlRecording(self)
         self._control_pane.pushButtonStartRecording.clicked.connect(self._prepare_recording)
         self._control_pane.pushButtonStopRecording.clicked.connect(self._close_recording)
+
 
     @property
     def control_pane(self):
@@ -262,6 +265,7 @@ class DataStorage(QObject):
                 self.process_input(data)
             except Exception as exc:
                 ...
+
             time.sleep(0.001)
 
     def stop(self):
@@ -290,7 +294,6 @@ class DataStorage(QObject):
     def _prepare_recording(self):
         """ подготовка и запись данных """
         logger.debug(f"Подготовка для начала записи {DataStorage.__name__}")
-
         self._recording = True
         self._control_pane.pushButtonStopRecording.setEnabled(True)
         self._control_pane.pushButtonStartRecording.setEnabled(False)
@@ -389,11 +392,19 @@ class DataStorage(QObject):
         writer.close()
 
 
+def to_str_mmss(seconds) -> str:
+    str_mm_ss = f"{int(seconds // 60):02d}:{seconds % 60:02d}"
+    return str_mm_ss
+
 class FrmOnlineControlRecording(QFrame, Ui_FrmOnlineControlRecording):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, module, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
+        self.module = module
+
+        self._timer = 0
+        self.startTimer(1000)
 
     def set_enable(self):
         self.pushButtonStartRecording.setEnabled(True)
@@ -404,3 +415,10 @@ class FrmOnlineControlRecording(QFrame, Ui_FrmOnlineControlRecording):
         self.pushButtonStartRecording.setEnabled(False)
         self.pushButtonStopRecording.setEnabled(False)
         self.comboBoxFormat.setEnabled(False)
+
+    def timerEvent(self, event, /):
+        if self.module._recording:
+            self._timer += 1
+        else:
+            self._timer = 0
+        self.labelRecordingTime.setText(to_str_mmss(self._timer))

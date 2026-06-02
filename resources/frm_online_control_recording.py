@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'frm_online_control_recordingiXneTI.ui'
+## Form generated from reading UI file 'frm_online_control_recordingODigDi.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -53,6 +53,7 @@ class Ui_FrmOnlineControlRecording(object):
 
         self.comboBoxFormat = QComboBox(self.groupBox)
         self.comboBoxFormat.setObjectName(u"comboBoxFormat")
+        self.comboBoxFormat.setEnabled(False)
         sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
         sizePolicy1.setHorizontalStretch(0)
         sizePolicy1.setVerticalStretch(0)
@@ -68,12 +69,22 @@ class Ui_FrmOnlineControlRecording(object):
 
         self.formLayout.setWidget(1, QFormLayout.ItemRole.LabelRole, self.labelTime)
 
-        self.labelRTValue = QLabel(self.groupBox)
-        self.labelRTValue.setObjectName(u"labelRTValue")
-        self.labelRTValue.setFont(font)
-        self.labelRTValue.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.horizontalLayout_2 = QHBoxLayout()
+        self.horizontalLayout_2.setSpacing(0)
+        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
+        self.labelRecordingTime = QLabel(self.groupBox)
+        self.labelRecordingTime.setObjectName(u"labelRecordingTime")
+        self.labelRecordingTime.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
 
-        self.formLayout.setWidget(1, QFormLayout.ItemRole.FieldRole, self.labelRTValue)
+        self.horizontalLayout_2.addWidget(self.labelRecordingTime)
+
+        self.labelMaxRecordingTime = QLabel(self.groupBox)
+        self.labelMaxRecordingTime.setObjectName(u"labelMaxRecordingTime")
+
+        self.horizontalLayout_2.addWidget(self.labelMaxRecordingTime)
+
+
+        self.formLayout.setLayout(1, QFormLayout.ItemRole.FieldRole, self.horizontalLayout_2)
 
 
         self.verticalLayout.addLayout(self.formLayout)
@@ -114,7 +125,8 @@ class Ui_FrmOnlineControlRecording(object):
         self.groupBox.setTitle(QCoreApplication.translate("FrmOnlineControlRecording", u"\u0417\u0430\u043f\u0438\u0441\u044c \u0441\u0438\u0433\u043d\u0430\u043b\u0430 \u042d\u041a\u0413", None))
         self.labelFormat.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"\u0424\u043e\u0440\u043c\u0430\u0442 \u0437\u0430\u043f\u0438\u0441\u0438", None))
         self.labelTime.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"\u0412\u0440\u0435\u043c\u044f \u0437\u0430\u043f\u0438\u0441\u0438", None))
-        self.labelRTValue.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"00:00:00", None))
+        self.labelRecordingTime.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"00:00", None))
+        self.labelMaxRecordingTime.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"/20:00", None))
         self.pushButtonStartRecording.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"\u041d\u0430\u0447\u0430\u0442\u044c \u0437\u0430\u043f\u0438\u0441\u044c", None))
         self.pushButtonStopRecording.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"\u041e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u0437\u0430\u043f\u0438\u0441\u044c", None))
     # retranslateUi

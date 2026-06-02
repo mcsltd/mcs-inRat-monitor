@@ -20,7 +20,6 @@ from config import DATA_PATH
 from device.ui.config_dialog import DlgConfigDevice
 from device.ui.control_pane import FrmControlPane
 from stream_displays import StreamAccelerationViewer, StreamSignalViewer
-from record_viewer import RecordViewer
 from scanner import BLEScannerWorker
 from utils.check_bluetooth import check_bluetooth_status
 from storage import Storage, DataStorage
@@ -54,7 +53,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # main classes
         self.device: Optional[InRat] = None
-        self.storage = Storage(path_to_save=DATA_PATH, fs=HZ)
+        # self.storage = Storage(path_to_save=DATA_PATH, fs=HZ)
         self.scanner = BLEScannerWorker()
 
         # графики отображения сигналов
@@ -132,8 +131,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     ...
                 attempt_connection += 1
 
-            # add in storage device name (for write additional info in edf)
-            self.storage.set_device_name(self.device.name)
+            # # add in storage device name (for write additional info in edf)
+            # self.storage.set_device_name(self.device.name)
             self.device_control_pane.state_connection()
 
         except Exception as exc:
