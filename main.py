@@ -153,13 +153,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.device_control_pane.setEnabled(True)
 
                 # проверка на активировано ли устройство
-                # _ = await self.device.get_status()
                 if self.device.is_activated:
                     self.device_control_pane.checkBoxActivated.setChecked(True)
-
-                # получение данных об устройстве
-                # device_info = await self.device.get_device_information()
-
 
                 self.device_control_pane.state_connection()
 
@@ -212,10 +207,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                                             acceleration_queue=self.acceleration_queue)
 
         # disable
-        # self.pushButtonConnect.setEnabled(False)
         self.pushButtonDisconnect.setEnabled(False)
         self.comboBoxDevice.setEnabled(False)
-        # self.pushButtonTurnOff.setEnabled(False)
         self.device_control_pane.state_acquisition()
 
         self._running = True
@@ -280,8 +273,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.device_control_pane.state_connection()
             # self.pushButtonTurnOff.setEnabled(True)
             self.pushButtonDisconnect.setEnabled(True)
-            # when stop device - activate mouse
-            # self.plotWidget.setMouseEnabled(x=True, y=True)
+
 
     async def lost_connection(self):
         """
@@ -307,9 +299,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # hide disconnect and hide connect
         self.pushButtonDisconnect.hide()
         self.pushButtonConnect.show()
-
-        # when lost connection - activate mouse
-        # self.plotWidget.setMouseEnabled(x=True, y=True)
 
         # run scanner
         self.scanner.run(self.qt_loop)
