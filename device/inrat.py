@@ -244,8 +244,6 @@ class InRat:
 
         async def acceleration_handler(sender, data):
 
-            print(f"{len(data)=}")
-
             cnt, accel = decode_acceleration(data, self._enabled_channels)
             await acceleration_queue.put({"counter":cnt, "acceleration":accel})
 

@@ -2,138 +2,188 @@ import csv
 import datetime
 import logging
 import os.path
+import time
+from queue import Queue
+from threading import Thread
+
 import numpy as np
 import wfdb
+from PySide6.QtCore import QObject, QTimer
+from PySide6.QtWidgets import QFrame
 
 from pyedflib import EdfWriter
 from typing import Optional
 
+from resources.frm_online_control_recording import Ui_FrmOnlineControlRecording
 
 logger = logging.getLogger(__name__)
 
-class Storage:
-    def __init__(self, path_to_save: str, fs: int):
-        self.ecg = np.array([])
-        self.buffer_temp = []
-        self.buffer_activity = []
 
-        self.is_recording = None
+class DataStorage(QObject):
 
-        self.path_to_save = os.path.abspath(path_to_save)
-        self.fs = fs
+    """ Класс для сохранения сигналов с устройства в форматы EDF/WFDB
+        # ToDo: определение типа сигнала для его записи при сохранении
+        # ToDo: возможность синхронной записи экг/ээг, акселерометра и событий
+        # ToDo: обновление параметров под выбранную частоту
+        # ToDo: сброс параметров при перезапуске модуля
+        # ToDo: добавления нескольких каналов в signal_buffer
+    """
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._input_queue = Queue()
+        self._signal_buffer = np.zeros(144_000_000, dtype=np.float32) # 20 минут на 2000 Гц на одном канале
+
+        self._recording = False
+
+        # параметры записи
+        self._format = "EDF"         # выбранный формат записи
+        self._sample_rate = None    # частота записи
+        self._samples_count = None  # количество отсчётов в семпле
+        self._samples_written = 0    # количество записанных в буфер семплов
+        self._start_sample = None   # начальный семпл записи
+        self._current_sample = None
+        self._recording_start = None
         self._device_name = None
-        self._format = "WFDB" # default format
-        self.start_time: Optional[datetime.datetime] = None
 
-    def set_format(self, frmt):
+        # путь и названия файлов записи
+        self._filename = None
+        self._writedir = None
+
+        self._running = False
+        self._work: Thread | None = None
+
+        self._control_pane = FrmOnlineControlRecording(self)
+        self._control_pane.pushButtonStartRecording.clicked.connect(self._prepare_recording)
+        self._control_pane.pushButtonStopRecording.clicked.connect(self._close_recording)
+        self._control_pane.comboBoxFormat.currentTextChanged.connect(self._set_format)
+
+    def _set_format(self, type_format: str):
+        """ установка формата сохранения сигнала """
+        self._format = "EDF"
+        logger.info(f"Выбран формат записи: {self._format}")
+        # self._format = type_format
+
+    @property
+    def control_pane(self):
+        return self._control_pane
+
+    def start(self):
+        """ запуск записи данных """
+        self._control_pane.set_enable()
+        if not self._running:
+            self._running = True
+            self._work = Thread(target=self._worker_thread)
+            self._work.start()
+
+    def _worker_thread(self):
+        """ Рабочий поток получает данные из входной очереди
+            и помещает обработанные данные в выходную очередь """
+        logger.debug(f"Запуск рабочего потока для {DataStorage.__name__}")
+        while self._running:
+            # обработка очереди данных
+            try:
+                data = self._input_queue.get(False)
+                self.process_input(data)
+            except Exception as exc:
+                ...
+
+            time.sleep(0.001)
+
+    def stop(self):
+        """ остановка записи данных """
+        logger.debug(f"Остановка рабочего потока для {DataStorage.__name__}")
+
+        self._running = False
+        self._control_pane.set_disable()
+        if self._work:
+            self._work.join(5.0)
+            self._work = None
+
+    def set_recording_params(self, sample_rate: int, samples_count: int, device_name: str):
+        """ установка параметров записи """
+        self._sample_rate = sample_rate
+        self._samples_count = samples_count
+        self._device_name = device_name
+
+    def process_event(self, event):
+        """ обработка событий """
+        if event == "StartRecording":
+            self._prepare_recording()
+        if event == "StopRecording":
+            self._close_recording()
+
+    def _prepare_recording(self):
+        """ подготовка и запись данных """
+        logger.debug(f"Подготовка для начала записи {DataStorage.__name__}")
+        self._recording = True
+        self._control_pane.pushButtonStopRecording.setEnabled(True)
+        self._control_pane.pushButtonStartRecording.setEnabled(False)
+
+        now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        self._writedir = f"./data/{str(self._device_name)}/rec_{now}/"
+        self._filename = "ecg"
+
+    def _close_recording(self):
+        """ остановка записи"""
+        logger.debug(f"Остановка записи {DataStorage.__name__}")
+        self._recording = False
+
+        idx_start = 0
+        idx_finish = self._samples_written * self._samples_count
+        signal = self._signal_buffer[idx_start:idx_finish]
+
+        if self._format == "WFDB":
+            logger.error(f"Формат WFDB не поддерживается!")
+            pass
+
+        if self._format == "EDF":
+            os.makedirs(self._writedir, exist_ok=True)
+            self._save_to_edf(signal=signal, write_dir=self._writedir, filename=self._filename)
+
+        self._control_pane.pushButtonStartRecording.setEnabled(True)
+        self._control_pane.pushButtonStopRecording.setEnabled(False)
+
+    def process_input(self, data: dict):
+        """ сохранение данных в буфер
+        # TODO: добавить обработку пропущенных семплов
         """
-        Change format save file.
-        :param frmt: str - name of select format
-        """
-        logger.debug(f"Change format: {self._format} -> {frmt}")
-        self._format = frmt
+        if not self._recording:
+            return data
 
-    def set_save_dir(self, path: str):
-        """ Save record in save dir. Raise error if dir is not exists. """
-        if os.path.isdir(path):
-            self.path_to_save = path
-        else:
-            raise ValueError("Dir is not exists!")
+        logger.debug(f"Получены данные для сохранения в {DataStorage.__name__}: {data=}")
 
-    def set_device_name(self, name):
-        self._device_name = name
+        sample = data["counter"]
+        signal = data["signal"]
 
-    def get_file_name(self):
-        str_st: str = str(self.start_time.date()) + "_" + str(self.start_time.time().replace(microsecond=0))
-        for _ in range(str_st.count(":")): str_st = str_st.replace(":", "-")
+        if not self._start_sample:
+            self._start_sample = sample
+            self._recording_start = time.time()
 
-        dur = int(self.ecg.shape[0] / self.fs)
-        filename = f"{str_st}_dur-{dur}"
-        return filename
+        idx_start = (sample - self._start_sample) * self._samples_count
+        idx_finish = (sample - self._start_sample) * self._samples_count + len(signal)
 
-    def save(self):
-        """ Save in select format """
-        logger.debug(f"ECG buffer size: {self.ecg.shape}")
+        # дошли до конца буфера?
+        if idx_finish >= len(self._signal_buffer):
+            self._close_recording()
+            return data
 
-        if self.ecg.shape[0] == 0:
-            return
+        self._signal_buffer[idx_start:idx_finish] = signal
+        self._samples_written += 1
 
-        # write_dir = f"{self.path_to_save}\\{self._device_name}\\{self.start_time.date()}\\{self._format.lower()}"
-        # write_dir = f"{self.path_to_save}\\{self._device_name}\\{self._format.lower()}\\"
+        return data
 
-        filename = self.get_file_name()
-        write_dir = f"{self.path_to_save}\\{self._device_name}\\{filename}"
-
-        # create dir for saving files with selected format
-        os.makedirs(write_dir, exist_ok=True)
-
-        try:
-            if self._format == "WFDB":
-                filename = "ecg"
-                self._to_wfdb(record_name=filename, write_dir=write_dir)
-        except Exception as err:
-            logger.error(f"Ошибка сохранения в WFDB: {err=}")
-
-        try:
-            if self._format == "EDF":
-                filename = "ecg"
-                self._to_edf(f"{write_dir}\\{filename}.edf")
-        except Exception as err:
-            logger.error(f"Ошибка сохранения в EDF: {err=}")
-
-        try:
-            if len(self.buffer_temp) != 0:
-                filename_csv = f"{write_dir}\\temperature.csv"
-                self.to_csv(data=self.buffer_temp, filednames=list(self.buffer_temp[0].keys()), filepath=filename_csv)
-        except Exception as err:
-            logger.error(f"Ошибка сохранения температуры в CSV: {err=}")
-
-        try:
-            if len(self.buffer_activity) != 0:
-                filename_csv = f"{write_dir}\\activity.csv"
-                self.to_csv(data=self.buffer_activity, filednames=list(self.buffer_activity[0].keys()), filepath=filename_csv)
-        except Exception as err:
-            logger.error(f"Ошибка сохранения активности в CSV: {err=}")
-
-        self.ecg = np.array([])
-        self.buffer_temp = []
-        self.buffer_activity = []
-        self.start_time = None
-        self.is_recording = False
-
-
-    def _to_wfdb(
-            self, record_name: str, write_dir: str, sig_name:list[str]=["ECG"], units: list[str] = ["V"],
-    ):
-        """
-        Save data in wfdb format.
-        """
-        logger.debug("Save ecg in WFDB format.")
-        wfdb.io.wrsamp(
-            record_name=record_name,
-            fs=self.fs, units=units, p_signal=self.ecg[np.newaxis].T,
-            sig_name=sig_name, write_dir=write_dir, base_datetime=self.start_time
-        )
-
-    def _to_edf(
-            self,
-            filename: str,
-            units: str = "V",
-            sig_name: str = "ECG",
-    ):
-        """
-        Save data in edf format.
-        """
-        logger.debug("Save ecg in EDF format.")
-        writer = EdfWriter(n_channels=1, file_name=filename)
-        self.ecg = np.round(self.ecg, decimals=6)
-
+    def _save_to_edf(self, signal: np.ndarray, write_dir: str, filename: str):
+        """ сохранение сигнала в edf файл """
+        path_to_save = f"{write_dir}/{filename}.edf"
+        writer = EdfWriter(n_channels=1, file_name=path_to_save)
+        signal = np.round(signal, decimals=6)
         margin = 0.15
 
         # Проверяем, есть ли ненулевой сигнал
-        signal_max = np.max(self.ecg)
-        signal_min = np.min(self.ecg)
+        signal_max = np.max(signal)
+        signal_min = np.min(signal)
 
         # Если сигнал нулевой или все значения близки к нулю
         if np.allclose(signal_max, 0.0) and np.allclose(signal_min, 0.0):
@@ -152,16 +202,14 @@ class Storage:
             else:
                 physical_min = np.round(signal_min * (1 + margin), decimals=3)
 
-        # Дополнительная проверка на равенство min и max
         if np.allclose(physical_max, physical_min):
-            # Расширяем диапазон
             physical_max = physical_max + 1.0
             physical_min = physical_min - 1.0
 
         channel_info = {
-            'label': sig_name,
-            'dimension': units,
-            'sample_frequency': self.fs,
+            'label': "signal",
+            'dimension': "V",
+            'sample_frequency': self._sample_rate,
             'physical_max': physical_max,
             'physical_min': physical_min,
             'digital_max': 32767,
@@ -169,33 +217,46 @@ class Storage:
         }
 
         writer.setSignalHeader(0, channel_info)
-        writer.setEquipment("None" if self._device_name is None else self._device_name)
-        writer.writeSamples(self.ecg[np.newaxis])
+        writer.writeSamples(signal[np.newaxis])
         writer.close()
 
-    def __call__(self, ecg):
-        if self.ecg.shape[0] == 0:
-            self.start_time = datetime.datetime.now()
-        self.ecg = np.append(self.ecg, ecg)
 
-    def process_temperature(self, ev_temp):
-        try:
-            self.buffer_temp.append({"time_sec": int(ev_temp.counter / self.fs), "temp_celsius": round(ev_temp.data / 1000, 1)})
-        except Exception as err:
-            logger.error(f"Ошибка добавления в буфер температуры: {err}")
+def to_str_mmss(seconds) -> str:
+    str_mm_ss = f"{int(seconds // 60):02d}:{seconds % 60:02d}"
+    return str_mm_ss
 
-    def process_activity(self, ev_activity):
-        try:
-            self.buffer_activity.append({"time_sec": ev_activity.counter / self.fs, "description": ev_activity.type})
-        except Exception as err:
-            logger.error(f"Ошибка добавления в буфер активности: {err}")
+def to_str_hhmmss(seconds) -> str:
+    str_mm_ss = f"{int(seconds // 60):02d}:{seconds % 60:02d}"
+    return str_mm_ss
 
-    def to_csv(self, data: list[dict], filednames: list[str], filepath: str) -> None:
-        try:
-            with open(filepath, "w", newline='', encoding='utf-8') as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames=filednames)
-                writer.writeheader()
-                writer.writerows(data)
-            logger.info(f"Данные успешно сохранены в {filepath}")
-        except Exception as err:
-            logger.info(f"Возникла ошибка при сохранении в {filepath}: {err}")
+class FrmOnlineControlRecording(QFrame, Ui_FrmOnlineControlRecording):
+
+    def __init__(self, module, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setupUi(self)
+        self.module = module
+
+        # установка формата
+        formats = ["EDF", "WFDB"]
+        for f in formats:
+            self.comboBoxFormat.addItem(f)
+
+        self._timer = 0
+        self.startTimer(1000)
+
+    def set_enable(self):
+        self.pushButtonStartRecording.setEnabled(True)
+        self.pushButtonStopRecording.setEnabled(False)
+        self.comboBoxFormat.setEnabled(True)
+
+    def set_disable(self):
+        self.pushButtonStartRecording.setEnabled(False)
+        self.pushButtonStopRecording.setEnabled(False)
+        self.comboBoxFormat.setEnabled(False)
+
+    def timerEvent(self, event, /):
+        if self.module._recording:
+            self._timer += 1
+        else:
+            self._timer = 0
+        self.labelRecordingTime.setText(to_str_mmss(self._timer))
