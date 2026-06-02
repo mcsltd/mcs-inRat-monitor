@@ -2,6 +2,7 @@ import csv
 import datetime
 import logging
 import os.path
+import time
 from queue import Queue
 from threading import Thread
 
@@ -211,6 +212,22 @@ class DataStorage(QObject):
         super().__init__(*args, **kwargs)
 
         self._input_queue = Queue()
+        self._signal_buffer = np.zeros(144_000_000, dtype=np.float32) # 20 минут на максимальной частоте
+
+        self._recording = False
+
+        # параметры записи
+        self._format = None         # выбранный формат записи
+        self._sample_rate = None    # частота записи
+        self._samples_count = None  # количество отсчётов в семпле
+        self._samples_written = 0    # количество записанных в буфер семплов
+        self._start_sample = None   # начальный семпл записи
+        self._current_sample = None
+        self._recording_start = None
+
+        # путь и названия файлов записи
+        self._file_name = None
+        self._write_dir = None
 
         self._running = False
         self._work: Thread | None = None
@@ -223,27 +240,123 @@ class DataStorage(QObject):
             self._work.start()
 
     def _worker_thread(self):
+        """ Рабочий поток получает данные из входной очереди
+            и помещает обработанные данные в выходную очередь """
         while self._running:
             # обработка очереди данных
             try:
                 data = self._input_queue.get(False)
-                # self.process_input(data)
+                self.process_input(data)
             except Exception as exc:
                 pass
-
-            try:
-                # data = self.process_output()
-                pass
-            except Exception as exc:
-                pass
-                data = None
 
     def stop(self):
+        """ остановка записи данных """
         self._running = False
         if self._work:
             self._work.join(5.0)
             self._work = None
-        # todo: self.process_stop()
 
+    def set_recording_params(self, sample_rate: int, frmt: str, samples_count: int):
+        """ установка параметров записи"""
+        self._sample_rate = sample_rate
+        self._format = frmt
+        self._samples_count = samples_count
 
+    def process_event(self, event):
+        """ обработка событий """
+        if event == "StartRecording":
+            self._prepare_recording()
+        if event == "StopRecording":
+            self._close_recording()
 
+    def _prepare_recording(self):
+        """ подготовка и запись данных """
+        self._recording = True
+
+    def _close_recording(self):
+        """ остановка записи"""
+        self._recording = False
+
+        idx_start = 0
+        idx_finish = self._samples_written * self._samples_count
+        signal = self._signal_buffer[idx_start:idx_finish]
+
+        if self._format == "WFDB":
+            # self._save_to_wfdb(signal)
+            pass
+
+        if self._format == "EDF":
+            self._save_to_edf(signal)
+
+    def process_input(self, data: dict):
+        """ сохранение данных в буфер
+        # TODO: добавить обработку пропущенных семплов
+        """
+        if not self._running:
+            return data
+
+        sample = data["counter"]
+        signal = data["signal"]
+
+        if not self._start_sample:
+            self._start_sample = sample
+            self._recording_start = time.time()
+
+        idx_start = (sample - self._start_sample) * self._samples_count
+        idx_finish = (sample - self._start_sample) * self._samples_count + len(signal)
+
+        # дошли до конца буфера?
+        if idx_finish >= len(self._signal_buffer):
+            self._close_recording()
+            return data
+
+        self._signal_buffer[idx_start:idx_finish] = signal
+        self._samples_written += 1
+
+        return data
+
+    def _save_to_edf(self, signal: np.ndarray):
+        """ сохранение сигнала в edf файл """
+        writer = EdfWriter(n_channels=1, file_name="some_signal")
+        signal = np.round(signal, decimals=6)
+        margin = 0.15
+
+        # Проверяем, есть ли ненулевой сигнал
+        signal_max = np.max(signal)
+        signal_min = np.min(signal)
+
+        # Если сигнал нулевой или все значения близки к нулю
+        if np.allclose(signal_max, 0.0) and np.allclose(signal_min, 0.0):
+            # Устанавливаем небольшой ненулевой диапазон
+            physical_max = 1.0  # или другое подходящее значение
+            physical_min = -1.0
+        else:
+            # Обрабатываем нормальный случай
+            if signal_max > 0:
+                physical_max = np.round(signal_max * (1 + margin), decimals=3)
+            else:
+                physical_max = np.round(signal_max * (1 - margin), decimals=3)
+
+            if signal_min > 0:
+                physical_min = np.round(signal_min * (1 - margin), decimals=3)
+            else:
+                physical_min = np.round(signal_min * (1 + margin), decimals=3)
+
+        if np.allclose(physical_max, physical_min):
+            physical_max = physical_max + 1.0
+            physical_min = physical_min - 1.0
+
+        channel_info = {
+            'label': "signal",
+            'dimension': "V",
+            'sample_frequency': self._sample_rate,
+            'physical_max': physical_max,
+            'physical_min': physical_min,
+            'digital_max': 32767,
+            'digital_min': -32768,
+        }
+
+        writer.setSignalHeader(0, channel_info)
+        writer.writeSamples(signal[np.newaxis])
+        writer.close()
