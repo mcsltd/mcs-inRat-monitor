@@ -60,10 +60,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # self.plot_signal = StreamSignalViewer()
         # self.verticalLayoutDisplay.insertWidget(0, self.plot_signal)
 
-        self.plot_acceleration = StreamViewer()
+        self.plot_acceleration = StreamViewer(left_label="Акселерометр", bottom_label="время")
         self.verticalLayoutDisplay.insertWidget(1, self.plot_acceleration)
 
-        self.plot_signal = StreamViewer()
+        self.plot_signal = StreamViewer(left_label="ЭКГ", bottom_label="время")
         self.verticalLayoutDisplay.insertWidget(0, self.plot_signal)
 
         # класс для сохранения данных с устройства
@@ -215,8 +215,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             device_name=self.device.name
         )
 
-        self.plot_signal.update_params(channels=1, counter_per_sample=Pkt.SamplesCountEcg, sample_rate=self.device.sample_rate)
-        self.plot_acceleration.update_params(channels=3, counter_per_sample=Pkt.SamplesCountAcc, sample_rate=100)
+        # настройка параметров для отображения графиков
+        self.plot_signal.update_params(channels=1, counter_per_sample=Pkt.SamplesCountEcg, sample_rate=self.device.sample_rate,type_signal="ЭКГ")
+        self.plot_acceleration.update_params(channels=3, counter_per_sample=Pkt.SamplesCountAcc, sample_rate=100, type_signal="Акселерометр")
+
         self.data_storage.start()
 
         # disable

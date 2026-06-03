@@ -279,7 +279,13 @@ class StreamSignalViewer(pg.PlotWidget):
 
 class StreamViewer(pg.PlotWidget):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(
+            self,
+            left_label: str | None = None,
+            bottom_label: str | None = None,
+            *args,
+            **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self.setBackground((64, 64, 64))
         self.setDisabled(True)
@@ -298,26 +304,48 @@ class StreamViewer(pg.PlotWidget):
         self.traces: list = []
         self.update_display: bool = False
 
+        pen = mkPen("w")
+        font = QFont("Arial", 9)
+
+        self.setLabel("left", left_label, color="white")
+        self.setLabel("bottom", bottom_label, color="white")
+        for ax in ["bottom", "left"]:
+            self.getAxis(ax).label.setFont(font)
+            self.getAxis(ax).setPen(pen)
+            self.getAxis(ax).setTickPen(pen)
+            self.getAxis(ax).setTextPen(pen)
+            self.getAxis(ax).setTickFont(font)
+
         self.startTimer(16)
 
-    def update_params(self, channels: int, counter_per_sample: int, sample_rate: int):
+    def update_params(self, channels: int, counter_per_sample: int, sample_rate: int, type_signal: str | None = None):
         """ установка параметров для начала отображения сигналов """
         self._counter_per_sample = counter_per_sample
         self._channels_count = channels
         self._sample_rate = sample_rate
 
-        self._signal_buffer = np.zeros((self._channels_count, self._sample_rate * self._max_timebase), dtype=np.float32)
-        self._arrange_traces()
+        pens = []
+        if type_signal == "ЭКГ" or type_signal == "ЭЭГ":
+            pens.append(mkPen(color=(255, 255, 0)))
+        elif type_signal == "Акселерометр":
+            pens.extend([mkPen(color=(255, 0, 0)), mkPen(color=(0, 255, 0)), mkPen(color=(173, 216, 230))])
 
-    def _arrange_traces(self):
+        self._signal_buffer = np.zeros((self._channels_count, self._sample_rate * self._max_timebase), dtype=np.float32)
+        self._arrange_traces(pens)
+
+    def _arrange_traces(self, pens: list):
         """ настройка объектов отображения сигнала под новое количество каналов """
         # удаление старых графиков
         for ch in self.traces:
             self.removeItem(ch)
         self.traces = []
 
+        pen = None
         for ch in range(self._channels_count):
-            self.traces.append(self.plot())
+            if len(pens) == self._channels_count:
+                pen = pens[ch]
+
+            self.traces.append(self.plot(pen=pen))
 
     def process_input(self, data: dict):
         """ обработка входящего сигнала и добавление в буфер """
