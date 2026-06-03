@@ -6,7 +6,7 @@ from pyqtgraph import mkPen
 
 from device.constants import Pkt
 
-# ToDo: переписать на единый класс
+# ToDo: переписать на единый класс (?)
 # ToDo: сделать адаптацию под выбранные настройки устройства
 # ToDo: сделать виджеты для контроля параметров отрисовки
 
@@ -275,3 +275,89 @@ class StreamSignalViewer(pg.PlotWidget):
         self.time_buffer = np.arange(0, self.max_timebase, self.dt)
         self.buffer_filled = False  # флаг заполнения буфера
         self.current_position = 0  # текущая позиция для заполнения буфера
+
+
+class StreamViewer(pg.PlotWidget):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setBackground((64, 64, 64))
+        self.setDisabled(True)
+
+        self._signal_buffer: np.ndarray | None = None
+        self._buffer_filled = False  # флаг заполнения буфера
+        self.current_position = 0  # текущая позиция для заполнения буфера
+        self._channels_count: int | None = None
+        self._counter_per_sample: int | None = None
+        self._sample_rate: int | None = None
+
+        self._timebase: int | None = 10
+        self._max_timebase: int | None = 60
+
+        # объекты отображения сигналов len(traces) = _channels_count
+        self.traces: list = []
+        self.update_display: bool = False
+
+        self.startTimer(16)
+
+    def update_params(self, channels: int, counter_per_sample: int, sample_rate: int):
+        """ установка параметров для начала отображения сигналов """
+        self._counter_per_sample = counter_per_sample
+        self._channels_count = channels
+        self._sample_rate = sample_rate
+
+        self._signal_buffer = np.zeros((self._channels_count, self._sample_rate * self._max_timebase), dtype=np.float32)
+        self._arrange_traces()
+
+    def _arrange_traces(self):
+        """ настройка объектов отображения сигнала под новое количество каналов """
+        # удаление старых графиков
+        for ch in self.traces:
+            self.removeItem(ch)
+        self.traces = []
+
+        for ch in range(self._channels_count):
+            self.traces.append(self.plot())
+
+    def process_input(self, data: dict):
+        """ обработка входящего сигнала и добавление в буфер """
+        current_sample, signal = data["counter"], data["signal"]
+        signal = signal[np.newaxis] # .shape = (1,32) for ecg/eeg
+
+        # todo: добавить проверку сигнала на соответствие channels_count, count_per_samples
+        if not self._buffer_filled:
+            if self.current_position + self._counter_per_sample < self._signal_buffer.shape[1]:
+
+                self._signal_buffer[:, self.current_position: self.current_position + self._counter_per_sample] = signal
+                self.current_position += self._counter_per_sample
+            else:
+                offset = self._signal_buffer.shape[1] - self.current_position
+                self._signal_buffer[:, self.current_position] = signal[:, :offset]
+                signal = signal[:, offset:]
+                self._buffer_filled = True
+
+        if self._buffer_filled and signal.shape[1] != 0:
+            self._signal_buffer = np.roll(self._signal_buffer, -len(signal))
+            self._signal_buffer[: -signal.shape[1]:] = signal
+
+        self.update_display = True
+
+    def timerEvent(self, event, /):
+        """ событие отрисовки графиков """
+        if not self.update_display:
+            return
+
+        if not self._buffer_filled:
+            end_idx = self.current_position
+            start_idx = 0
+            if end_idx > self._timebase * self._sample_rate:
+                start_idx = end_idx - int(self._timebase * self._sample_rate)
+        else:
+            end_idx = self._signal_buffer.shape[1]
+            start_idx = end_idx - int(self._timebase * self._sample_rate)
+
+        for ch in range(self._channels_count):
+            self.traces[ch].setData(self._signal_buffer[ch, start_idx: end_idx])
+
+        self.update_display = False
+
