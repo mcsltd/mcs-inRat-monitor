@@ -291,6 +291,7 @@ class StreamViewer(pg.PlotWidget):
         self.setDisabled(True)
 
         self._signal_buffer: np.ndarray | None = None
+        self._time_buffer: np.ndarray | None = None
         self._buffer_filled = False  # флаг заполнения буфера
         self.current_position = 0  # текущая позиция для заполнения буфера
         self._channels_count: int | None = None
@@ -331,6 +332,8 @@ class StreamViewer(pg.PlotWidget):
             pens.extend([mkPen(color=(255, 0, 0)), mkPen(color=(0, 255, 0)), mkPen(color=(173, 216, 230))])
 
         self._signal_buffer = np.zeros((self._channels_count, self._sample_rate * self._max_timebase), dtype=np.float32)
+        self._time_buffer = np.arange(0.0, self._max_timebase, 1 / self._sample_rate)
+
         self._arrange_traces(pens)
 
     def _arrange_traces(self, pens: list):
@@ -367,6 +370,7 @@ class StreamViewer(pg.PlotWidget):
         if self._buffer_filled and signal.shape[1] != 0:
             self._signal_buffer = np.roll(self._signal_buffer, -len(signal))
             self._signal_buffer[: -signal.shape[1]:] = signal
+            self.time_buffer += signal.shape[1] * (1 / self._sample_rate)
 
         self.update_display = True
 
@@ -385,7 +389,7 @@ class StreamViewer(pg.PlotWidget):
             start_idx = end_idx - int(self._timebase * self._sample_rate)
 
         for ch in range(self._channels_count):
-            self.traces[ch].setData(self._signal_buffer[ch, start_idx: end_idx])
+            self.traces[ch].setData(self._time_buffer[start_idx: end_idx], self._signal_buffer[ch, start_idx: end_idx])
 
         self.update_display = False
 
