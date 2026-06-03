@@ -73,8 +73,8 @@ class StreamAccelerationViewer(pg.PlotWidget):
         # вставка данных в заполненный буфер
         if self.buffer_filled and acceleration.shape[1] != 0:
             self._acceleration_buffer = np.roll(self._acceleration_buffer, -acceleration.shape[1])
-            self._acceleration_buffer[-acceleration.shape[1]:] = acceleration
-            self.time_buffer += acceleration.shape[1] * self.dt
+            self._acceleration_buffer[:,-acceleration.shape[1]:] = acceleration
+            self._time_buffer += acceleration.shape[1] * self.dt
 
         self.pending_update = True
 
@@ -90,7 +90,7 @@ class StreamAccelerationViewer(pg.PlotWidget):
             if end_idx > self.timebase * self._fs:
                 start_idx = end_idx - int(self.timebase * self._fs)
         else:
-            end_idx = len(self.ecg_buffer)
+            end_idx = len(self._acceleration_buffer)
             start_idx = end_idx - int(self.timebase * self._fs)
 
         visible_time = self._time_buffer[start_idx:end_idx]
