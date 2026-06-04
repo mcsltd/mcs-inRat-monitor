@@ -1,11 +1,22 @@
 import asyncio
+import logging
 from asyncio import AbstractEventLoop
+from concurrent.futures import Future
 from threading import Thread
 
-from PySide6.QtCore import QObject
+from PySide6.QtCore import QObject, Signal
+from bleak import BLEDevice
 
+from device.inrat import inRat
+from device.ui.control_pane import FrmControlPane
+
+logger = logging.getLogger(__name__)
 
 class inRatDevice(QObject):
+
+    signal_connected = Signal()
+    signal_disconnected = Signal()
+
     """ класс для работы с inRat """
     def __init__(self, loop: asyncio.AbstractEventLoop | None = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -16,11 +27,52 @@ class inRatDevice(QObject):
         self._work: Thread | None = None
         self._running: bool = False
 
+        self._control_pane = FrmControlPane()
+        self._control_pane.pushButtonStart.clicked.connect(self.start)
+        self._control_pane.pushButtonStop.clicked.connect(self.stop)
+        self._control_pane.pushButtonConfig.clicked.connect(self.on_config_clicked)
+
+    @property
+    def control_pane(self):
+        return self._control_pane
+
+    def process_connect(self, device: BLEDevice):
+        """ обработка соединения с inRat """
+        self._inrat = inRat(ble_device=device)
+        future = asyncio.run_coroutine_threadsafe(self._inrat.connect(), self._loop)
+        future.add_done_callback(self.on_device_connected)
+
+    def on_device_connected(self, future: Future):
+        """ обработка результата соединения с устройством """
+        if self._inrat.is_connected:
+            self._control_pane.state_connection()
+            self.signal_connected.emit()
+        else:
+            self._control_pane.state_disconnect()
+
+    def process_disconnect(self):
+        """ обработка соединения с inRat """
+        future = asyncio.run_coroutine_threadsafe(self._inrat.disconnect(), self._loop)
+        self.signal_disconnected.emit()
+        self._control_pane.state_disconnect()
+
+    def process_start(self):
+        """ обработка запуска устройства """
+        self._control_pane.state_acquisition()
+
     def start(self):
         """ запуск inRat на получение данных """
+        try:
+            self.process_start()
+        except Exception as exc:
+            logger.error(f"Exception: {exc}")
+            return
+
         if not self._running:
             self._running = True
             self._work = Thread(target=self._worker_thread)
+            self._work.start()
+        logger.debug("Запущен поток обработки приёма и обработки данных с inRat")
 
     def _worker_thread(self):
         """ Рабочий поток получает данные из входной очереди
@@ -34,3 +86,13 @@ class inRatDevice(QObject):
         if self._work:
             self._work.join(5.0)
             self._work = None
+        self.process_stop()
+        logger.debug("Поток обработки приёма и обработки данных с inRat остановлен")
+
+    def process_stop(self):
+        """ обработка остановки устройства """
+        self._control_pane.state_connection()
+
+    def on_config_clicked(self):
+        pass
+

@@ -38,7 +38,7 @@ class inRat:
         @cached_property
         def uuid(self) -> UUID:
             """Convert the ID to a full UUID and cache."""
-            return UUID(InRat.UUID_TEMPLATE.format(self.value))
+            return UUID(inRat.UUID_TEMPLATE.format(self.value))
 
         def __str__(self) -> str:
             """Convert UUID to string value."""
@@ -196,7 +196,7 @@ class inRat:
         """ получение состояния устройства """
         rawdata = await self._client.read_gatt_char(self.UUID_CHARACTERISTIC_STATUS)
         status = Status.from_buffer(rawdata)
-        self._activated = status.activated
+        self._activated = status.Activated
 
     def _get_settings(self) -> Settings:
         settings = Settings(
@@ -219,7 +219,10 @@ class inRat:
         """ открытие устройства """
         if self.is_connected:
             return
-        await asyncio.wait_for(self._client.connect(), timeout=wait)
+        try:
+            await asyncio.wait_for(self._client.connect(), timeout=wait)
+        except Exception as err:
+            ...
         await self._get_device_info()
         set_default_setting_from_firmware(self)
         await self._get_device_status()
@@ -298,7 +301,7 @@ class inRat:
             ...
 
 
-def set_default_setting_from_firmware(device: InRat):
+def set_default_setting_from_firmware(device: inRat):
     device.mode = Mode.ECG
     device.enabled_channels = EnabledChannels.ECG
 

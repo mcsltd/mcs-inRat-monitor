@@ -2,7 +2,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QDialog
 
 from device.enums import EventType, Mode, EnabledChannels
-from device.inrat import InRat, FIRMWARE_V0, FIRMWARE_V1
+from device.inrat import inRat, FIRMWARE_V0, FIRMWARE_V1
 from resources.dlg_inrat_config import Ui_DlgDeviceConfig
 
 
@@ -11,7 +11,7 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
     signal_acc = Signal(bool)
     signal_ecg_emg = Signal(bool)
 
-    def __init__(self, device: InRat, *args, **kwargs):
+    def __init__(self, device: inRat, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
