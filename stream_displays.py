@@ -370,7 +370,7 @@ class StreamViewer(pg.PlotWidget):
         if self._buffer_filled and signal.shape[1] != 0:
             self._signal_buffer = np.roll(self._signal_buffer, -len(signal))
             self._signal_buffer[: -signal.shape[1]:] = signal
-            self.time_buffer += signal.shape[1] * (1 / self._sample_rate)
+            self._time_buffer += signal.shape[1] * (1 / self._sample_rate)
 
         self.update_display = True
 
@@ -388,8 +388,16 @@ class StreamViewer(pg.PlotWidget):
             end_idx = self._signal_buffer.shape[1]
             start_idx = end_idx - int(self._timebase * self._sample_rate)
 
+        visible_time = self._time_buffer[start_idx:end_idx]
         for ch in range(self._channels_count):
-            self.traces[ch].setData(self._time_buffer[start_idx: end_idx], self._signal_buffer[ch, start_idx: end_idx])
+            self.traces[ch].setData(visible_time, self._signal_buffer[ch, start_idx: end_idx])
+
+        # подстройка по оси времени
+        if not self._buffer_filled and end_idx <= self._timebase * self._sample_rate:
+            self.setXRange(0, self._timebase, padding=0)
+        else:
+            current_time = visible_time[-1] if len(visible_time) > 0 else 0
+            self.setXRange(current_time - self._timebase, current_time, padding=0)
 
         self.update_display = False
 

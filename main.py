@@ -206,7 +206,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             await self.disconnect_device()
             return
 
-        await self.device.start_acquisition(signal_queue=self.ecg_queue,event_queue=self.event_queue, acceleration_queue=self.acceleration_queue)
+        await self.device.start_acquisition(
+            signal_queue=self.ecg_queue,
+            event_queue=None,
+            acceleration_queue=self.acceleration_queue
+        )
 
         # настройка параметров записи
         self.data_storage.set_recording_params(
