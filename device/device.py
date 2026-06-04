@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import queue
+import time
 from asyncio import AbstractEventLoop
 from concurrent.futures import Future
 from threading import Thread
@@ -10,6 +11,7 @@ from bleak import BLEDevice
 
 from device.enums import EnabledChannels
 from device.inrat import inRat, FIRMWARE_V1, FIRMWARE_V0
+from device.ui.config_dialog import DlgConfigDevice
 from device.ui.control_pane import FrmControlPane
 
 logger = logging.getLogger(__name__)
@@ -24,6 +26,7 @@ class inRatDevice(QObject):
         super().__init__(*args, **kwargs)
 
         self._inrat = None
+        self._receivers = []
 
         self._signal_queue = asyncio.Queue()
         self._event_queue = None
@@ -37,6 +40,16 @@ class inRatDevice(QObject):
         self._control_pane.pushButtonStart.clicked.connect(self.start)
         self._control_pane.pushButtonStop.clicked.connect(self.stop)
         self._control_pane.pushButtonConfig.clicked.connect(self.on_config_clicked)
+
+    def add_receiver(self, receiver):
+        """ добавить объект приёмника в коллекцию """
+        if self._running:
+            receiver.start()
+        self._receivers.append(receiver)
+
+    def remove_receiver(self, receiver):
+        self._receivers.remove(receiver)
+        receiver.stop()
 
     @property
     def control_pane(self):
@@ -87,6 +100,11 @@ class inRatDevice(QObject):
 
         future = asyncio.run_coroutine_threadsafe(self._inrat.start_acquisition(signal_queue=self._signal_queue), self._loop)
 
+        for receiver in self._receivers:
+            receiver.update_params(
+                channels=1, counter_per_sample=32, sample_rate=500, type_signal="ЭЭГ")
+            receiver.start()
+
         if not self._running:
             self._running = True
             self._work = Thread(target=self._worker_thread)
@@ -102,8 +120,15 @@ class inRatDevice(QObject):
             except asyncio.queues.QueueEmpty:
                 signal = None
             else:
-                logger.debug(f"Получены данные: {signal=}")
+                # logger.debug(f"Получены данные: {signal=}")
                 self._signal_queue.task_done()
+
+            if signal:
+                for receiver in self._receivers:
+                    receiver._transmit_data(signal)
+
+            time.sleep(0.001)
+
 
     def stop(self):
         """ остановка получения данных с inRat """
@@ -113,6 +138,10 @@ class inRatDevice(QObject):
         if self._work:
             self._work.join(5.0)
             self._work = None
+
+        for receiver in self._receivers:
+            receiver.stop()
+
         self.process_stop()
         logger.debug("Поток обработки приёма и обработки данных с inRat остановлен")
 
@@ -121,5 +150,6 @@ class inRatDevice(QObject):
         self._control_pane.state_connection()
 
     def on_config_clicked(self):
-        ...
+        dlg = DlgConfigDevice(self._inrat)
+        dlg.exec()
 
