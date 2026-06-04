@@ -1,3 +1,7 @@
+import queue
+import time
+from threading import Thread
+
 import numpy as np
 import pyqtgraph as pg
 from PySide6 import QtCore
@@ -281,14 +285,15 @@ class StreamViewer(pg.PlotWidget):
 
     def __init__(
             self,
-            left_label: str | None = None,
-            bottom_label: str | None = None,
-            *args,
-            **kwargs
+            left_label: str | None = None, bottom_label: str | None = None, *args, **kwargs
     ):
         super().__init__(*args, **kwargs)
         self.setBackground((64, 64, 64))
         self.setDisabled(True)
+
+        self._input_queue = queue.Queue()
+        self._work = None
+        self._running = False
 
         self._signal_buffer: np.ndarray | None = None
         self._time_buffer: np.ndarray | None = None
@@ -401,3 +406,44 @@ class StreamViewer(pg.PlotWidget):
 
         self.update_display = False
 
+    def start(self):
+        """ запуск модуля на прием и отображения сигнала """
+        while not self._input_queue.empty():
+            self._input_queue.get_nowait()
+
+        if not self._running:
+            self._running = True
+            self._work = Thread(target=self._worker_thread)
+            self._work.start()
+
+    def stop(self):
+        """ остановка модуля на прием и отображения сигнала """
+        self._running = False
+        if self._work:
+            self._work.join(5.0)
+            self._work = None
+
+        # self.process_stop()
+
+    def _worker_thread(self):
+        while self._running:
+            try:
+                data = self._input_queue.get(False)
+                self.process_input(data)
+            except queue.Empty:
+                ...
+            except Exception as exc:
+                ...
+
+            time.sleep(0.001)
+
+
+    def _transmit_data(self, data):
+        ''' Put data into the input queue. This method is invoked from the parent module.
+        Don't override this method.
+        @param data: EEG_DataBlock object
+        '''
+        try:
+            self._input_queue.put(data, False)
+        except:
+            ...

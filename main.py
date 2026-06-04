@@ -15,6 +15,7 @@ from bleak import BLEDevice
 
 from device.device import inRatDevice
 from scanner import BLEScannerWorker
+from stream_displays import StreamViewer
 from utils.check_bluetooth import check_bluetooth_status
 from storage import DataStorage
 from resources.main_window import Ui_MainWindow
@@ -40,11 +41,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.device.signal_connected.connect(self.on_device_connected)
         self.device.signal_disconnected.connect(self.on_device_disconnected)
 
-
         self.scanner = BLEScannerWorker()
         self.storage = DataStorage()
+        self.display_ecg_emg = StreamViewer()
 
         # self.verticalLayout.insertWidget(6, self.storage.control_pane)
+
+        self.device.add_receiver(self.display_ecg_emg)
 
         # create scanner and run it
         self.scanner.run(self.qt_loop)
@@ -57,6 +60,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.comboBoxDevice.setDuplicatesEnabled(False)
         self.comboBoxDevice.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
         self.verticalLayout.insertWidget(5, self.device.control_pane)
+        self.verticalLayoutDisplay.addWidget(self.display_ecg_emg)
 
         # connection
         self.pushButtonConnect.clicked.connect(self.on_connect_clicked)
