@@ -6,12 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>680</width>
-    <height>432</height>
+    <width>684</width>
+    <height>476</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Настройка inRat</string>
+   <string>Настройка параметров</string>
   </property>
   <property name="windowIcon">
    <iconset>
@@ -34,6 +34,11 @@
        <layout class="QGridLayout" name="gridLayoutEvents">
         <item row="4" column="0">
          <widget class="QCheckBox" name="checkBoxOrientation">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
           <property name="text">
            <string>Ориентации (O)</string>
           </property>
@@ -41,6 +46,11 @@
         </item>
         <item row="3" column="0">
          <widget class="QCheckBox" name="checkBoxFreefall">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
           <property name="text">
            <string>Прыжок (F)</string>
           </property>
@@ -61,6 +71,11 @@
         </item>
         <item row="0" column="0">
          <widget class="QCheckBox" name="checkBoxActivity">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
           <property name="text">
            <string>Активность (A)</string>
           </property>
@@ -68,6 +83,11 @@
         </item>
         <item row="4" column="1">
          <widget class="QLabel" name="labelInfoOrientation">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
           <property name="toolTip">
            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Событие &amp;quot;Смена ориентации&amp;quot;&lt;/p&gt;&lt;p&gt;Формат записи: O {code}&lt;/p&gt;&lt;p&gt;Коды ориентации:&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Courier New';&quot;&gt;- x+&lt;/span&gt; — датчик на левом боку&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Courier New';&quot;&gt;- x-&lt;/span&gt; — датчик на правом боку&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Courier New';&quot;&gt;- y+&lt;/span&gt; — датчик вертикально&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Courier New';&quot;&gt;- y-&lt;/span&gt; — датчик перевёрнут&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Courier New';&quot;&gt;- z+&lt;/span&gt; — датчик лицом вверх&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Courier New';&quot;&gt;- z-&lt;/span&gt; — датчик лицом вниз&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
@@ -91,6 +111,11 @@
         </item>
         <item row="5" column="0">
          <widget class="QCheckBox" name="checkBoxTemp">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
           <property name="toolTip">
            <string>Регистрация события температуры
 </string>
@@ -115,6 +140,11 @@
         </item>
         <item row="3" column="1">
          <widget class="QLabel" name="labelInfoFreefall">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
           <property name="toolTip">
            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Событие &amp;quot;Прыжок&amp;quot;&lt;/p&gt;&lt;p&gt;Условие срабатывания: ускорение по осям X, Y, Z близко к 0.&lt;/p&gt;&lt;p&gt;Формат записи: &amp;quot;F&amp;quot;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
@@ -125,6 +155,11 @@
         </item>
         <item row="5" column="1">
          <widget class="QLabel" name="labelInfoTemperature">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
           <property name="toolTip">
            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Событие &amp;quot;Температура&amp;quot;&lt;/p&gt;&lt;p&gt;Единицы измерения: градусы Цельсия (°C)&lt;br/&gt;Формат записи: T {значение}&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
@@ -135,6 +170,11 @@
         </item>
         <item row="0" column="1">
          <widget class="QLabel" name="labelInfoActivity">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
           <property name="toolTip">
            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Событие &amp;quot;Активность&amp;quot;&lt;/p&gt;&lt;p&gt;Условие срабатывания: превышение порога ускорения по одной из осей.&lt;br/&gt;Формат записи: A {x} {y} {z}&lt;/p&gt;&lt;p&gt; - ускорение в милли-g (mg) по осям X, Y, Z.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
@@ -167,6 +207,11 @@
       <layout class="QFormLayout" name="formLayout">
        <item row="0" column="0">
         <widget class="QLabel" name="labelMode">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
          <property name="text">
           <string>Режим съема</string>
          </property>
@@ -192,10 +237,20 @@
            <height>16777215</height>
           </size>
          </property>
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
         </widget>
        </item>
        <item row="1" column="0">
         <widget class="QLabel" name="labelSampleRate">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
          <property name="text">
           <string>Частота оцифровки, Гц</string>
          </property>
@@ -221,10 +276,20 @@
            <height>16777215</height>
           </size>
          </property>
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
         </widget>
        </item>
        <item row="2" column="0">
         <widget class="QLabel" name="labelFullScaleAccelerometer">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
          <property name="text">
           <string>Акселерометр, ±g</string>
          </property>
@@ -244,10 +309,20 @@
            <height>0</height>
           </size>
          </property>
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
         </widget>
        </item>
        <item row="3" column="0">
         <widget class="QLabel" name="labelActivityThreshold">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
          <property name="text">
           <string>Порог регистрации активности</string>
          </property>
@@ -266,6 +341,11 @@
            <width>150</width>
            <height>0</height>
           </size>
+         </property>
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
          </property>
         </widget>
        </item>
@@ -288,6 +368,11 @@
       <layout class="QFormLayout" name="formLayout_5">
        <item row="0" column="0">
         <widget class="QLabel" name="labelDevice">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
          <property name="text">
           <string>Устройство</string>
          </property>
@@ -295,6 +380,11 @@
        </item>
        <item row="1" column="0">
         <widget class="QLabel" name="labelSn">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
          <property name="text">
           <string>SN</string>
          </property>
@@ -302,6 +392,11 @@
        </item>
        <item row="2" column="0">
         <widget class="QLabel" name="labelModel">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
          <property name="text">
           <string>Model</string>
          </property>
@@ -309,6 +404,11 @@
        </item>
        <item row="3" column="0">
         <widget class="QLabel" name="labelFirmware">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
          <property name="text">
           <string>Firmware</string>
          </property>
@@ -316,6 +416,11 @@
        </item>
        <item row="4" column="0">
         <widget class="QLabel" name="labelHardware">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
          <property name="text">
           <string>Hardware</string>
          </property>
@@ -323,6 +428,11 @@
        </item>
        <item row="0" column="1">
         <widget class="QLabel" name="labelDeviceValue">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
          <property name="text">
           <string>None</string>
          </property>
@@ -330,6 +440,11 @@
        </item>
        <item row="1" column="1">
         <widget class="QLabel" name="labelSnValue">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
          <property name="text">
           <string>None</string>
          </property>
@@ -337,6 +452,11 @@
        </item>
        <item row="2" column="1">
         <widget class="QLabel" name="labelModelValue">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
          <property name="text">
           <string>None</string>
          </property>
@@ -344,6 +464,11 @@
        </item>
        <item row="3" column="1">
         <widget class="QLabel" name="labelFirmwareValue">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
          <property name="text">
           <string>None</string>
          </property>
@@ -351,6 +476,11 @@
        </item>
        <item row="4" column="1">
         <widget class="QLabel" name="labelHardwareValue">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
          <property name="text">
           <string>None</string>
          </property>
@@ -377,6 +507,11 @@
      </item>
      <item>
       <widget class="QPushButton" name="pushButtonOk">
+       <property name="font">
+        <font>
+         <pointsize>12</pointsize>
+        </font>
+       </property>
        <property name="text">
         <string>Ок</string>
        </property>
@@ -384,6 +519,11 @@
      </item>
      <item>
       <widget class="QPushButton" name="pushButtonCancel">
+       <property name="font">
+        <font>
+         <pointsize>12</pointsize>
+        </font>
+       </property>
        <property name="text">
         <string>Отмена</string>
        </property>
@@ -401,6 +541,11 @@
        <layout class="QGridLayout" name="gridLayout_3">
         <item row="0" column="0">
          <widget class="QCheckBox" name="checkBoxSignal">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
           <property name="text">
            <string>ЭКГ</string>
           </property>
@@ -408,6 +553,11 @@
         </item>
         <item row="1" column="0">
          <widget class="QCheckBox" name="checkBoxAcceleration">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
           <property name="text">
            <string>Акселерометр</string>
           </property>

@@ -14,7 +14,10 @@ from config import BLE_KEY
 
 from device.structures import Status
 
-# BLE_KEY = ...
+# версии программного обеспечения
+FIRMWARE_V0 = "1.0.260317"
+FIRMWARE_V1 = "1.0.260527" # "1.0.260603"
+
 
 class InRat:
 
@@ -60,7 +63,7 @@ class InRat:
         self._full_scale_accelerometer = ScaleAccelerometer.G_2
         self._enabled_events = EventType.NONE
         self._activity_threshold = 2
-        self._enabled_channels = EnabledChannels.ECG | EnabledChannels.ACC_X | EnabledChannels.ACC_Y | EnabledChannels.ACC_Z
+        self._enabled_channels = EnabledChannels.ECG
 
     @property
     def mode(self):
@@ -218,6 +221,7 @@ class InRat:
             return
         await asyncio.wait_for(self._client.connect(), timeout=wait)
         await self._get_device_info()
+        set_default_setting_from_firmware(self)
         await self._get_device_status()
 
     async def start_acquisition(
@@ -256,7 +260,7 @@ class InRat:
         if signal_queue:
             await self._client.start_notify(self.UUID_CHARACTERISTIC_ECG_EEG, signal_handler)
 
-        if acceleration_queue:
+        if acceleration_queue and self._firmware == FIRMWARE_V1:
             await self._client.start_notify(self.UUID_CHARACTERISTIC_ACCELERATION, acceleration_handler)
 
 
@@ -293,3 +297,17 @@ class InRat:
         except Exception as exc:
             ...
 
+
+def set_default_setting_from_firmware(device: InRat):
+    device.mode = Mode.ECG
+    device.enabled_channels = EnabledChannels.ECG
+
+    if device.firmware == FIRMWARE_V0:
+        device.enabled_channels = EnabledChannels.ECG
+        device.sample_rate = 500
+        device.activity_threshold = 2
+
+    if device.firmware == FIRMWARE_V1:
+        device.enabled_channels = EnabledChannels.ECG | EnabledChannels.ACC_X | EnabledChannels.ACC_Z | EnabledChannels.ACC_Y
+        device.sample_rate = 500
+        device.activity_threshold = 2
