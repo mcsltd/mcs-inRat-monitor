@@ -14,7 +14,9 @@ from config import BLE_KEY
 
 from device.structures import Status
 
-# BLE_KEY = ...
+# версии программного обеспечения
+FIRMWARE_V0 = "1.0.260317"
+FIRMWARE_V1 = "1.0.260603"
 
 class InRat:
 
@@ -60,7 +62,7 @@ class InRat:
         self._full_scale_accelerometer = ScaleAccelerometer.G_2
         self._enabled_events = EventType.NONE
         self._activity_threshold = 2
-        self._enabled_channels = EnabledChannels.ECG | EnabledChannels.ACC_X | EnabledChannels.ACC_Y | EnabledChannels.ACC_Z
+        self._enabled_channels = EnabledChannels.ECG
 
     @property
     def mode(self):
@@ -256,7 +258,7 @@ class InRat:
         if signal_queue:
             await self._client.start_notify(self.UUID_CHARACTERISTIC_ECG_EEG, signal_handler)
 
-        if acceleration_queue:
+        if acceleration_queue and self._firmware == FIRMWARE_V1:
             await self._client.start_notify(self.UUID_CHARACTERISTIC_ACCELERATION, acceleration_handler)
 
 

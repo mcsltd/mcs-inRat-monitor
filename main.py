@@ -273,7 +273,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             time.sleep(0.001)
 
-
     async def stop_device(self):
         logger.debug("Stop device")
         # остановка потока обработки очереди
@@ -297,7 +296,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.device_control_pane.state_connection()
             # self.pushButtonTurnOff.setEnabled(True)
             self.pushButtonDisconnect.setEnabled(True)
-
 
     async def lost_connection(self):
         """
@@ -335,7 +333,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             f"An error occurred while connect to the device.\nCheck if the device has turned off.",
             QMessageBox.StandardButton.Ok
         )
-
 
     def closeEvent(self, event):
         if self._running:

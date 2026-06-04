@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'dlg_inrat_configUIbMtU.ui'
+## Form generated from reading UI file 'dlg_inrat_configNzCIoI.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -25,7 +25,7 @@ class Ui_DlgDeviceConfig(object):
     def setupUi(self, DlgDeviceConfig):
         if not DlgDeviceConfig.objectName():
             DlgDeviceConfig.setObjectName(u"DlgDeviceConfig")
-        DlgDeviceConfig.resize(680, 432)
+        DlgDeviceConfig.resize(680, 468)
         icon = QIcon()
         icon.addFile(u":/images/icon.ico", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         DlgDeviceConfig.setWindowIcon(icon)
@@ -41,11 +41,15 @@ class Ui_DlgDeviceConfig(object):
         self.gridLayoutEvents.setObjectName(u"gridLayoutEvents")
         self.checkBoxOrientation = QCheckBox(self.groupBoxEnabledEvents)
         self.checkBoxOrientation.setObjectName(u"checkBoxOrientation")
+        font = QFont()
+        font.setPointSize(12)
+        self.checkBoxOrientation.setFont(font)
 
         self.gridLayoutEvents.addWidget(self.checkBoxOrientation, 4, 0, 1, 1)
 
         self.checkBoxFreefall = QCheckBox(self.groupBoxEnabledEvents)
         self.checkBoxFreefall.setObjectName(u"checkBoxFreefall")
+        self.checkBoxFreefall.setFont(font)
 
         self.gridLayoutEvents.addWidget(self.checkBoxFreefall, 3, 0, 1, 1)
 
@@ -55,11 +59,13 @@ class Ui_DlgDeviceConfig(object):
 
         self.checkBoxActivity = QCheckBox(self.groupBoxEnabledEvents)
         self.checkBoxActivity.setObjectName(u"checkBoxActivity")
+        self.checkBoxActivity.setFont(font)
 
         self.gridLayoutEvents.addWidget(self.checkBoxActivity, 0, 0, 1, 1)
 
         self.labelInfoOrientation = QLabel(self.groupBoxEnabledEvents)
         self.labelInfoOrientation.setObjectName(u"labelInfoOrientation")
+        self.labelInfoOrientation.setFont(font)
 
         self.gridLayoutEvents.addWidget(self.labelInfoOrientation, 4, 1, 1, 1)
 
@@ -69,6 +75,7 @@ class Ui_DlgDeviceConfig(object):
 
         self.checkBoxTemp = QCheckBox(self.groupBoxEnabledEvents)
         self.checkBoxTemp.setObjectName(u"checkBoxTemp")
+        self.checkBoxTemp.setFont(font)
 
         self.gridLayoutEvents.addWidget(self.checkBoxTemp, 5, 0, 1, 1)
 
@@ -78,16 +85,19 @@ class Ui_DlgDeviceConfig(object):
 
         self.labelInfoFreefall = QLabel(self.groupBoxEnabledEvents)
         self.labelInfoFreefall.setObjectName(u"labelInfoFreefall")
+        self.labelInfoFreefall.setFont(font)
 
         self.gridLayoutEvents.addWidget(self.labelInfoFreefall, 3, 1, 1, 1)
 
         self.labelInfoTemperature = QLabel(self.groupBoxEnabledEvents)
         self.labelInfoTemperature.setObjectName(u"labelInfoTemperature")
+        self.labelInfoTemperature.setFont(font)
 
         self.gridLayoutEvents.addWidget(self.labelInfoTemperature, 5, 1, 1, 1)
 
         self.labelInfoActivity = QLabel(self.groupBoxEnabledEvents)
         self.labelInfoActivity.setObjectName(u"labelInfoActivity")
+        self.labelInfoActivity.setFont(font)
 
         self.gridLayoutEvents.addWidget(self.labelInfoActivity, 0, 1, 1, 1)
 
@@ -107,6 +117,7 @@ class Ui_DlgDeviceConfig(object):
         self.formLayout.setObjectName(u"formLayout")
         self.labelMode = QLabel(DlgDeviceConfig)
         self.labelMode.setObjectName(u"labelMode")
+        self.labelMode.setFont(font)
 
         self.formLayout.setWidget(0, QFormLayout.ItemRole.LabelRole, self.labelMode)
 
@@ -119,11 +130,13 @@ class Ui_DlgDeviceConfig(object):
         self.comboBoxMode.setSizePolicy(sizePolicy)
         self.comboBoxMode.setMinimumSize(QSize(150, 0))
         self.comboBoxMode.setMaximumSize(QSize(150, 16777215))
+        self.comboBoxMode.setFont(font)
 
         self.formLayout.setWidget(0, QFormLayout.ItemRole.FieldRole, self.comboBoxMode)
 
         self.labelSampleRate = QLabel(DlgDeviceConfig)
         self.labelSampleRate.setObjectName(u"labelSampleRate")
+        self.labelSampleRate.setFont(font)
 
         self.formLayout.setWidget(1, QFormLayout.ItemRole.LabelRole, self.labelSampleRate)
 
@@ -133,11 +146,13 @@ class Ui_DlgDeviceConfig(object):
         self.comboBoxSampleRate.setSizePolicy(sizePolicy)
         self.comboBoxSampleRate.setMinimumSize(QSize(150, 0))
         self.comboBoxSampleRate.setMaximumSize(QSize(150, 16777215))
+        self.comboBoxSampleRate.setFont(font)
 
         self.formLayout.setWidget(1, QFormLayout.ItemRole.FieldRole, self.comboBoxSampleRate)
 
         self.labelFullScaleAccelerometer = QLabel(DlgDeviceConfig)
         self.labelFullScaleAccelerometer.setObjectName(u"labelFullScaleAccelerometer")
+        self.labelFullScaleAccelerometer.setFont(font)
 
         self.formLayout.setWidget(2, QFormLayout.ItemRole.LabelRole, self.labelFullScaleAccelerometer)
 
@@ -146,11 +161,13 @@ class Ui_DlgDeviceConfig(object):
         sizePolicy.setHeightForWidth(self.comboBoxFullScaleAccelerometer.sizePolicy().hasHeightForWidth())
         self.comboBoxFullScaleAccelerometer.setSizePolicy(sizePolicy)
         self.comboBoxFullScaleAccelerometer.setMinimumSize(QSize(150, 0))
+        self.comboBoxFullScaleAccelerometer.setFont(font)
 
         self.formLayout.setWidget(2, QFormLayout.ItemRole.FieldRole, self.comboBoxFullScaleAccelerometer)
 
         self.labelActivityThreshold = QLabel(DlgDeviceConfig)
         self.labelActivityThreshold.setObjectName(u"labelActivityThreshold")
+        self.labelActivityThreshold.setFont(font)
 
         self.formLayout.setWidget(3, QFormLayout.ItemRole.LabelRole, self.labelActivityThreshold)
 
@@ -159,6 +176,7 @@ class Ui_DlgDeviceConfig(object):
         sizePolicy.setHeightForWidth(self.comboBoxActivityThreshold.sizePolicy().hasHeightForWidth())
         self.comboBoxActivityThreshold.setSizePolicy(sizePolicy)
         self.comboBoxActivityThreshold.setMinimumSize(QSize(150, 0))
+        self.comboBoxActivityThreshold.setFont(font)
 
         self.formLayout.setWidget(3, QFormLayout.ItemRole.FieldRole, self.comboBoxActivityThreshold)
 
@@ -173,51 +191,61 @@ class Ui_DlgDeviceConfig(object):
         self.formLayout_5.setObjectName(u"formLayout_5")
         self.labelDevice = QLabel(DlgDeviceConfig)
         self.labelDevice.setObjectName(u"labelDevice")
+        self.labelDevice.setFont(font)
 
         self.formLayout_5.setWidget(0, QFormLayout.ItemRole.LabelRole, self.labelDevice)
 
         self.labelSn = QLabel(DlgDeviceConfig)
         self.labelSn.setObjectName(u"labelSn")
+        self.labelSn.setFont(font)
 
         self.formLayout_5.setWidget(1, QFormLayout.ItemRole.LabelRole, self.labelSn)
 
         self.labelModel = QLabel(DlgDeviceConfig)
         self.labelModel.setObjectName(u"labelModel")
+        self.labelModel.setFont(font)
 
         self.formLayout_5.setWidget(2, QFormLayout.ItemRole.LabelRole, self.labelModel)
 
         self.labelFirmware = QLabel(DlgDeviceConfig)
         self.labelFirmware.setObjectName(u"labelFirmware")
+        self.labelFirmware.setFont(font)
 
         self.formLayout_5.setWidget(3, QFormLayout.ItemRole.LabelRole, self.labelFirmware)
 
         self.labelHardware = QLabel(DlgDeviceConfig)
         self.labelHardware.setObjectName(u"labelHardware")
+        self.labelHardware.setFont(font)
 
         self.formLayout_5.setWidget(4, QFormLayout.ItemRole.LabelRole, self.labelHardware)
 
         self.labelDeviceValue = QLabel(DlgDeviceConfig)
         self.labelDeviceValue.setObjectName(u"labelDeviceValue")
+        self.labelDeviceValue.setFont(font)
 
         self.formLayout_5.setWidget(0, QFormLayout.ItemRole.FieldRole, self.labelDeviceValue)
 
         self.labelSnValue = QLabel(DlgDeviceConfig)
         self.labelSnValue.setObjectName(u"labelSnValue")
+        self.labelSnValue.setFont(font)
 
         self.formLayout_5.setWidget(1, QFormLayout.ItemRole.FieldRole, self.labelSnValue)
 
         self.labelModelValue = QLabel(DlgDeviceConfig)
         self.labelModelValue.setObjectName(u"labelModelValue")
+        self.labelModelValue.setFont(font)
 
         self.formLayout_5.setWidget(2, QFormLayout.ItemRole.FieldRole, self.labelModelValue)
 
         self.labelFirmwareValue = QLabel(DlgDeviceConfig)
         self.labelFirmwareValue.setObjectName(u"labelFirmwareValue")
+        self.labelFirmwareValue.setFont(font)
 
         self.formLayout_5.setWidget(3, QFormLayout.ItemRole.FieldRole, self.labelFirmwareValue)
 
         self.labelHardwareValue = QLabel(DlgDeviceConfig)
         self.labelHardwareValue.setObjectName(u"labelHardwareValue")
+        self.labelHardwareValue.setFont(font)
 
         self.formLayout_5.setWidget(4, QFormLayout.ItemRole.FieldRole, self.labelHardwareValue)
 
@@ -235,11 +263,13 @@ class Ui_DlgDeviceConfig(object):
 
         self.pushButtonOk = QPushButton(DlgDeviceConfig)
         self.pushButtonOk.setObjectName(u"pushButtonOk")
+        self.pushButtonOk.setFont(font)
 
         self.horizontalLayout.addWidget(self.pushButtonOk)
 
         self.pushButtonCancel = QPushButton(DlgDeviceConfig)
         self.pushButtonCancel.setObjectName(u"pushButtonCancel")
+        self.pushButtonCancel.setFont(font)
 
         self.horizontalLayout.addWidget(self.pushButtonCancel)
 
@@ -254,11 +284,13 @@ class Ui_DlgDeviceConfig(object):
         self.gridLayout_3.setObjectName(u"gridLayout_3")
         self.checkBoxSignal = QCheckBox(self.groupBox)
         self.checkBoxSignal.setObjectName(u"checkBoxSignal")
+        self.checkBoxSignal.setFont(font)
 
         self.gridLayout_3.addWidget(self.checkBoxSignal, 0, 0, 1, 1)
 
         self.checkBoxAcceleration = QCheckBox(self.groupBox)
         self.checkBoxAcceleration.setObjectName(u"checkBoxAcceleration")
+        self.checkBoxAcceleration.setFont(font)
 
         self.gridLayout_3.addWidget(self.checkBoxAcceleration, 1, 0, 1, 1)
 
@@ -279,7 +311,7 @@ class Ui_DlgDeviceConfig(object):
     # setupUi
 
     def retranslateUi(self, DlgDeviceConfig):
-        DlgDeviceConfig.setWindowTitle(QCoreApplication.translate("DlgDeviceConfig", u"\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430 inRat", None))
+        DlgDeviceConfig.setWindowTitle(QCoreApplication.translate("DlgDeviceConfig", u"\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430 \u043f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u043e\u0432", None))
         self.groupBoxEnabledEvents.setTitle(QCoreApplication.translate("DlgDeviceConfig", u"\u0421\u043e\u0431\u044b\u0442\u0438\u044f", None))
         self.checkBoxOrientation.setText(QCoreApplication.translate("DlgDeviceConfig", u"\u041e\u0440\u0438\u0435\u043d\u0442\u0430\u0446\u0438\u0438 (O)", None))
         self.checkBoxFreefall.setText(QCoreApplication.translate("DlgDeviceConfig", u"\u041f\u0440\u044b\u0436\u043e\u043a (F)", None))

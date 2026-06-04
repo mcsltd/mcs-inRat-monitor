@@ -2,7 +2,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog
 
 from device.enums import EventType, Mode, EnabledChannels
-from device.inrat import InRat
+from device.inrat import InRat, FIRMWARE_V0, FIRMWARE_V1
 from resources.dlg_inrat_config import Ui_DlgDeviceConfig
 
 
@@ -40,6 +40,15 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
             label.setStyleSheet(""" QLabel { background-color: #0078D4; color: white; border-radius: 10px; font-weight: bold; padding: 2px; }
                                     QLabel:hover { background-color: #106EBE; } """)
         self.show_device_info()
+        self.setup_ui_from_firmware()
+
+    def setup_ui_from_firmware(self):
+        if self._device.firmware == FIRMWARE_V0:
+            self.labelMode.hide()
+            self.comboBoxMode.hide()
+            self.checkBoxAcceleration.hide()
+        if self._device.firmware == FIRMWARE_V1:
+            ...
 
     def show_device_info(self):
         """ показать информацию об устройстве """
