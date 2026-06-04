@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QDialog
 
 from device.enums import EventType, Mode, EnabledChannels
@@ -7,6 +7,9 @@ from resources.dlg_inrat_config import Ui_DlgDeviceConfig
 
 
 class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
+
+    signal_acc = Signal(bool)
+    signal_ecg_emg = Signal(bool)
 
     def __init__(self, device: InRat, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -47,7 +50,7 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
         """ установка настроек установленных в inRat """
         if self._device.enabled_channels & EnabledChannels.ECG:
             self.checkBoxSignal.setChecked(True)
-            
+
         if self._device.firmware == FIRMWARE_V1:
             index = self.comboBoxMode.findData(self._device.mode)
             self.on_mode_changed(index)
@@ -136,8 +139,15 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
         enabled_channels = EnabledChannels.NONE
         if self.checkBoxSignal.isChecked():
             enabled_channels |= EnabledChannels.ECG
+            self.signal_ecg_emg.emit(True)
+        else:
+            self.signal_acc.emit(False)
+
         if self.checkBoxAcceleration.isChecked():
             enabled_channels |= EnabledChannels.ACC_X | EnabledChannels.ACC_Y | EnabledChannels.ACC_Z
+            self.signal_acc.emit(True)
+        else:
+            self.signal_acc.emit(False)
         self._device.enabled_channels = enabled_channels
 
         # установка порога активности

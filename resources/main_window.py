@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'main_windowqLkPbe.ui'
+## Form generated from reading UI file 'main_windowPzFDyk.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -25,7 +25,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(1076, 874)
+        MainWindow.resize(1194, 697)
         icon = QIcon()
         icon.addFile(u":/iconMCS.ico", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         MainWindow.setWindowIcon(icon)
@@ -94,13 +94,17 @@ class Ui_MainWindow(object):
 
         self.verticalLayoutDisplay = QVBoxLayout()
         self.verticalLayoutDisplay.setObjectName(u"verticalLayoutDisplay")
+        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.verticalLayoutDisplay.addItem(self.horizontalSpacer)
+
 
         self.gridLayout.addLayout(self.verticalLayoutDisplay, 0, 0, 1, 1)
 
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 1076, 22))
+        self.menubar.setGeometry(QRect(0, 0, 1194, 22))
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QStatusBar(MainWindow)
         self.statusbar.setObjectName(u"statusbar")

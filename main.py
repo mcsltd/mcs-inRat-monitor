@@ -15,6 +15,7 @@ from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QComboBox,
 from bleak import BLEDevice
 
 from device.constants import Pkt
+from device.enums import EnabledChannels
 from device.inrat import InRat, FIRMWARE_V1
 from config import DATA_PATH
 from device.ui.config_dialog import DlgConfigDevice
@@ -47,24 +48,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.qt_loop = qt_loop
 
         # build queue
-        self.ecg_queue = asyncio.Queue()
-        self.event_queue = asyncio.Queue()
-        self.acceleration_queue = asyncio.Queue()
+        self.ecg_queue = None
+        self.event_queue = None
+        self.acceleration_queue = None
 
         # main classes
         self.device: Optional[InRat] = None
-        # self.storage = Storage(path_to_save=DATA_PATH, fs=HZ)
         self.scanner = BLEScannerWorker()
 
-        # # графики отображения сигналов
-        # self.plot_signal = StreamSignalViewer()
-        # self.verticalLayoutDisplay.insertWidget(0, self.plot_signal)
-
-        self.plot_acceleration = StreamViewer(left_label="Акселерометр", bottom_label="время")
-        self.verticalLayoutDisplay.insertWidget(1, self.plot_acceleration)
-
-        self.plot_signal = StreamViewer(left_label="ЭКГ", bottom_label="время")
-        self.verticalLayoutDisplay.insertWidget(0, self.plot_signal)
+        self.plot_acceleration = None
+        self.plot_signal = None
 
         # класс для сохранения данных с устройства
         self.data_storage = DataStorage()
@@ -101,7 +94,28 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def on_config_clicked(self):
         dlg = DlgConfigDevice(self.device)
+        dlg.signal_ecg_emg.connect(self.set_ecg_emg_plot)
+        dlg.signal_acc.connect(self.set_acceleration_plot)
         dlg.exec()
+
+    def set_acceleration_plot(self, state: bool):
+        if state and not self.plot_acceleration:
+            self.acceleration_queue = asyncio.Queue()
+            self.plot_acceleration = StreamViewer(left_label="Акселерометр", bottom_label="время")
+            self.verticalLayoutDisplay.addWidget(self.plot_acceleration)
+        elif not state and self.plot_acceleration:
+            self.acceleration_queue = None
+            self.verticalLayoutDisplay.removeItem(self.plot_acceleration)
+
+    def set_ecg_emg_plot(self, state: bool):
+        if state and not self.plot_signal:
+            self.ecg_queue = asyncio.Queue()
+            self.plot_signal = StreamViewer(left_label="ЭКГ", bottom_label="время")
+            self.verticalLayoutDisplay.addWidget(self.plot_signal)
+
+        elif not state and self.plot_signal:
+            self.ecg_queue = None
+            self.verticalLayoutDisplay.removeItem(self.plot_signal)
 
     async def connect_device(self):
         # raise waiting dialog
@@ -131,10 +145,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 logger.debug(f"Устройство найдено! Производится попытка подключиться. Номер попытки: {attempt_connection}")
                 try:
                     await self.device.connect()
-
-                    if self.device.firmware == FIRMWARE_V1:
-                        set_default_setting_from_firmware(self.device)
-
                 except Exception as exc:
                     ...
                 attempt_connection += 1
@@ -158,6 +168,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             # disable and activate btn state when connect to device
             if self.device.is_connected:
+
+                if bool(self.device.enabled_channels & EnabledChannels.ECG):
+                    self.set_ecg_emg_plot(True)
+                if (
+                        bool(self.device.enabled_channels & EnabledChannels.ACC_X) and
+                        bool(self.device.enabled_channels & EnabledChannels.ACC_Y) and
+                        bool(self.device.enabled_channels & EnabledChannels.ACC_Z)
+                ):
+                    self.set_acceleration_plot(True)
+
                 self.device_control_pane.setEnabled(True)
 
                 # проверка на активировано ли устройство
@@ -195,10 +215,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     async def start_device(self):
         logger.debug("Start device")
         # очищение очередей перед стартом
-        while not self.event_queue.empty():
+        while self.event_queue and not self.event_queue.empty():
             self.event_queue.get_nowait()
-        while not self.ecg_queue.empty():
+        while self.ecg_queue and not self.ecg_queue.empty():
             self.ecg_queue.get_nowait()
+        while self.acceleration_queue and not self.acceleration_queue.empty():
+            self.acceleration_queue.get_nowait()
+
 
         if not self.device.is_connected:
             info = QMessageBox.information(
@@ -212,7 +235,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         await self.device.start_acquisition(
             signal_queue=self.ecg_queue,
-            event_queue=None,
+            event_queue=self.event_queue,
             acceleration_queue=self.acceleration_queue
         )
 
@@ -224,8 +247,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         )
 
         # настройка параметров для отображения графиков
-        self.plot_signal.update_params(channels=1, counter_per_sample=Pkt.SamplesCountEcg, sample_rate=self.device.sample_rate,type_signal="ЭКГ")
-        self.plot_acceleration.update_params(channels=3, counter_per_sample=Pkt.SamplesCountAcc, sample_rate=100, type_signal="Акселерометр")
+        if self.plot_signal:
+            self.plot_signal.update_params(
+                channels=1,
+                counter_per_sample=Pkt.SamplesCountEcg,
+                sample_rate=self.device.sample_rate,
+                type_signal="ЭКГ")
+        if self.plot_acceleration:
+            self.plot_acceleration.update_params(
+                channels=3,
+                counter_per_sample=Pkt.SamplesCountAcc,
+                sample_rate=100,
+                type_signal="Акселерометр"
+            )
 
         self.data_storage.start()
 
@@ -243,34 +277,33 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         while self._running:
             # вывод сигналов
             try:
-                ecg = self.ecg_queue.get_nowait()
+                if self.ecg_queue:
+                    ecg = self.ecg_queue.get_nowait()
 
             except asyncio.QueueEmpty:
                 ecg = None
             else:
                 # self.plot_signal.set_data(ecg)
-                self.plot_signal.process_input(ecg)
+                if self.plot_signal:
+                    self.plot_signal.process_input(ecg)
 
                 self.data_storage._input_queue.put(ecg)
-                self.ecg_queue.task_done()
-
-            # # обработка событий
-            # try:
-            #     event = self.event_queue.get_nowait()
-            # except asyncio.QueueEmpty:
-            #     event = None
-            # else:
-            #     self.process_event(event)
-            #     self.event_queue.task_done()
+                if self.ecg_queue:
+                    self.ecg_queue.task_done()
 
             # обработка очереди с ускорениями
             try:
-                data = self.acceleration_queue.get_nowait()
+                if self.acceleration_queue:
+                    data = self.acceleration_queue.get_nowait()
             except asyncio.QueueEmpty:
                 data = None
             else:
-                self.plot_acceleration.process_input(data)
-                self.acceleration_queue.task_done()
+
+                if self.plot_acceleration:
+                    self.plot_acceleration.process_input(data)
+
+                if self.acceleration_queue:
+                    self.acceleration_queue.task_done()
 
             if not self.device.is_connected:
                 asyncio.run_coroutine_threadsafe(self.disconnect_device(), self.qt_loop)
