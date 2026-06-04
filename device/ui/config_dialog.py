@@ -41,14 +41,51 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
                                     QLabel:hover { background-color: #106EBE; } """)
         self.show_device_info()
         self.setup_ui_from_firmware()
+        self.set_default_settings()
+
+    def set_default_settings(self):
+        """ установка настроек установленных в inRat """
+        if self._device.enabled_channels & EnabledChannels.ECG:
+            self.checkBoxSignal.setChecked(True)
+            
+        if self._device.firmware == FIRMWARE_V1:
+            index = self.comboBoxMode.findData(self._device.mode)
+            self.on_mode_changed(index)
+            if (
+                    self._device.enabled_channels & EnabledChannels.ACC_X and
+                    self._device.enabled_channels & EnabledChannels.ACC_Y and
+                    self._device.enabled_channels & EnabledChannels.ACC_Z
+            ):
+                self.checkBoxAcceleration.setChecked(True)
+
+        # установка частоты
+        sampling_rate = str(self._device.sample_rate)
+        idx = self.comboBoxSampleRate.findText(sampling_rate)
+        self.comboBoxSampleRate.setCurrentIndex(idx)
+
+        # установка порога активности
+        value = self._device.activity_threshold
+        idx = self.comboBoxActivityThreshold.findData(value)
+        if idx != -1:
+            self.comboBoxActivityThreshold.setCurrentIndex(idx)
+
+        # установка событий
+        if bool(self._device.enabled_events & EventType.TEMP):
+            self.checkBoxTemp.setChecked(True)
+        if bool(self._device.enabled_events & EventType.ACTIVITY):
+            self.checkBoxActivity.setChecked(True)
+        if bool(self._device.enabled_events & EventType.ORIENTATION):
+            self.checkBoxOrientation.setChecked(True)
+        if bool(self._device.enabled_events & EventType.FREEFALL):
+            self.checkBoxFreefall.setChecked(True)
 
     def setup_ui_from_firmware(self):
+        # деактивация неподдерживаемых настроек
         if self._device.firmware == FIRMWARE_V0:
             self.labelMode.hide()
             self.comboBoxMode.hide()
             self.checkBoxAcceleration.hide()
-        if self._device.firmware == FIRMWARE_V1:
-            ...
+
 
     def show_device_info(self):
         """ показать информацию об устройстве """

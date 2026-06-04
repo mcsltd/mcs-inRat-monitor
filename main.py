@@ -15,7 +15,7 @@ from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QComboBox,
 from bleak import BLEDevice
 
 from device.constants import Pkt
-from device.inrat import InRat
+from device.inrat import InRat, FIRMWARE_V1
 from config import DATA_PATH
 from device.ui.config_dialog import DlgConfigDevice
 from device.ui.control_pane import FrmControlPane
@@ -131,6 +131,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 logger.debug(f"Устройство найдено! Производится попытка подключиться. Номер попытки: {attempt_connection}")
                 try:
                     await self.device.connect()
+
+                    if self.device.firmware == FIRMWARE_V1:
+                        set_default_setting_from_firmware(self.device)
+
                 except Exception as exc:
                     ...
                 attempt_connection += 1
