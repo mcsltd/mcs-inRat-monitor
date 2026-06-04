@@ -6,7 +6,7 @@ from pyqtgraph import mkPen
 
 from device.constants import Pkt
 
-# ToDo: переписать на единый класс
+# ToDo: переписать на единый класс (?)
 # ToDo: сделать адаптацию под выбранные настройки устройства
 # ToDo: сделать виджеты для контроля параметров отрисовки
 
@@ -73,8 +73,8 @@ class StreamAccelerationViewer(pg.PlotWidget):
         # вставка данных в заполненный буфер
         if self.buffer_filled and acceleration.shape[1] != 0:
             self._acceleration_buffer = np.roll(self._acceleration_buffer, -acceleration.shape[1])
-            self._acceleration_buffer[-acceleration.shape[1]:] = acceleration
-            self.time_buffer += acceleration.shape[1] * self.dt
+            self._acceleration_buffer[:,-acceleration.shape[1]:] = acceleration
+            self._time_buffer += acceleration.shape[1] * self.dt
 
         self.pending_update = True
 
@@ -90,7 +90,7 @@ class StreamAccelerationViewer(pg.PlotWidget):
             if end_idx > self.timebase * self._fs:
                 start_idx = end_idx - int(self.timebase * self._fs)
         else:
-            end_idx = len(self.ecg_buffer)
+            end_idx = len(self._acceleration_buffer)
             start_idx = end_idx - int(self.timebase * self._fs)
 
         visible_time = self._time_buffer[start_idx:end_idx]
@@ -275,3 +275,129 @@ class StreamSignalViewer(pg.PlotWidget):
         self.time_buffer = np.arange(0, self.max_timebase, self.dt)
         self.buffer_filled = False  # флаг заполнения буфера
         self.current_position = 0  # текущая позиция для заполнения буфера
+
+
+class StreamViewer(pg.PlotWidget):
+
+    def __init__(
+            self,
+            left_label: str | None = None,
+            bottom_label: str | None = None,
+            *args,
+            **kwargs
+    ):
+        super().__init__(*args, **kwargs)
+        self.setBackground((64, 64, 64))
+        self.setDisabled(True)
+
+        self._signal_buffer: np.ndarray | None = None
+        self._time_buffer: np.ndarray | None = None
+        self._buffer_filled = False  # флаг заполнения буфера
+        self.current_position = 0  # текущая позиция для заполнения буфера
+        self._channels_count: int | None = None
+        self._counter_per_sample: int | None = None
+        self._sample_rate: int | None = None
+
+        self._timebase: int | None = 10
+        self._max_timebase: int | None = 60
+
+        # объекты отображения сигналов len(traces) = _channels_count
+        self.traces: list = []
+        self.update_display: bool = False
+
+        pen = mkPen("w")
+        font = QFont("Arial", 9)
+
+        self.setLabel("left", left_label, color="white")
+        self.setLabel("bottom", bottom_label, color="white")
+        for ax in ["bottom", "left"]:
+            self.getAxis(ax).label.setFont(font)
+            self.getAxis(ax).setPen(pen)
+            self.getAxis(ax).setTickPen(pen)
+            self.getAxis(ax).setTextPen(pen)
+            self.getAxis(ax).setTickFont(font)
+
+        self.startTimer(16)
+
+    def update_params(self, channels: int, counter_per_sample: int, sample_rate: int, type_signal: str | None = None):
+        """ установка параметров для начала отображения сигналов """
+        self._counter_per_sample = counter_per_sample
+        self._channels_count = channels
+        self._sample_rate = sample_rate
+
+        pens = []
+        if type_signal == "ЭКГ" or type_signal == "ЭЭГ":
+            pens.append(mkPen(color=(255, 255, 0)))
+        elif type_signal == "Акселерометр":
+            pens.extend([mkPen(color=(255, 0, 0)), mkPen(color=(0, 255, 0)), mkPen(color=(173, 216, 230))])
+
+        self._signal_buffer = np.zeros((self._channels_count, self._sample_rate * self._max_timebase), dtype=np.float32)
+        self._time_buffer = np.arange(0.0, self._max_timebase, 1 / self._sample_rate)
+
+        self._arrange_traces(pens)
+
+    def _arrange_traces(self, pens: list):
+        """ настройка объектов отображения сигнала под новое количество каналов """
+        # удаление старых графиков
+        for ch in self.traces:
+            self.removeItem(ch)
+        self.traces = []
+
+        pen = None
+        for ch in range(self._channels_count):
+            if len(pens) == self._channels_count:
+                pen = pens[ch]
+
+            self.traces.append(self.plot(pen=pen))
+
+    def process_input(self, data: dict):
+        """ обработка входящего сигнала и добавление в буфер """
+        current_sample, signal = data["counter"], data["signal"]
+        signal = signal[np.newaxis] # .shape = (1,32) for ecg/eeg
+
+        # todo: добавить проверку сигнала на соответствие channels_count, count_per_samples
+        if not self._buffer_filled:
+            if self.current_position + self._counter_per_sample < self._signal_buffer.shape[1]:
+
+                self._signal_buffer[:, self.current_position: self.current_position + self._counter_per_sample] = signal
+                self.current_position += self._counter_per_sample
+            else:
+                offset = self._signal_buffer.shape[1] - self.current_position
+                self._signal_buffer[:, self.current_position] = signal[:, :offset]
+                signal = signal[:, offset:]
+                self._buffer_filled = True
+
+        if self._buffer_filled and signal.shape[1] != 0:
+            self._signal_buffer = np.roll(self._signal_buffer, -len(signal))
+            self._signal_buffer[: -signal.shape[1]:] = signal
+            self._time_buffer += signal.shape[1] * (1 / self._sample_rate)
+
+        self.update_display = True
+
+    def timerEvent(self, event, /):
+        """ событие отрисовки графиков """
+        if not self.update_display:
+            return
+
+        if not self._buffer_filled:
+            end_idx = self.current_position
+            start_idx = 0
+            if end_idx > self._timebase * self._sample_rate:
+                start_idx = end_idx - int(self._timebase * self._sample_rate)
+        else:
+            end_idx = self._signal_buffer.shape[1]
+            start_idx = end_idx - int(self._timebase * self._sample_rate)
+
+        visible_time = self._time_buffer[start_idx:end_idx]
+        for ch in range(self._channels_count):
+            self.traces[ch].setData(visible_time, self._signal_buffer[ch, start_idx: end_idx])
+
+        # подстройка по оси времени
+        if not self._buffer_filled and end_idx <= self._timebase * self._sample_rate:
+            self.setXRange(0, self._timebase, padding=0)
+        else:
+            current_time = visible_time[-1] if len(visible_time) > 0 else 0
+            self.setXRange(current_time - self._timebase, current_time, padding=0)
+
+        self.update_display = False
+

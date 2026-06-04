@@ -19,7 +19,7 @@ from device.inrat import InRat
 from config import DATA_PATH
 from device.ui.config_dialog import DlgConfigDevice
 from device.ui.control_pane import FrmControlPane
-from stream_displays import StreamAccelerationViewer, StreamSignalViewer
+from stream_displays import StreamAccelerationViewer, StreamSignalViewer, StreamViewer
 from scanner import BLEScannerWorker
 from utils.check_bluetooth import check_bluetooth_status
 from storage import DataStorage
@@ -56,11 +56,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # self.storage = Storage(path_to_save=DATA_PATH, fs=HZ)
         self.scanner = BLEScannerWorker()
 
-        # графики отображения сигналов
-        self.plot_signal = StreamSignalViewer()
-        self.verticalLayoutDisplay.insertWidget(0, self.plot_signal)
-        self.plot_acceleration = StreamAccelerationViewer()
+        # # графики отображения сигналов
+        # self.plot_signal = StreamSignalViewer()
+        # self.verticalLayoutDisplay.insertWidget(0, self.plot_signal)
+
+        self.plot_acceleration = StreamViewer(left_label="Акселерометр", bottom_label="время")
         self.verticalLayoutDisplay.insertWidget(1, self.plot_acceleration)
+
+        self.plot_signal = StreamViewer(left_label="ЭКГ", bottom_label="время")
+        self.verticalLayoutDisplay.insertWidget(0, self.plot_signal)
 
         # класс для сохранения данных с устройства
         self.data_storage = DataStorage()
@@ -202,7 +206,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             await self.disconnect_device()
             return
 
-        await self.device.start_acquisition(signal_queue=self.ecg_queue,event_queue=self.event_queue, acceleration_queue=self.acceleration_queue)
+        await self.device.start_acquisition(
+            signal_queue=self.ecg_queue,
+            event_queue=None,
+            acceleration_queue=self.acceleration_queue
+        )
 
         # настройка параметров записи
         self.data_storage.set_recording_params(
@@ -210,6 +218,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             samples_count=Pkt.SamplesCountEcg,
             device_name=self.device.name
         )
+
+        # настройка параметров для отображения графиков
+        self.plot_signal.update_params(channels=1, counter_per_sample=Pkt.SamplesCountEcg, sample_rate=self.device.sample_rate,type_signal="ЭКГ")
+        self.plot_acceleration.update_params(channels=3, counter_per_sample=Pkt.SamplesCountAcc, sample_rate=100, type_signal="Акселерометр")
+
         self.data_storage.start()
 
         # disable
@@ -231,7 +244,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             except asyncio.QueueEmpty:
                 ecg = None
             else:
-                self.plot_signal.set_data(ecg)
+                # self.plot_signal.set_data(ecg)
+                self.plot_signal.process_input(ecg)
+
                 self.data_storage._input_queue.put(ecg)
                 self.ecg_queue.task_done()
 
@@ -250,7 +265,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             except asyncio.QueueEmpty:
                 data = None
             else:
-                self.plot_acceleration.set_data(data)
+                self.plot_acceleration.process_input(data)
                 self.acceleration_queue.task_done()
 
             if not self.device.is_connected:

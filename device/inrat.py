@@ -245,7 +245,7 @@ class InRat:
         async def acceleration_handler(sender, data):
 
             cnt, accel = decode_acceleration(data, self._enabled_channels)
-            await acceleration_queue.put({"counter":cnt, "acceleration":accel})
+            await acceleration_queue.put({"counter":cnt, "signal":accel})
 
         settings = self._get_settings()
         await self.setup(Command.AcquisitionStart, settings)
