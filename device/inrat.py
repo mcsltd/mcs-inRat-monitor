@@ -224,7 +224,7 @@ class inRat:
         except Exception as err:
             ...
         await self._get_device_info()
-        set_default_setting_from_firmware(self)
+        # set_default_setting_from_firmware(self)
         await self._get_device_status()
 
     async def start_acquisition(
@@ -235,8 +235,6 @@ class inRat:
     ):
         """ запуск на получение данных """
         async def event_handler(sender, data: bytearray):
-            # print(f"{sender=} {data=}")
-
             event_size = ctypes.sizeof(Event)
             cnt = int(len(data) / event_size)
             for idx in range(cnt):
@@ -244,8 +242,6 @@ class inRat:
                 await event_queue.put(event)
 
         async def signal_handler(sender, data):
-            # print(f"{sender=} {data=}")
-
             cnt, signal = decode_signal(data)
             await signal_queue.put({"counter":cnt, "signal":signal})
 
