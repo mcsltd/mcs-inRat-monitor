@@ -7,7 +7,8 @@ from uuid import UUID
 from bleak import BLEDevice, BleakClient
 
 from device.decoders import decode_signal, decode_acceleration
-from device.enums import EnabledChannels, SampleRateEcg, SampleRateEeg, Mode, EventType, Command, ScaleAccelerometer
+from device.enums import EnabledChannels, SampleRateEcg, SampleRateEeg, Mode, EventType, Command, ScaleAccelerometer, \
+    TypeSignal
 from device.structures import Event, Settings
 from device.utils import get_control_sum
 from config import BLE_KEY
@@ -19,7 +20,7 @@ FIRMWARE_V0 = "1.0.260317"
 FIRMWARE_V1 = "1.0.260527" # "1.0.260603"
 
 
-class InRat:
+class inRat:
 
     UUID_CHARACTERISTIC_CONTROL = "7395ca15-5997-5a1b-a138-75a7a573b8e5"
     UUID_CHARACTERISTIC_ECG_EEG = "59573ef1-5389-575f-87d5-5f31fcdcba7b"
@@ -38,7 +39,7 @@ class InRat:
         @cached_property
         def uuid(self) -> UUID:
             """Convert the ID to a full UUID and cache."""
-            return UUID(InRat.UUID_TEMPLATE.format(self.value))
+            return UUID(inRat.UUID_TEMPLATE.format(self.value))
 
         def __str__(self) -> str:
             """Convert UUID to string value."""
@@ -196,7 +197,7 @@ class InRat:
         """ получение состояния устройства """
         rawdata = await self._client.read_gatt_char(self.UUID_CHARACTERISTIC_STATUS)
         status = Status.from_buffer(rawdata)
-        self._activated = status.activated
+        self._activated = status.Activated
 
     def _get_settings(self) -> Settings:
         settings = Settings(
@@ -219,9 +220,12 @@ class InRat:
         """ открытие устройства """
         if self.is_connected:
             return
-        await asyncio.wait_for(self._client.connect(), timeout=wait)
+        try:
+            await asyncio.wait_for(self._client.connect(), timeout=wait)
+        except Exception as err:
+            ...
         await self._get_device_info()
-        set_default_setting_from_firmware(self)
+        # set_default_setting_from_firmware(self)
         await self._get_device_status()
 
     async def start_acquisition(
@@ -232,8 +236,6 @@ class InRat:
     ):
         """ запуск на получение данных """
         async def event_handler(sender, data: bytearray):
-            # print(f"{sender=} {data=}")
-
             event_size = ctypes.sizeof(Event)
             cnt = int(len(data) / event_size)
             for idx in range(cnt):
@@ -241,15 +243,12 @@ class InRat:
                 await event_queue.put(event)
 
         async def signal_handler(sender, data):
-            # print(f"{sender=} {data=}")
-
             cnt, signal = decode_signal(data)
-            await signal_queue.put({"counter":cnt, "signal":signal})
+            await signal_queue.put({"counter":cnt, "signal":signal, "type": "sig"})
 
         async def acceleration_handler(sender, data):
-
             cnt, accel = decode_acceleration(data, self._enabled_channels)
-            await acceleration_queue.put({"counter":cnt, "signal":accel})
+            await acceleration_queue.put({"counter":cnt, "signal":accel, "type": "acc"})
 
         settings = self._get_settings()
         await self.setup(Command.AcquisitionStart, settings)
@@ -257,11 +256,12 @@ class InRat:
         if event_queue:
             await self._client.start_notify(self.UUID_CHARACTERISTIC_EVENT, event_handler)
 
+        if acceleration_queue and self._firmware == FIRMWARE_V1:
+            await self._client.start_notify(self.UUID_CHARACTERISTIC_ACCELERATION, acceleration_handler)
+
         if signal_queue:
             await self._client.start_notify(self.UUID_CHARACTERISTIC_ECG_EEG, signal_handler)
 
-        if acceleration_queue and self._firmware == FIRMWARE_V1:
-            await self._client.start_notify(self.UUID_CHARACTERISTIC_ACCELERATION, acceleration_handler)
 
 
     async def stop_acquisition(self):
@@ -298,7 +298,7 @@ class InRat:
             ...
 
 
-def set_default_setting_from_firmware(device: InRat):
+def set_default_setting_from_firmware(device: inRat):
     device.mode = Mode.ECG
     device.enabled_channels = EnabledChannels.ECG
 

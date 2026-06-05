@@ -14,6 +14,7 @@ from PySide6.QtWidgets import QFrame
 from pyedflib import EdfWriter
 from typing import Optional
 
+from device.device import SignalDatablock
 from resources.frm_online_control_recording import Ui_FrmOnlineControlRecording
 
 logger = logging.getLogger(__name__)
@@ -33,17 +34,28 @@ class DataStorage(QObject):
         super().__init__(*args, **kwargs)
 
         self._input_queue = Queue()
-        self._signal_buffer = np.zeros(144_000_000, dtype=np.float32) # 20 минут на 2000 Гц на одном канале
-
         self._recording = False
+
+        # параметры записи биосигнала
+        self._sig_datablock: None | SignalDatablock = None
+        self._sig_filename = None
+        self._sig_buffer = None
+        self._sig_start_sample = None   # начальный семпл записи
+        self._sig_current_sample = None
+        self._sig_samples_written = 0    # количество записанных в буфер семплов
+
+        # параметры записи акселерометра
+        self._acc_datablock: None | SignalDatablock = None
+        self._acc_filename = None
+        self._acc_buffer = None
+        self._acc_start_sample = None   # начальный семпл записи
+        self._acc_current_sample = None
+        self._acc_samples_written = 0    # количество записанных в буфер семплов
+
+        self._max_timebase = 1200 # 20 минут
 
         # параметры записи
         self._format = "EDF"         # выбранный формат записи
-        self._sample_rate = None    # частота записи
-        self._samples_count = None  # количество отсчётов в семпле
-        self._samples_written = 0    # количество записанных в буфер семплов
-        self._start_sample = None   # начальный семпл записи
-        self._current_sample = None
         self._recording_start = None
         self._device_name = None
 
@@ -101,11 +113,29 @@ class DataStorage(QObject):
             self._work.join(5.0)
             self._work = None
 
-    def set_recording_params(self, sample_rate: int, samples_count: int, device_name: str):
-        """ установка параметров записи """
-        self._sample_rate = sample_rate
-        self._samples_count = samples_count
-        self._device_name = device_name
+    def update_params(self, params_sig: SignalDatablock | None, params_acc: SignalDatablock | None):
+        """ обновление параметров записи сигналов """
+        # обновление параметров записи для биосигналов
+        self._sig_datablock = params_sig
+        if params_sig:
+            self._sig_filename = params_sig.type_signal.value
+            self._sig_buffer = np.zeros((params_sig.number_channels, params_sig.sample_rate * self._max_timebase), dtype=np.float32)
+
+            self._sig_start_sample = 0  # начальный семпл записи
+            self._sig_current_sample = 0
+            self._sig_samples_written = 0
+
+        # обновление параметров записи для акселерометра
+        self._acc_datablock = params_acc
+        if params_acc:
+            self._acc_filename = params_acc.type_signal.value
+            self._acc_buffer = np.zeros((params_acc.number_channels, params_acc.sample_rate * self._max_timebase),
+                                        dtype=np.float32)
+
+            self._acc_start_sample = 0  # начальный семпл записи
+            self._acc_current_sample = 0
+            self._acc_samples_written = 0
+
 
     def process_event(self, event):
         """ обработка событий """
@@ -123,16 +153,12 @@ class DataStorage(QObject):
 
         now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         self._writedir = f"./data/{str(self._device_name)}/rec_{now}/"
-        self._filename = "ecg"
+
 
     def _close_recording(self):
         """ остановка записи"""
         logger.debug(f"Остановка записи {DataStorage.__name__}")
         self._recording = False
-
-        idx_start = 0
-        idx_finish = self._samples_written * self._samples_count
-        signal = self._signal_buffer[idx_start:idx_finish]
 
         if self._format == "WFDB":
             logger.error(f"Формат WFDB не поддерживается!")
@@ -140,7 +166,34 @@ class DataStorage(QObject):
 
         if self._format == "EDF":
             os.makedirs(self._writedir, exist_ok=True)
-            self._save_to_edf(signal=signal, write_dir=self._writedir, filename=self._filename)
+
+            if self._sig_datablock:
+                idx_start = 0
+                idx_finish = self._sig_samples_written * self._sig_datablock.counter_per_sample
+                signal = self._sig_buffer[:,idx_start:idx_finish]
+
+                self._save_to_edf(
+                    sample_rate=self._sig_datablock.sample_rate,
+                    number_channels=self._sig_datablock.number_channels,
+                    signal=signal,
+                    write_dir=self._writedir,
+                    filename=self._sig_filename,
+                    channel_names=self._sig_datablock.channel_names,
+                    units=self._sig_datablock.units,)
+
+            if self._acc_datablock:
+                idx_start = 0
+                idx_finish = self._acc_samples_written * self._acc_datablock.counter_per_sample
+                acc_signal = self._acc_buffer[:,idx_start:idx_finish]
+
+                self._save_to_edf(
+                    sample_rate=self._acc_datablock.sample_rate,
+                    number_channels=self._acc_datablock.number_channels,
+                    signal=acc_signal,
+                    write_dir=self._writedir,
+                    filename=self._acc_filename,
+                    channel_names=self._acc_datablock.channel_names,
+                    units=self._acc_datablock.units,)
 
         self._control_pane.pushButtonStartRecording.setEnabled(True)
         self._control_pane.pushButtonStopRecording.setEnabled(False)
@@ -154,30 +207,69 @@ class DataStorage(QObject):
 
         logger.debug(f"Получены данные для сохранения в {DataStorage.__name__}: {data=}")
 
-        sample = data["counter"]
-        signal = data["signal"]
+        type = data["type"]
 
-        if not self._start_sample:
-            self._start_sample = sample
-            self._recording_start = time.time()
+        if self._sig_datablock and type == "sig":
+            self._process_input_sig(data)
 
-        idx_start = (sample - self._start_sample) * self._samples_count
-        idx_finish = (sample - self._start_sample) * self._samples_count + len(signal)
-
-        # дошли до конца буфера?
-        if idx_finish >= len(self._signal_buffer):
-            self._close_recording()
-            return data
-
-        self._signal_buffer[idx_start:idx_finish] = signal
-        self._samples_written += 1
+        if self._acc_datablock and type == "acc":
+            self._process_input_acc(data)
 
         return data
 
-    def _save_to_edf(self, signal: np.ndarray, write_dir: str, filename: str):
+    def _process_input_sig(self, data):
+        """ обработка входящих биосигналов """
+        sig, sample = data["signal"], data["counter"]
+
+        if not self._sig_start_sample:
+            self._sig_start_sample = sample
+            self._sig_recording_start = time.time()
+
+        idx_start = (sample - self._sig_start_sample) * self._sig_datablock.counter_per_sample
+        idx_finish = (sample - self._sig_start_sample) * self._sig_datablock.counter_per_sample + self._sig_datablock.counter_per_sample
+
+        # дошли до конца буфера? закрываем запись
+        if idx_finish >= self._sig_buffer.shape[1]:
+            self._close_recording()
+            return data
+
+        self._sig_buffer[:, idx_start:idx_finish] = sig
+        self._sig_samples_written += 1
+        return data
+
+    def _process_input_acc(self, data):
+        """ обработка входящих сигналов акселерометра """
+        acc, sample = data["signal"], data["counter"]
+
+        if not self._acc_start_sample:
+            self._acc_start_sample = sample
+            self._acc_recording_start = time.time()
+
+        idx_start = (sample - self._sig_start_sample) * self._acc_datablock.counter_per_sample
+        idx_finish = (sample - self._sig_start_sample) * self._acc_datablock.counter_per_sample + self._acc_datablock.counter_per_sample
+
+        # дошли до конца буфера?
+        if idx_finish >= self._acc_buffer.shape[1]:
+            self._close_recording()
+            return data
+
+        self._acc_buffer[:, idx_start:idx_finish] = acc
+        self._acc_samples_written += 1
+        return data
+
+    def _save_to_edf(
+            self,
+            sample_rate: int,
+            number_channels: int,
+            signal: np.ndarray,
+            units: str,
+            write_dir: str,
+            filename: str,
+            channel_names: list,
+    ):
         """ сохранение сигнала в edf файл """
         path_to_save = f"{write_dir}/{filename}.edf"
-        writer = EdfWriter(n_channels=1, file_name=path_to_save)
+        writer = EdfWriter(n_channels=number_channels, file_name=path_to_save)
         signal = np.round(signal, decimals=6)
         margin = 0.15
 
@@ -206,20 +298,28 @@ class DataStorage(QObject):
             physical_max = physical_max + 1.0
             physical_min = physical_min - 1.0
 
-        channel_info = {
-            'label': "signal",
-            'dimension': "V",
-            'sample_frequency': self._sample_rate,
-            'physical_max': physical_max,
-            'physical_min': physical_min,
-            'digital_max': 32767,
-            'digital_min': -32768,
-        }
+        headers = []
+        for ch in range(number_channels):
+            channel_info = {
+                'label': channel_names[ch],
+                'dimension': units,
+                'sample_frequency': sample_rate,
+                'physical_max': physical_max,
+                'physical_min': physical_min,
+                'digital_max': 32767,
+                'digital_min': -32768,
+            }
+            headers.append(channel_info)
 
-        writer.setSignalHeader(0, channel_info)
-        writer.writeSamples(signal[np.newaxis])
+        writer.setSignalHeaders(headers)
+        writer.writeSamples(signal)
         writer.close()
 
+    def _transmit_data(self, data):
+        try:
+            self._input_queue.put(data, False)
+        except:
+            ...
 
 def to_str_mmss(seconds) -> str:
     str_mm_ss = f"{int(seconds // 60):02d}:{seconds % 60:02d}"
