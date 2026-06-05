@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import queue
 import time
 from asyncio import AbstractEventLoop
 from concurrent.futures import Future
@@ -22,18 +21,27 @@ class inRatDevice(QObject):
     signal_disconnected = Signal()
 
     """ класс для работы с inRat """
+
     def __init__(self, loop: asyncio.AbstractEventLoop | None = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self._inrat = None
-        self._receivers = []
-
-        self._signal_queue = asyncio.Queue()
-        self._event_queue = None
-        self._acc_queue = None
-
         self._loop: AbstractEventLoop = loop
-        self._work: Thread | None = None
+        self._inrat = None
+
+        # очередь для передачи всех сигналов и событий
+        self._receivers_data = []
+
+        # ресурсы для обработки событий и биосигналов
+        self._work_sig: Thread | None = None
+        self._receivers_sig = []
+        self._event_queue = None
+        self._sig_queue = asyncio.Queue()
+
+        # ресурсы для обработки показаний акселерометра
+        self._work_acc: Thread | None = None
+        self._receivers_acc = []
+        self._acc_queue = asyncio.Queue()
+
         self._running: bool = False
 
         self._control_pane = FrmControlPane()
@@ -41,14 +49,26 @@ class inRatDevice(QObject):
         self._control_pane.pushButtonStop.clicked.connect(self.stop)
         self._control_pane.pushButtonConfig.clicked.connect(self.on_config_clicked)
 
-    def add_receiver(self, receiver):
-        """ добавить объект приёмника в коллекцию """
+    def add_receiver_sig(self, receiver):
+        """ добавить объект приёмника в коллекцию биосигналов """
         if self._running:
             receiver.start()
-        self._receivers.append(receiver)
+        self._receivers_sig.append(receiver)
 
-    def remove_receiver(self, receiver):
-        self._receivers.remove(receiver)
+    def remove_receiver_sig(self, receiver):
+        """ удалить объект приёмника биосигналов из коллекции """
+        self._receivers_sig.remove(receiver)
+        receiver.stop()
+
+    def add_receiver_acc(self, receiver):
+        """ добавить объект приёмника акселерометра в коллекцию """
+        if self._running:
+            receiver.start()
+        self._receivers_acc.append(receiver)
+
+    def remove_receiver_acc(self, receiver):
+        """ удалить объект приёмника из коллекции акселерометра """
+        self._receivers_acc.remove(receiver)
         receiver.stop()
 
     @property
@@ -67,6 +87,7 @@ class inRatDevice(QObject):
             self._control_pane.state_connection()
             self.signal_connected.emit()
 
+            # настройка параметров inrat под версию firmware
             if self._inrat.firmware == FIRMWARE_V0:
                 self._inrat.enabled_channels = EnabledChannels.ECG
                 self._inrat.sample_rate = 500
@@ -98,48 +119,85 @@ class inRatDevice(QObject):
             logger.error(f"Exception: {exc}")
             return
 
-        future = asyncio.run_coroutine_threadsafe(self._inrat.start_acquisition(signal_queue=self._signal_queue), self._loop)
+        future = asyncio.run_coroutine_threadsafe(
+            self._inrat.start_acquisition(
+                signal_queue=self._sig_queue, acceleration_queue=self._acc_queue
+            ),
+            self._loop
+        )
 
-        for receiver in self._receivers:
+        for receiver in self._receivers_sig:
             receiver.update_params(
                 channels=1, counter_per_sample=32, sample_rate=500, type_signal="ЭЭГ")
             receiver.start()
 
+        for receiver in self._receivers_acc:
+            receiver.update_params(
+                channels=3, counter_per_sample=8, sample_rate=100, type_signal="Акселерометр")
+            receiver.start()
+
         if not self._running:
             self._running = True
-            self._work = Thread(target=self._worker_thread)
-            self._work.start()
+            self._work_sig = Thread(target=self._worker_thread_sig)
+            self._work_acc = Thread(target=self._worker_thread_acc)
+            self._work_sig.start()
+            self._work_acc.start()
+
         logger.debug("Запущен поток обработки приёма и обработки данных с inRat")
 
-    def _worker_thread(self):
-        """ Рабочий поток получает данные из входной очереди
+    def _worker_thread_sig(self):
+        """ Рабочий поток получает данные из входной очереди биосигналов
             и помещает обработанные данные в выходную очередь """
         while self._running:
             try:
-                signal = self._signal_queue.get_nowait()
+                signal = self._sig_queue.get_nowait()
             except asyncio.queues.QueueEmpty:
                 signal = None
             else:
                 # logger.debug(f"Получены данные: {signal=}")
-                self._signal_queue.task_done()
+                self._sig_queue.task_done()
 
             if signal:
-                for receiver in self._receivers:
+                for receiver in self._receivers_sig:
                     receiver._transmit_data(signal)
 
             time.sleep(0.001)
 
+    def _worker_thread_acc(self):
+        """ Рабочий поток получает данные из входной очереди акселерометра
+                    и помещает обработанные данные в выходную очередь """
+        while self._running:
+            try:
+                acc = self._acc_queue.get_nowait()
+            except asyncio.queues.QueueEmpty:
+                acc = None
+            else:
+                # logger.debug(f"Получены данные: {signal=}")
+                self._acc_queue.task_done()
+
+            if acc:
+                for receiver in self._receivers_acc:
+                    receiver._transmit_data(acc)
+
+            time.sleep(0.001)
 
     def stop(self):
         """ остановка получения данных с inRat """
         future = asyncio.run_coroutine_threadsafe(self._inrat.stop_acquisition(), self._loop)
 
         self._running = False
-        if self._work:
-            self._work.join(5.0)
-            self._work = None
+        if self._work_acc:
+            self._work_acc.join(1.5)
+            self._work_acc = None
 
-        for receiver in self._receivers:
+        if self._work_acc:
+            self._work_acc.join(1.5)
+            self._work_acc = None
+
+        for receiver in self._receivers_acc:
+            receiver.stop()
+
+        for receiver in self._receivers_sig:
             receiver.stop()
 
         self.process_stop()

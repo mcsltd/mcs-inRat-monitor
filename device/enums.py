@@ -1,4 +1,5 @@
-from enum import IntEnum, IntFlag, auto
+from enum import IntEnum, IntFlag, auto, Enum
+
 
 class Mode(IntEnum):
     ECG = 0
@@ -43,3 +44,9 @@ class EventType(IntFlag):
     START = auto()
     TEMP = auto()
     ALL = BUTTON | ACTIVITY | FREEFALL | ORIENTATION | START | TEMP
+
+
+class TypeSignal(Enum):
+    ACC = "acc"
+    EEG = "eeg"
+    ECG = "ecg"

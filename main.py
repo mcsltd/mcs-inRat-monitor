@@ -14,6 +14,7 @@ from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QComboBox
 from bleak import BLEDevice
 
 from device.device import inRatDevice
+from device.enums import TypeSignal
 from scanner import BLEScannerWorker
 from stream_displays import StreamViewer
 from utils.check_bluetooth import check_bluetooth_status
@@ -43,28 +44,33 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.scanner = BLEScannerWorker()
         self.storage = DataStorage()
-        self.display_ecg_emg = StreamViewer()
+        self.display_sig = StreamViewer(TypeSignal.ECG.value, "время")
+        self.display_acc = StreamViewer(TypeSignal.ACC.value, "время")
 
-        # self.verticalLayout.insertWidget(6, self.storage.control_pane)
+        self.device.add_receiver_sig(self.display_sig)
+        self.device.add_receiver_acc(self.display_acc)
 
-        self.device.add_receiver(self.display_ecg_emg)
 
         # create scanner and run it
         self.scanner.run(self.qt_loop)
         self.scanner.signal_found.connect(self.set_combobox_items)
         self.pushButtonConnect.setEnabled(False)
 
-        self._waiting_connection_dlg = WaitingDialog()
-
         # setup combobox
         self.comboBoxDevice.setDuplicatesEnabled(False)
         self.comboBoxDevice.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+
         self.verticalLayout.insertWidget(5, self.device.control_pane)
-        self.verticalLayoutDisplay.addWidget(self.display_ecg_emg)
+        self.verticalLayoutDisplay.addWidget(self.display_sig)
+        self.verticalLayoutDisplay.addWidget(self.display_acc)
 
         # connection
         self.pushButtonConnect.clicked.connect(self.on_connect_clicked)
         self.pushButtonDisconnect.clicked.connect(self.on_disconnect_clicked)
+
+        # ui elements
+        self._waiting_connection_dlg = WaitingDialog()
+
 
     def on_connect_clicked(self):
         """ обработка нажатия кнопки открытия устройства """

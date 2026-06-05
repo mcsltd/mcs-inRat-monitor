@@ -256,11 +256,12 @@ class inRat:
         if event_queue:
             await self._client.start_notify(self.UUID_CHARACTERISTIC_EVENT, event_handler)
 
+        if acceleration_queue and self._firmware == FIRMWARE_V1:
+            await self._client.start_notify(self.UUID_CHARACTERISTIC_ACCELERATION, acceleration_handler)
+
         if signal_queue:
             await self._client.start_notify(self.UUID_CHARACTERISTIC_ECG_EEG, signal_handler)
 
-        if acceleration_queue and self._firmware == FIRMWARE_V1:
-            await self._client.start_notify(self.UUID_CHARACTERISTIC_ACCELERATION, acceleration_handler)
 
 
     async def stop_acquisition(self):
