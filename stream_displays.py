@@ -304,10 +304,6 @@ class StreamViewer(pg.PlotWidget):
         self.current_position = 0  # текущая позиция для заполнения буфера
         
         self._sig_datablock: SignalDatablock | None = None
-        
-        # self._channels_count: int | None = None
-        # self._counter_per_sample: int | None = None
-        # self._sample_rate: int | None = None
 
         self._timebase: int | None = 10
         self._max_timebase: int | None = 60
@@ -318,6 +314,8 @@ class StreamViewer(pg.PlotWidget):
 
         pen = mkPen("w")
         font = QFont("Arial", 9)
+
+        self.addLegend(offset=(10,10), labelTextSize="9pt")
 
         self.setLabel("left", left_label, color="white")
         self.setLabel("bottom", bottom_label, color="white")
@@ -363,7 +361,9 @@ class StreamViewer(pg.PlotWidget):
             if len(pens) == self._sig_datablock.number_channels:
                 pen = pens[ch]
 
-            self.traces.append(self.plot(pen=pen))
+            plot = self.plot(pen=pen, name=self._sig_datablock.channel_names[ch])
+            self.traces.append(plot)
+
 
     def process_input(self, data: dict):
         """ обработка входящего сигнала и добавление в буфер """
@@ -441,9 +441,9 @@ class StreamViewer(pg.PlotWidget):
                 data = self._input_queue.get(False)
                 self.process_input(data)
             except queue.Empty:
-                ...
+                pass
             except Exception as exc:
-                ...
+                pass
 
             time.sleep(0.001)
 
@@ -452,4 +452,4 @@ class StreamViewer(pg.PlotWidget):
         try:
             self._input_queue.put(data, False)
         except:
-            ...
+            pass
