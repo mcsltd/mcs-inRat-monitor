@@ -178,11 +178,9 @@ class inRatDevice(QObject):
         for receiver in self._receivers_sig:
             receiver.update_params(self._sig_datablock)
             receiver.start()
-
         for receiver in self._receivers_acc:
             receiver.update_params(self._acc_datablock)
             receiver.start()
-
         for receiver in self._receivers_data:
             receiver.update_params(params_acc=self._acc_datablock, params_sig=self._sig_datablock)
             receiver.start()
@@ -260,7 +258,6 @@ class inRatDevice(QObject):
         for receiver in self._receivers_data:
             receiver.stop()
 
-
         self.process_stop()
         logger.debug("Поток обработки приёма и обработки данных с inRat остановлен")
 
@@ -271,4 +268,29 @@ class inRatDevice(QObject):
     def on_config_clicked(self):
         dlg = DlgConfigDevice(self._inrat)
         dlg.exec()
+
+        if bool(self._inrat.enabled_channels & EnabledChannels.ECG):
+            self._sig_datablock = SignalDatablock(
+                type_signal=TypeSignal.ECG,
+                sample_rate=self._inrat.sample_rate,
+                counter_per_sample=Pkt.SamplesCountEcg,
+                number_channels=Pkt.ChannelsCountEcg,
+                channel_names=["ecg"],
+                units="V")
+        else:
+            self._sig_datablock = None
+
+        if (bool(self._inrat.enabled_channels & EnabledChannels.ACC_X) and
+                bool(self._inrat.enabled_channels & EnabledChannels.ACC_Y) and
+                bool(self._inrat.enabled_channels & EnabledChannels.ACC_Z)
+        ):
+            self._acc_datablock = SignalDatablock(type_signal=TypeSignal.ACC,
+                                                  sample_rate=100,
+                                                  counter_per_sample=Pkt.SamplesCountAcc,
+                                                  number_channels=Pkt.ChannelsCountAcc,
+                                                  channel_names=["acc_x", "acc_y", "acc_z"],
+                                                  units="mg"
+                                                  )
+        else:
+            self._acc_datablock = None
 

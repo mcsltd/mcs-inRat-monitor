@@ -129,7 +129,7 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
 
         # установка частоты
         sample_rate = self.comboBoxSampleRate.currentData()
-        self._device.sampling_rate = sample_rate
+        self._device.sample_rate = sample_rate
 
         # установка масштаба акселерометра
         # scale = self.comboBoxFullScaleAccelerometer.currentData()
