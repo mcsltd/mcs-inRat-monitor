@@ -9,6 +9,9 @@ from PySide6.QtGui import QFont
 from pyqtgraph import mkPen
 
 from device.constants import Pkt
+from device.device import SignalDatablock
+from device.enums import TypeSignal
+
 
 # ToDo: переписать на единый класс (?)
 # ToDo: сделать адаптацию под выбранные настройки устройства
@@ -299,9 +302,12 @@ class StreamViewer(pg.PlotWidget):
         self._time_buffer: np.ndarray | None = None
         self._buffer_filled = False  # флаг заполнения буфера
         self.current_position = 0  # текущая позиция для заполнения буфера
-        self._channels_count: int | None = None
-        self._counter_per_sample: int | None = None
-        self._sample_rate: int | None = None
+        
+        self._sig_datablock: SignalDatablock | None = None
+        
+        # self._channels_count: int | None = None
+        # self._counter_per_sample: int | None = None
+        # self._sample_rate: int | None = None
 
         self._timebase: int | None = 10
         self._max_timebase: int | None = 60
@@ -324,20 +330,24 @@ class StreamViewer(pg.PlotWidget):
 
         self.startTimer(16)
 
-    def update_params(self, channels: int, counter_per_sample: int, sample_rate: int, type_signal: str | None = None):
+    def update_params(self, params: SignalDatablock | None):
         """ установка параметров для начала отображения сигналов """
-        self._counter_per_sample = counter_per_sample
-        self._channels_count = channels
-        self._sample_rate = sample_rate
+        self._sig_datablock = params
+
+        if not params:
+            return None
 
         pens = []
-        if type_signal == "ЭКГ" or type_signal == "ЭЭГ":
+        if self._sig_datablock.type_signal is TypeSignal.ECG or self._sig_datablock.type_signal is TypeSignal.EEG:
             pens.append(mkPen(color=(255, 255, 0)))
-        elif type_signal == "Акселерометр":
+        elif self._sig_datablock.type_signal is TypeSignal.ACC:
             pens.extend([mkPen(color=(255, 0, 0)), mkPen(color=(0, 255, 0)), mkPen(color=(173, 216, 230))])
 
-        self._signal_buffer = np.zeros((self._channels_count, self._sample_rate * self._max_timebase), dtype=np.float32)
-        self._time_buffer = np.arange(0.0, self._max_timebase, 1 / self._sample_rate)
+        self._signal_buffer = np.zeros(
+            (self._sig_datablock.number_channels, self._sig_datablock.sample_rate * self._max_timebase),
+            dtype=np.float32
+        )
+        self._time_buffer = np.arange(0.0, self._max_timebase, 1 / self._sig_datablock.sample_rate)
 
         self._arrange_traces(pens)
 
@@ -349,8 +359,8 @@ class StreamViewer(pg.PlotWidget):
         self.traces = []
 
         pen = None
-        for ch in range(self._channels_count):
-            if len(pens) == self._channels_count:
+        for ch in range(self._sig_datablock.number_channels):
+            if len(pens) == self._sig_datablock.number_channels:
                 pen = pens[ch]
 
             self.traces.append(self.plot(pen=pen))
@@ -362,10 +372,10 @@ class StreamViewer(pg.PlotWidget):
 
         # todo: добавить проверку сигнала на соответствие channels_count, count_per_samples
         if not self._buffer_filled:
-            if self.current_position + self._counter_per_sample < self._signal_buffer.shape[1]:
+            if self.current_position + self._sig_datablock.counter_per_sample < self._signal_buffer.shape[1]:
 
-                self._signal_buffer[:, self.current_position: self.current_position + self._counter_per_sample] = signal
-                self.current_position += self._counter_per_sample
+                self._signal_buffer[:, self.current_position: self.current_position + self._sig_datablock.counter_per_sample] = signal
+                self.current_position += self._sig_datablock.counter_per_sample
             else:
                 offset = self._signal_buffer.shape[1] - self.current_position
                 self._signal_buffer[:, self.current_position] = signal[:, :offset]
@@ -375,7 +385,7 @@ class StreamViewer(pg.PlotWidget):
         if self._buffer_filled and signal.shape[1] != 0:
             self._signal_buffer = np.roll(self._signal_buffer, -len(signal))
             self._signal_buffer[: -signal.shape[1]:] = signal
-            self._time_buffer += signal.shape[1] * (1 / self._sample_rate)
+            self._time_buffer += signal.shape[1] * (1 / self._sig_datablock.sample_rate)
 
         self.update_display = True
 
@@ -387,18 +397,18 @@ class StreamViewer(pg.PlotWidget):
         if not self._buffer_filled:
             end_idx = self.current_position
             start_idx = 0
-            if end_idx > self._timebase * self._sample_rate:
-                start_idx = end_idx - int(self._timebase * self._sample_rate)
+            if end_idx > self._timebase * self._sig_datablock.sample_rate:
+                start_idx = end_idx - int(self._timebase * self._sig_datablock.sample_rate)
         else:
             end_idx = self._signal_buffer.shape[1]
             start_idx = end_idx - int(self._timebase * self._sample_rate)
 
         visible_time = self._time_buffer[start_idx:end_idx]
-        for ch in range(self._channels_count):
+        for ch in range(self._sig_datablock.number_channels):
             self.traces[ch].setData(visible_time, self._signal_buffer[ch, start_idx: end_idx])
 
         # подстройка по оси времени
-        if not self._buffer_filled and end_idx <= self._timebase * self._sample_rate:
+        if not self._buffer_filled and end_idx <= self._timebase * self._sig_datablock.sample_rate:
             self.setXRange(0, self._timebase, padding=0)
         else:
             current_time = visible_time[-1] if len(visible_time) > 0 else 0

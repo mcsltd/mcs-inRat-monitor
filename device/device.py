@@ -5,15 +5,36 @@ from asyncio import AbstractEventLoop
 from concurrent.futures import Future
 from threading import Thread
 
+import numpy as np
 from PySide6.QtCore import QObject, Signal
 from bleak import BLEDevice
 
-from device.enums import EnabledChannels
+from device.constants import Pkt
+from device.enums import EnabledChannels, TypeSignal
 from device.inrat import inRat, FIRMWARE_V1, FIRMWARE_V0
 from device.ui.config_dialog import DlgConfigDevice
 from device.ui.control_pane import FrmControlPane
 
 logger = logging.getLogger(__name__)
+
+
+class SignalDatablock:
+    """ класс описывающий структуру передаваемых сигналов"""
+    def __init__(
+            self,
+            type_signal: TypeSignal,
+            sample_rate: int,
+            counter_per_sample: int,
+            number_channels: int,
+            channel_names: list
+    ):
+        self.type_signal: TypeSignal = type_signal
+        self.number_channels = number_channels
+        self.sample_rate = sample_rate
+        self.sample_counter = None
+        self.counter_per_sample = counter_per_sample
+        self.channel_names = channel_names
+        self.signal = np.zeros((self.number_channels, self.counter_per_sample), np.float32)
 
 class inRatDevice(QObject):
 
@@ -33,17 +54,29 @@ class inRatDevice(QObject):
 
         # ресурсы для обработки событий и биосигналов
         self._work_sig: Thread | None = None
+        self._sig_datablock = SignalDatablock(type_signal=TypeSignal.ECG,
+                                              sample_rate=500,
+                                              counter_per_sample=Pkt.SamplesCountEcg,
+                                              number_channels=Pkt.ChannelsCountEcg,
+                                              channel_names=["ecg"])
         self._receivers_sig = []
         self._event_queue = None
         self._sig_queue = asyncio.Queue()
 
         # ресурсы для обработки показаний акселерометра
         self._work_acc: Thread | None = None
+        self._acc_datablock = SignalDatablock(type_signal=TypeSignal.ACC,
+                                              sample_rate=100,
+                                              counter_per_sample=Pkt.SamplesCountAcc,
+                                              number_channels=Pkt.ChannelsCountAcc,
+                                              channel_names=["acc_x", "acc_y", "acc_z"])
         self._receivers_acc = []
         self._acc_queue = asyncio.Queue()
 
+        # флаг выполнения рабочего потока
         self._running: bool = False
 
+        # фрейм для управления устройством
         self._control_pane = FrmControlPane()
         self._control_pane.pushButtonStart.clicked.connect(self.start)
         self._control_pane.pushButtonStop.clicked.connect(self.stop)
@@ -127,13 +160,11 @@ class inRatDevice(QObject):
         )
 
         for receiver in self._receivers_sig:
-            receiver.update_params(
-                channels=1, counter_per_sample=32, sample_rate=500, type_signal="ЭЭГ")
+            receiver.update_params(self._sig_datablock)
             receiver.start()
 
         for receiver in self._receivers_acc:
-            receiver.update_params(
-                channels=3, counter_per_sample=8, sample_rate=100, type_signal="Акселерометр")
+            receiver.update_params(self._acc_datablock)
             receiver.start()
 
         if not self._running:
