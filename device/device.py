@@ -26,7 +26,8 @@ class SignalDatablock:
             sample_rate: int,
             counter_per_sample: int,
             number_channels: int,
-            channel_names: list
+            channel_names: list,
+            units: str
     ):
         self.type_signal: TypeSignal = type_signal
         self.number_channels = number_channels
@@ -35,6 +36,7 @@ class SignalDatablock:
         self.counter_per_sample = counter_per_sample
         self.channel_names = channel_names
         self.signal = np.zeros((self.number_channels, self.counter_per_sample), np.float32)
+        self.units = units
 
 class inRatDevice(QObject):
 
@@ -58,7 +60,8 @@ class inRatDevice(QObject):
                                               sample_rate=500,
                                               counter_per_sample=Pkt.SamplesCountEcg,
                                               number_channels=Pkt.ChannelsCountEcg,
-                                              channel_names=["ecg"])
+                                              channel_names=["ecg"],
+                                              units="V")
         self._receivers_sig = []
         self._event_queue = None
         self._sig_queue = asyncio.Queue()
@@ -69,7 +72,9 @@ class inRatDevice(QObject):
                                               sample_rate=100,
                                               counter_per_sample=Pkt.SamplesCountAcc,
                                               number_channels=Pkt.ChannelsCountAcc,
-                                              channel_names=["acc_x", "acc_y", "acc_z"])
+                                              channel_names=["acc_x", "acc_y", "acc_z"],
+                                              units="mg"
+                                              )
         self._receivers_acc = []
         self._acc_queue = asyncio.Queue()
 
@@ -81,6 +86,17 @@ class inRatDevice(QObject):
         self._control_pane.pushButtonStart.clicked.connect(self.start)
         self._control_pane.pushButtonStop.clicked.connect(self.stop)
         self._control_pane.pushButtonConfig.clicked.connect(self.on_config_clicked)
+
+    def add_receiver_data(self, receiver):
+        """ добавить объект приёмника всех данных в коллекцию """
+        if self._running:
+            receiver.start()
+        self._receivers_data.append(receiver)
+
+    def remove_receiver_data(self, receiver):
+        """ удалить объект приёмника из коллекции """
+        self._receivers_data.remove(receiver)
+        receiver.stop()
 
     def add_receiver_sig(self, receiver):
         """ добавить объект приёмника в коллекцию биосигналов """
@@ -167,6 +183,10 @@ class inRatDevice(QObject):
             receiver.update_params(self._acc_datablock)
             receiver.start()
 
+        for receiver in self._receivers_data:
+            receiver.update_params(params_acc=self._acc_datablock, params_sig=self._sig_datablock)
+            receiver.start()
+
         if not self._running:
             self._running = True
             self._work_sig = Thread(target=self._worker_thread_sig)
@@ -192,6 +212,9 @@ class inRatDevice(QObject):
                 for receiver in self._receivers_sig:
                     receiver._transmit_data(signal)
 
+                for receiver in self._receivers_data:
+                    receiver._transmit_data(signal)
+
             time.sleep(0.001)
 
     def _worker_thread_acc(self):
@@ -208,6 +231,9 @@ class inRatDevice(QObject):
 
             if acc:
                 for receiver in self._receivers_acc:
+                    receiver._transmit_data(acc)
+
+                for receiver in self._receivers_data:
                     receiver._transmit_data(acc)
 
             time.sleep(0.001)
@@ -230,6 +256,10 @@ class inRatDevice(QObject):
 
         for receiver in self._receivers_sig:
             receiver.stop()
+
+        for receiver in self._receivers_data:
+            receiver.stop()
+
 
         self.process_stop()
         logger.debug("Поток обработки приёма и обработки данных с inRat остановлен")

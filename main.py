@@ -49,7 +49,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.device.add_receiver_sig(self.display_sig)
         self.device.add_receiver_acc(self.display_acc)
-
+        self.device.add_receiver_data(self.storage)
 
         # create scanner and run it
         self.scanner.run(self.qt_loop)
@@ -61,6 +61,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.comboBoxDevice.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
 
         self.verticalLayout.insertWidget(5, self.device.control_pane)
+        self.verticalLayout.insertWidget(6, self.storage.control_pane)
         self.verticalLayoutDisplay.addWidget(self.display_sig)
         self.verticalLayoutDisplay.addWidget(self.display_acc)
 

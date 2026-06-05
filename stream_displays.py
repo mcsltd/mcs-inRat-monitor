@@ -449,10 +449,6 @@ class StreamViewer(pg.PlotWidget):
 
 
     def _transmit_data(self, data):
-        ''' Put data into the input queue. This method is invoked from the parent module.
-        Don't override this method.
-        @param data: EEG_DataBlock object
-        '''
         try:
             self._input_queue.put(data, False)
         except:

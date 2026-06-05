@@ -7,7 +7,8 @@ from uuid import UUID
 from bleak import BLEDevice, BleakClient
 
 from device.decoders import decode_signal, decode_acceleration
-from device.enums import EnabledChannels, SampleRateEcg, SampleRateEeg, Mode, EventType, Command, ScaleAccelerometer
+from device.enums import EnabledChannels, SampleRateEcg, SampleRateEeg, Mode, EventType, Command, ScaleAccelerometer, \
+    TypeSignal
 from device.structures import Event, Settings
 from device.utils import get_control_sum
 from config import BLE_KEY
@@ -243,12 +244,11 @@ class inRat:
 
         async def signal_handler(sender, data):
             cnt, signal = decode_signal(data)
-            await signal_queue.put({"counter":cnt, "signal":signal})
+            await signal_queue.put({"counter":cnt, "signal":signal, "type": "sig"})
 
         async def acceleration_handler(sender, data):
-
             cnt, accel = decode_acceleration(data, self._enabled_channels)
-            await acceleration_queue.put({"counter":cnt, "signal":accel})
+            await acceleration_queue.put({"counter":cnt, "signal":accel, "type": "acc"})
 
         settings = self._get_settings()
         await self.setup(Command.AcquisitionStart, settings)
