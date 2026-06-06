@@ -39,13 +39,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # main classes
         self.device = inRatDevice(qt_loop)
-        self.device.signal_connected.connect(self.on_device_connected)
-        self.device.signal_disconnected.connect(self.on_device_disconnected)
-
         self.scanner = BLEScannerWorker()
         self.storage = DataStorage()
         self.display_sig = StreamViewer(TypeSignal.ECG.value, "время")
         self.display_acc = StreamViewer(TypeSignal.ACC.value, "время")
+
 
         self.device.add_receiver_sig(self.display_sig)
         self.device.add_receiver_acc(self.display_acc)
@@ -64,14 +62,36 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.verticalLayout.insertWidget(6, self.storage.control_pane)
         self.verticalLayoutDisplay.addWidget(self.display_sig)
         self.verticalLayoutDisplay.addWidget(self.display_acc)
+        self.enable_display_sig(False)
+        self.enable_display_acc(False)
 
         # connection
         self.pushButtonConnect.clicked.connect(self.on_connect_clicked)
         self.pushButtonDisconnect.clicked.connect(self.on_disconnect_clicked)
+        self.device.signal_connected.connect(self.on_device_connected)
+        self.device.signal_disconnected.connect(self.on_device_disconnected)
+
+        self.device.signal_enable_sig.connect(self.enable_display_sig)
+        self.device.signal_enable_acc.connect(self.enable_display_acc)
 
         # ui elements
         self._waiting_connection_dlg = WaitingDialog()
 
+    def enable_display_acc(self, state: bool):
+        if state:
+            self.device.add_receiver_acc(self.display_acc)
+            self.display_acc.setVisible(True)
+        else:
+            self.device.remove_receiver_acc(self.display_acc)
+            self.display_acc.setVisible(False)
+
+    def enable_display_sig(self, state: bool):
+        if state:
+            self.device.add_receiver_sig(self.display_sig)
+            self.display_sig.setVisible(True)
+        else:
+            self.device.remove_receiver_sig(self.display_sig)
+            self.display_sig.setVisible(False)
 
     def on_connect_clicked(self):
         """ обработка нажатия кнопки открытия устройства """
@@ -102,7 +122,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.pushButtonConnect.setVisible(True)
         self.comboBoxDevice.clear()
         self.comboBoxDevice.setEnabled(True)
-
 
     def set_combobox_items(self, devices: set[BLEDevice]):
         for device in devices:
@@ -135,8 +154,6 @@ if __name__ == "__main__":
         app.quit()
     else:
         window = MainWindow(loop)
-        # window.show()
         window.showMaximized()
         loop.run_forever()
 
-    # QtAsyncio.run(handle_sigint=True, debug=True)

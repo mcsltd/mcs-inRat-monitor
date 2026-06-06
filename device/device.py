@@ -19,15 +19,14 @@ logger = logging.getLogger(__name__)
 
 
 class SignalDatablock:
-    """ класс описывающий структуру передаваемых сигналов"""
+    """
+        класс, описывающий структуру передаваемого сигнала
+        используется для настройки всех модулей
+    """
     def __init__(
             self,
-            type_signal: TypeSignal,
-            sample_rate: int,
-            counter_per_sample: int,
-            number_channels: int,
-            channel_names: list,
-            units: str
+            type_signal: TypeSignal, sample_rate: int, counter_per_sample: int,
+            number_channels: int, channel_names: list, units: str
     ):
         self.type_signal: TypeSignal = type_signal
         self.number_channels = number_channels
@@ -43,6 +42,9 @@ class inRatDevice(QObject):
     signal_connected = Signal()
     signal_disconnected = Signal()
 
+    signal_enable_sig = Signal(bool)
+    signal_enable_acc = Signal(bool)
+
     """ класс для работы с inRat """
 
     def __init__(self, loop: asyncio.AbstractEventLoop | None = None, *args, **kwargs):
@@ -51,7 +53,7 @@ class inRatDevice(QObject):
         self._loop: AbstractEventLoop = loop
         self._inrat = None
 
-        # очередь для передачи всех сигналов и событий
+        # очередь для передачи всех данных с устройства
         self._receivers_data = []
 
         # ресурсы для обработки событий и биосигналов
@@ -73,8 +75,7 @@ class inRatDevice(QObject):
                                               counter_per_sample=Pkt.SamplesCountAcc,
                                               number_channels=Pkt.ChannelsCountAcc,
                                               channel_names=["acc_x", "acc_y", "acc_z"],
-                                              units="mg"
-                                              )
+                                              units="mg")
         self._receivers_acc = []
         self._acc_queue = asyncio.Queue()
 
@@ -87,8 +88,12 @@ class inRatDevice(QObject):
         self._control_pane.pushButtonStop.clicked.connect(self.stop)
         self._control_pane.pushButtonConfig.clicked.connect(self.on_config_clicked)
 
+    @property
+    def control_pane(self):
+        return self._control_pane
+
     def add_receiver_data(self, receiver):
-        """ добавить объект приёмника всех данных в коллекцию """
+        """ добавление объекта-приёмник всех данных  """
         if self._running:
             receiver.start()
         self._receivers_data.append(receiver)
@@ -120,10 +125,6 @@ class inRatDevice(QObject):
         self._receivers_acc.remove(receiver)
         receiver.stop()
 
-    @property
-    def control_pane(self):
-        return self._control_pane
-
     def process_connect(self, device: BLEDevice):
         """ обработка соединения с inRat """
         self._inrat = inRat(ble_device=device)
@@ -142,10 +143,15 @@ class inRatDevice(QObject):
                 self._inrat.sample_rate = 500
                 self._inrat.activity_threshold = 2
 
+                self.signal_enable_sig.emit(True)
+
             if self._inrat.firmware == FIRMWARE_V1:
                 self._inrat.enabled_channels = EnabledChannels.ECG | EnabledChannels.ACC_X | EnabledChannels.ACC_Z | EnabledChannels.ACC_Y
                 self._inrat.sample_rate = 500
                 self._inrat.activity_threshold = 2
+
+                self.signal_enable_acc.emit(True)
+                self.signal_enable_sig.emit(True)
 
         else:
             self._control_pane.state_disconnect()
@@ -155,6 +161,9 @@ class inRatDevice(QObject):
         future = asyncio.run_coroutine_threadsafe(self._inrat.disconnect(), self._loop)
         self.signal_disconnected.emit()
         self._control_pane.state_disconnect()
+
+        self.signal_enable_acc.emit(False)
+        self.signal_enable_sig.emit(False)
 
     def process_start(self):
         """ обработка запуска устройства """
@@ -169,11 +178,7 @@ class inRatDevice(QObject):
             return
 
         future = asyncio.run_coroutine_threadsafe(
-            self._inrat.start_acquisition(
-                signal_queue=self._sig_queue,
-                acceleration_queue=self._acc_queue
-            ),
-            self._loop
+            self._inrat.start_acquisition(signal_queue=self._sig_queue, acceleration_queue=self._acc_queue), self._loop
         )
 
         for receiver in self._receivers_sig:
