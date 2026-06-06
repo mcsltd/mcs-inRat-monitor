@@ -109,6 +109,7 @@ class inRatDevice(QObject):
         if self._running:
             receiver.start()
         self._receivers_sig.append(receiver)
+        receiver.update_params(params=self._sig_datablock)
 
     def remove_receiver_sig(self, receiver):
         """ удалить объект приёмника биосигналов из коллекции """
@@ -121,6 +122,7 @@ class inRatDevice(QObject):
         if self._running:
             receiver.start()
         self._receivers_acc.append(receiver)
+        receiver.update_params(params=self._acc_datablock)
 
     def remove_receiver_acc(self, receiver):
         """ удалить объект приёмника из коллекции акселерометра """
@@ -288,7 +290,7 @@ class inRatDevice(QObject):
                 sample_rate=self._inrat.sample_rate,
                 counter_per_sample=Pkt.SamplesCountEcg,
                 number_channels=Pkt.ChannelsCountEcg,
-                channel_names=[self._inrat.mode.name],  # list[str]
+                channel_names=[self._inrat.mode.value],  # list[str]
                 units="V") # todo: check it
         else:
             self.signal_enable_sig.emit(False)

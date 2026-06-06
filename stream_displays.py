@@ -315,7 +315,7 @@ class StreamViewer(pg.PlotWidget):
         pen = mkPen("w")
         font = QFont("Arial", 9)
 
-        self.addLegend(offset=(10,10), labelTextSize="9pt")
+        self.addLegend(offset=(1,-1), labelTextSize="9pt", colCount=3)
 
         self.setLabel("left", left_label, color="white")
         self.setLabel("bottom", bottom_label, color="white")

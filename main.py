@@ -7,7 +7,6 @@ from typing import Optional
 
 import pyqtgraph as pg
 
-
 from PySide6 import QtAsyncio
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QComboBox
@@ -23,8 +22,6 @@ from resources.main_window import Ui_MainWindow
 from widget import WaitingDialog
 
 logger = logging.getLogger(__name__)
-
-
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -130,11 +127,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.scanner.stop()
 
 if __name__ == "__main__":
-    # logging.basicConfig(
-    #     level=logging.DEBUG,
-    #     format="%(asctime)-15s %(name)-8s %(levelname)s: %(message)s",
-    # )
-
     app = QApplication([])
     loop = QtAsyncio.QAsyncioEventLoop(application=app)
 
