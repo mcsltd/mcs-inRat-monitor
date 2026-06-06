@@ -43,10 +43,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.storage = DataStorage()
         self.display_sig = StreamViewer(TypeSignal.ECG.value, "время")
         self.display_acc = StreamViewer(TypeSignal.ACC.value, "время")
-
-
-        self.device.add_receiver_sig(self.display_sig)
-        self.device.add_receiver_acc(self.display_acc)
         self.device.add_receiver_data(self.storage)
 
         # create scanner and run it

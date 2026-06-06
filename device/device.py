@@ -100,7 +100,8 @@ class inRatDevice(QObject):
 
     def remove_receiver_data(self, receiver):
         """ удалить объект приёмника из коллекции """
-        self._receivers_data.remove(receiver)
+        if receiver in self._receivers_data:
+            self._receivers_data.remove(receiver)
         receiver.stop()
 
     def add_receiver_sig(self, receiver):
@@ -111,7 +112,8 @@ class inRatDevice(QObject):
 
     def remove_receiver_sig(self, receiver):
         """ удалить объект приёмника биосигналов из коллекции """
-        self._receivers_sig.remove(receiver)
+        if receiver in self._receivers_sig:
+            self._receivers_sig.remove(receiver)
         receiver.stop()
 
     def add_receiver_acc(self, receiver):
@@ -122,7 +124,8 @@ class inRatDevice(QObject):
 
     def remove_receiver_acc(self, receiver):
         """ удалить объект приёмника из коллекции акселерометра """
-        self._receivers_acc.remove(receiver)
+        if receiver in self._receivers_acc:
+            self._receivers_acc.remove(receiver)
         receiver.stop()
 
     def process_connect(self, device: BLEDevice):
@@ -276,6 +279,7 @@ class inRatDevice(QObject):
         dlg.exec()
 
         if bool(self._inrat.enabled_channels & EnabledChannels.ECG):
+            self.signal_enable_sig.emit(True)
             self._sig_datablock = SignalDatablock(
                 type_signal=TypeSignal.ECG,
                 sample_rate=self._inrat.sample_rate,
@@ -284,12 +288,15 @@ class inRatDevice(QObject):
                 channel_names=["ecg"],
                 units="V")
         else:
+            self.signal_enable_sig.emit(False)
             self._sig_datablock = None
 
-        if (bool(self._inrat.enabled_channels & EnabledChannels.ACC_X) and
+        if (
+                bool(self._inrat.enabled_channels & EnabledChannels.ACC_X) and
                 bool(self._inrat.enabled_channels & EnabledChannels.ACC_Y) and
                 bool(self._inrat.enabled_channels & EnabledChannels.ACC_Z)
         ):
+            self.signal_enable_acc.emit(True)
             self._acc_datablock = SignalDatablock(type_signal=TypeSignal.ACC,
                                                   sample_rate=100,
                                                   counter_per_sample=Pkt.SamplesCountAcc,
@@ -298,5 +305,6 @@ class inRatDevice(QObject):
                                                   units="mg"
                                                   )
         else:
+            self.signal_enable_acc.emit(False)
             self._acc_datablock = None
 
