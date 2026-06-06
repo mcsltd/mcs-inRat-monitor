@@ -335,17 +335,22 @@ class StreamViewer(pg.PlotWidget):
         if not params:
             return None
 
+        # настройка отрисовки графиков разными цветами
         pens = []
         if self._sig_datablock.type_signal is TypeSignal.ECG or self._sig_datablock.type_signal is TypeSignal.EEG:
             pens.append(mkPen(color=(255, 255, 0)))
         elif self._sig_datablock.type_signal is TypeSignal.ACC:
             pens.extend([mkPen(color=(255, 0, 0)), mkPen(color=(0, 255, 0)), mkPen(color=(173, 216, 230))])
 
+        # пересоздание буфера
         self._signal_buffer = np.zeros(
             (self._sig_datablock.number_channels, self._sig_datablock.sample_rate * self._max_timebase),
             dtype=np.float32
         )
         self._time_buffer = np.arange(0.0, self._max_timebase, 1 / self._sig_datablock.sample_rate)
+
+        type_signal = self._sig_datablock.type_signal.name
+        self.setLabel("left", left_label=type_signal, color="white")
 
         self._arrange_traces(pens)
 

@@ -51,7 +51,7 @@ class inRatDevice(QObject):
         super().__init__(*args, **kwargs)
 
         self._loop: AbstractEventLoop = loop
-        self._inrat = None
+        self._inrat: inRat | None = None
 
         # очередь для передачи всех данных с устройства
         self._receivers_data = []
@@ -275,22 +275,26 @@ class inRatDevice(QObject):
         self._control_pane.state_connection()
 
     def on_config_clicked(self):
+        """ обработка нажатия окна конфигураций """
         dlg = DlgConfigDevice(self._inrat)
         dlg.exec()
 
+        # активация экг/ээг
         if bool(self._inrat.enabled_channels & EnabledChannels.ECG):
             self.signal_enable_sig.emit(True)
+
             self._sig_datablock = SignalDatablock(
-                type_signal=TypeSignal.ECG,
+                type_signal=self._inrat.mode,
                 sample_rate=self._inrat.sample_rate,
                 counter_per_sample=Pkt.SamplesCountEcg,
                 number_channels=Pkt.ChannelsCountEcg,
-                channel_names=["ecg"],
-                units="V")
+                channel_names=[self._inrat.mode.name],  # list[str]
+                units="V") # todo: check it
         else:
             self.signal_enable_sig.emit(False)
             self._sig_datablock = None
 
+        # активация акселерометра
         if (
                 bool(self._inrat.enabled_channels & EnabledChannels.ACC_X) and
                 bool(self._inrat.enabled_channels & EnabledChannels.ACC_Y) and
@@ -302,9 +306,15 @@ class inRatDevice(QObject):
                                                   counter_per_sample=Pkt.SamplesCountAcc,
                                                   number_channels=Pkt.ChannelsCountAcc,
                                                   channel_names=["acc_x", "acc_y", "acc_z"],
-                                                  units="mg"
-                                                  )
+                                                  units="mg")
         else:
             self.signal_enable_acc.emit(False)
             self._acc_datablock = None
 
+        # обновление параметров
+        for receiver in self._receivers_sig:
+            receiver.update_params(self._sig_datablock)
+        for receiver in self._receivers_acc:
+            receiver.update_params(self._acc_datablock)
+        for receiver in self._receivers_data:
+            receiver.update_params(params_acc=self._acc_datablock, params_sig=self._sig_datablock)

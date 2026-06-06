@@ -68,10 +68,18 @@ class inRat:
 
     @property
     def mode(self):
-        return self._mode
+        if self._mode is Mode.ECG:
+            return TypeSignal.ECG
+        if self._mode is Mode.EEG:
+            return TypeSignal.EEG
+        return None
     @mode.setter
-    def mode(self, value):
-        self._mode = value
+    def mode(self, value: TypeSignal):
+        if value is TypeSignal.ECG:
+            self._mode = Mode.ECG
+        if value is TypeSignal.EEG:
+            self._mode = Mode.EEG
+
     @property
     def sample_rate(self):
         if self._sample_rate is SampleRateEcg.HZ_500:
@@ -296,18 +304,3 @@ class inRat:
             await self._client.disconnect()
         except Exception as exc:
             ...
-
-
-def set_default_setting_from_firmware(device: inRat):
-    device.mode = Mode.ECG
-    device.enabled_channels = EnabledChannels.ECG
-
-    if device.firmware == FIRMWARE_V0:
-        device.enabled_channels = EnabledChannels.ECG
-        device.sample_rate = 500
-        device.activity_threshold = 2
-
-    if device.firmware == FIRMWARE_V1:
-        device.enabled_channels = EnabledChannels.ECG | EnabledChannels.ACC_X | EnabledChannels.ACC_Z | EnabledChannels.ACC_Y
-        device.sample_rate = 500
-        device.activity_threshold = 2
