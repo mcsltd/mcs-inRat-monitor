@@ -349,8 +349,10 @@ class StreamViewer(pg.PlotWidget):
         )
         self._time_buffer = np.arange(0.0, self._max_timebase, 1 / self._sig_datablock.sample_rate)
 
-        type_signal = self._sig_datablock.type_signal.name
-        self.setLabel("left", left_label=type_signal, color="white")
+        type_signal = self._sig_datablock.type_signal.value
+        unit = self._sig_datablock.units
+        # self.setLabel("left", left_label=type_signal, color="white")
+        self.setLabel("left", text=type_signal, units=unit, color="white", force=True)
 
         self._arrange_traces(pens)
 

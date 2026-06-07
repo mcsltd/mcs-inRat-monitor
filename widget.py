@@ -6,7 +6,7 @@ class WaitingDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Ожидание открытия устройства")
+        self.setWindowTitle("Ожидание открытия")
         self.setWindowModality(Qt.WindowModality.ApplicationModal)
 
         # Установка политики размера, чтобы диалог мог адаптироваться

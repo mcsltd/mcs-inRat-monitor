@@ -1,14 +1,6 @@
-import asyncio
-import datetime
 import logging
-import time
-from threading import Thread
-from typing import Optional
-
-import pyqtgraph as pg
 
 from PySide6 import QtAsyncio
-from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QComboBox
 from bleak import BLEDevice
 
