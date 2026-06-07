@@ -51,8 +51,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.comboBoxDevice.setDuplicatesEnabled(False)
         self.comboBoxDevice.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
 
-        self.verticalLayout.insertWidget(5, self.device.control_pane)
-        self.verticalLayout.insertWidget(6, self.storage.control_pane)
+        self.verticalLayout.insertWidget(4, self.device.control_pane)
+        self.verticalLayout.insertWidget(5, self.storage.control_pane)
         self.verticalLayoutDisplay.addWidget(self.display_sig)
         self.verticalLayoutDisplay.addWidget(self.display_acc)
         self.enable_display_sig(False)
