@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'main_windowPzFDyk.ui'
+## Form generated from reading UI file 'main_windowWABKyY.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -25,7 +25,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(1194, 697)
+        MainWindow.resize(994, 596)
         icon = QIcon()
         icon.addFile(u":/iconMCS.ico", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         MainWindow.setWindowIcon(icon)
@@ -35,19 +35,12 @@ class Ui_MainWindow(object):
         self.gridLayout.setObjectName(u"gridLayout")
         self.verticalLayout = QVBoxLayout()
         self.verticalLayout.setObjectName(u"verticalLayout")
-        self.label_4 = QLabel(self.centralwidget)
-        self.label_4.setObjectName(u"label_4")
-        font = QFont()
-        font.setPointSize(12)
-        self.label_4.setFont(font)
-        self.label_4.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        self.verticalLayout.addWidget(self.label_4)
-
         self.horizontalLayout_3 = QHBoxLayout()
         self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
         self.labelDevice = QLabel(self.centralwidget)
         self.labelDevice.setObjectName(u"labelDevice")
+        font = QFont()
+        font.setPointSize(12)
         self.labelDevice.setFont(font)
 
         self.horizontalLayout_3.addWidget(self.labelDevice)
@@ -80,11 +73,6 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.addWidget(self.line_3)
 
-        self.horizontalLayout_2 = QHBoxLayout()
-        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
-
-        self.verticalLayout.addLayout(self.horizontalLayout_2)
-
         self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout.addItem(self.verticalSpacer)
@@ -104,7 +92,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 1194, 22))
+        self.menubar.setGeometry(QRect(0, 0, 994, 22))
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QStatusBar(MainWindow)
         self.statusbar.setObjectName(u"statusbar")
@@ -116,10 +104,9 @@ class Ui_MainWindow(object):
     # setupUi
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"inRat monitor 1.0.1", None))
-        self.label_4.setText(QCoreApplication.translate("MainWindow", u"Device connection", None))
-        self.labelDevice.setText(QCoreApplication.translate("MainWindow", u"Device:", None))
-        self.pushButtonConnect.setText(QCoreApplication.translate("MainWindow", u"Connect", None))
-        self.pushButtonDisconnect.setText(QCoreApplication.translate("MainWindow", u"Disconnect", None))
+        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"inRat monitor", None))
+        self.labelDevice.setText(QCoreApplication.translate("MainWindow", u"\u0423\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u043e:", None))
+        self.pushButtonConnect.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0442\u043a\u0440\u044b\u0442\u044c", None))
+        self.pushButtonDisconnect.setText(QCoreApplication.translate("MainWindow", u"\u0417\u0430\u043a\u0440\u044b\u0442\u044c", None))
     # retranslateUi
 

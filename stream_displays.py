@@ -315,7 +315,7 @@ class StreamViewer(pg.PlotWidget):
         pen = mkPen("w")
         font = QFont("Arial", 9)
 
-        self.addLegend(offset=(10,10), labelTextSize="9pt")
+        self.addLegend(offset=(1,-1), labelTextSize="9pt", colCount=3)
 
         self.setLabel("left", left_label, color="white")
         self.setLabel("bottom", bottom_label, color="white")
@@ -335,17 +335,24 @@ class StreamViewer(pg.PlotWidget):
         if not params:
             return None
 
+        # настройка отрисовки графиков разными цветами
         pens = []
         if self._sig_datablock.type_signal is TypeSignal.ECG or self._sig_datablock.type_signal is TypeSignal.EEG:
             pens.append(mkPen(color=(255, 255, 0)))
         elif self._sig_datablock.type_signal is TypeSignal.ACC:
             pens.extend([mkPen(color=(255, 0, 0)), mkPen(color=(0, 255, 0)), mkPen(color=(173, 216, 230))])
 
+        # пересоздание буфера
         self._signal_buffer = np.zeros(
             (self._sig_datablock.number_channels, self._sig_datablock.sample_rate * self._max_timebase),
             dtype=np.float32
         )
         self._time_buffer = np.arange(0.0, self._max_timebase, 1 / self._sig_datablock.sample_rate)
+
+        type_signal = self._sig_datablock.type_signal.value
+        unit = self._sig_datablock.units
+        # self.setLabel("left", left_label=type_signal, color="white")
+        self.setLabel("left", text=type_signal, units=unit, color="white", force=True)
 
         self._arrange_traces(pens)
 
@@ -373,21 +380,22 @@ class StreamViewer(pg.PlotWidget):
         # todo: добавить проверку сигнала на соответствие channels_count, count_per_samples
         if not self._buffer_filled:
             if self.current_position + self._sig_datablock.counter_per_sample < self._signal_buffer.shape[1]:
-
                 self._signal_buffer[:, self.current_position: self.current_position + self._sig_datablock.counter_per_sample] = signal
                 self.current_position += self._sig_datablock.counter_per_sample
             else:
                 offset = self._signal_buffer.shape[1] - self.current_position
-                self._signal_buffer[:, self.current_position] = signal[:, :offset]
+                self._signal_buffer[:, self.current_position: ] = signal[:, :offset]
                 signal = signal[:, offset:]
                 self._buffer_filled = True
 
         if self._buffer_filled and signal.shape[1] != 0:
-            self._signal_buffer = np.roll(self._signal_buffer, -len(signal))
-            self._signal_buffer[: -signal.shape[1]:] = signal
+
+            self._signal_buffer = np.roll(self._signal_buffer, -signal.shape[1])
+            self._signal_buffer[:, -signal.shape[1]:] = signal
             self._time_buffer += signal.shape[1] * (1 / self._sig_datablock.sample_rate)
 
         self.update_display = True
+
 
     def timerEvent(self, event, /):
         """ событие отрисовки графиков """
@@ -401,7 +409,7 @@ class StreamViewer(pg.PlotWidget):
                 start_idx = end_idx - int(self._timebase * self._sig_datablock.sample_rate)
         else:
             end_idx = self._signal_buffer.shape[1]
-            start_idx = end_idx - int(self._timebase * self._sample_rate)
+            start_idx = end_idx - int(self._timebase * self._sig_datablock.sample_rate)
 
         visible_time = self._time_buffer[start_idx:end_idx]
         for ch in range(self._sig_datablock.number_channels):

@@ -1,7 +1,7 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QDialog
 
-from device.enums import EventType, Mode, EnabledChannels
+from device.enums import EventType, Mode, EnabledChannels, TypeSignal
 from device.inrat import inRat, FIRMWARE_V0, FIRMWARE_V1
 from resources.dlg_inrat_config import Ui_DlgDeviceConfig
 
@@ -17,7 +17,7 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
 
         self._device = device
 
-        mode = [("ЭКГ", Mode.ECG), ("ЭЭГ", Mode.EEG)]
+        mode = [("ЭКГ", TypeSignal.ECG), ("ЭЭГ", TypeSignal.EEG)]
         for t, v in mode:
             self.comboBoxMode.addItem(t, userData=v)
         self.on_mode_changed(index=0)
@@ -51,8 +51,10 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
         if self._device.enabled_channels & EnabledChannels.ECG:
             self.checkBoxSignal.setChecked(True)
 
+        # установить режим съема для inRat с новой версией firmware
         if self._device.firmware == FIRMWARE_V1:
             index = self.comboBoxMode.findData(self._device.mode)
+            self.comboBoxMode.setCurrentIndex(index) # установка выбранного режима съема
             self.on_mode_changed(index)
             if (
                     self._device.enabled_channels & EnabledChannels.ACC_X and
@@ -101,9 +103,9 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
     def on_mode_changed(self, index):
         """ обработка выбор режима съема сигнала """
         sample_rates = []
-        if self.comboBoxMode.itemData(index) is Mode.ECG:
+        if self.comboBoxMode.itemData(index) is TypeSignal.ECG:
             sample_rates = [500, 1000, 2000]
-        if self.comboBoxMode.itemData(index) is Mode.EEG:
+        if self.comboBoxMode.itemData(index) is TypeSignal.EEG:
             sample_rates = [250, 500]
         self.comboBoxSampleRate.clear()
         for sr in sample_rates:
