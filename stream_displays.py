@@ -378,21 +378,22 @@ class StreamViewer(pg.PlotWidget):
         # todo: добавить проверку сигнала на соответствие channels_count, count_per_samples
         if not self._buffer_filled:
             if self.current_position + self._sig_datablock.counter_per_sample < self._signal_buffer.shape[1]:
-
                 self._signal_buffer[:, self.current_position: self.current_position + self._sig_datablock.counter_per_sample] = signal
                 self.current_position += self._sig_datablock.counter_per_sample
             else:
                 offset = self._signal_buffer.shape[1] - self.current_position
-                self._signal_buffer[:, self.current_position] = signal[:, :offset]
+                self._signal_buffer[:, self.current_position: ] = signal[:, :offset]
                 signal = signal[:, offset:]
                 self._buffer_filled = True
 
         if self._buffer_filled and signal.shape[1] != 0:
-            self._signal_buffer = np.roll(self._signal_buffer, -len(signal))
-            self._signal_buffer[: -signal.shape[1]:] = signal
+
+            self._signal_buffer = np.roll(self._signal_buffer, -signal.shape[1])
+            self._signal_buffer[:, -signal.shape[1]:] = signal
             self._time_buffer += signal.shape[1] * (1 / self._sig_datablock.sample_rate)
 
         self.update_display = True
+
 
     def timerEvent(self, event, /):
         """ событие отрисовки графиков """
@@ -406,7 +407,7 @@ class StreamViewer(pg.PlotWidget):
                 start_idx = end_idx - int(self._timebase * self._sig_datablock.sample_rate)
         else:
             end_idx = self._signal_buffer.shape[1]
-            start_idx = end_idx - int(self._timebase * self._sample_rate)
+            start_idx = end_idx - int(self._timebase * self._sig_datablock.sample_rate)
 
         visible_time = self._time_buffer[start_idx:end_idx]
         for ch in range(self._sig_datablock.number_channels):
