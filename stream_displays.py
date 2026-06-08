@@ -348,13 +348,16 @@ class StreamViewer(pg.PlotWidget):
             dtype=np.float32
         )
         self._time_buffer = np.arange(0.0, self._max_timebase, 1 / self._sig_datablock.sample_rate)
+        self._buffer_filled = False  # флаг заполнения буфера
+        self.current_position = 0  # текущая позиция для заполнения буфера
+        self.update_display: bool = False
 
         type_signal = self._sig_datablock.type_signal.value
         unit = self._sig_datablock.units
-        # self.setLabel("left", left_label=type_signal, color="white")
         self.setLabel("left", text=type_signal, units=unit, color="white", force=True)
 
         self._arrange_traces(pens)
+
 
     def _arrange_traces(self, pens: list):
         """ настройка объектов отображения сигнала под новое количество каналов """
@@ -379,6 +382,8 @@ class StreamViewer(pg.PlotWidget):
 
         current_sample, signal = data["sample"], data["signal"]
         signal = signal[np.newaxis] # .shape = (1,32) for ecg/eeg
+
+        print(f"{current_sample=}")
 
         # todo: добавить проверку сигнала на соответствие channels_count, count_per_samples
         if not self._buffer_filled:

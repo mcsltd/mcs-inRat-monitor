@@ -83,6 +83,9 @@ class DataStorage(QObject):
 
     def start(self):
         """ запуск записи данных """
+        while not self._input_queue.empty():
+            self._input_queue.get_nowait()
+
         self._control_pane.set_enable()
         if not self._running:
             self._running = True
@@ -240,10 +243,12 @@ class DataStorage(QObject):
         self._sig_samples_written += 1
         return data
 
-    def _process_input_acc(self, data):
+    def _process_input_acc(self, data: dict) -> dict:
         """ обработка входящих сигналов акселерометра """
-        acc, sample = data["signal"], data["counter"]
+        if data["type"] != "acc":
+            return data
 
+        acc, sample = data["signal"], data["sample"]
         if not self._acc_start_sample:
             self._acc_start_sample = sample
             self._acc_recording_start = time.time()

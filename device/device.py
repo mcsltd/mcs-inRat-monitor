@@ -164,6 +164,13 @@ class inRatDevice(QObject):
 
     def start(self):
         """ запуск inRat на получение данных """
+        while self._acc_queue and not self._acc_queue.empty():
+            self._acc_queue.get_nowait()
+            self._acc_queue.task_done()
+        while self._sig_queue and not self._sig_queue.empty():
+            self._sig_queue.get_nowait()
+            self._sig_queue.task_done()
+
         try:
             self.process_start()
         except Exception as exc:
@@ -254,22 +261,24 @@ class inRatDevice(QObject):
         future = asyncio.run_coroutine_threadsafe(self._inrat.stop_acquisition(), self._loop)
 
         self._running = False
-        if self._work_acc:
-            self._work_acc.join(1.5)
-            self._work_acc = None
 
-        if self._work_acc:
-            self._work_acc.join(1.5)
-            self._work_acc = None
-
+        # остановка классов-приёмников данных
         for receiver in self._receivers_acc:
             receiver.stop()
-
         for receiver in self._receivers_sig:
             receiver.stop()
-
         for receiver in self._receivers_data:
             receiver.stop()
+
+        if self._work_acc:
+            self._work_acc.join(1.5)
+            self._work_acc = None
+
+        if self._work_acc:
+            self._work_acc.join(1.5)
+            self._work_acc = None
+
+
 
         self.process_stop()
         logger.debug("Поток обработки приёма и обработки данных с inRat остановлен")
