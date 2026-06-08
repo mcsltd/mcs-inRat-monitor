@@ -329,7 +329,7 @@ class inRatDevice(QObject):
                                                   counter_per_sample=Pkt.SamplesCountAcc,
                                                   number_channels=Pkt.ChannelsCountAcc,
                                                   channel_names=["acc_x", "acc_y", "acc_z"],
-                                                  units="mg")
+                                                  units="G")
         else:
             self.signal_enable_acc.emit(False)
             self._acc_datablock = None

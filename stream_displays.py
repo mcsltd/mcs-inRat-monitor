@@ -309,6 +309,8 @@ class StreamViewer(pg.PlotWidget):
         # блок данных с параметром
         self._sig_datablock: SignalDatablock | None = None
 
+        # настройки отображения
+        self.y_min, self.y_max = -5 * 1e-3, 5 * 1e-3
         self._timebase: int | None = 10
         self._max_timebase: int | None = 60
 
@@ -350,8 +352,10 @@ class StreamViewer(pg.PlotWidget):
         # настройка отрисовки графиков разными цветами
         pens = []
         if self._sig_datablock.type_signal is TypeSignal.ECG or self._sig_datablock.type_signal is TypeSignal.EEG:
+            self.y_min, self.y_max = -5 * 1e-3, 5 * 1e-3
             pens.append(mkPen(color=(255, 255, 0)))
         elif self._sig_datablock.type_signal is TypeSignal.ACC:
+            self.y_min, self.y_max = -1e3, 1e3
             pens.extend([mkPen(color=(255, 0, 0)), mkPen(color=(0, 255, 0)), mkPen(color=(173, 216, 230))])
 
         # пересоздание буфера
@@ -473,6 +477,7 @@ class StreamViewer(pg.PlotWidget):
             current_time = visible_time[-1] if len(visible_time) > 0 else 0
             self.setXRange(current_time - self._timebase, current_time, padding=0)
 
+        self.setYRange(self.y_min, self.y_max)
         self.update_display = False
 
     def start(self):
