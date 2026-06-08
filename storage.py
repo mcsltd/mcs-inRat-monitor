@@ -217,9 +217,12 @@ class DataStorage(QObject):
 
         return data
 
-    def _process_input_sig(self, data):
+    def _process_input_sig(self, data: dict) -> dict:
         """ обработка входящих биосигналов """
-        sig, sample = data["signal"], data["counter"]
+        sig, sample = data["signal"], data["sample"]
+
+        if data["type"] == "ev":
+            return data
 
         if not self._sig_start_sample:
             self._sig_start_sample = sample

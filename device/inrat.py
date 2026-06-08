@@ -6,6 +6,7 @@ from uuid import UUID
 
 from bleak import BLEDevice, BleakClient
 
+from device.constants import Pkt
 from device.decoders import decode_signal, decode_acceleration
 from device.enums import EnabledChannels, SampleRateEcg, SampleRateEeg, Mode, EventType, Command, ScaleAccelerometer, \
     TypeSignal
@@ -238,8 +239,8 @@ class inRat:
 
     async def start_acquisition(
             self,
-            event_queue: asyncio.Queue| None = None,
-            signal_queue: asyncio.Queue| None = None,
+            # event_queue: asyncio.Queue| None = None,
+            signal_event_queue: asyncio.Queue| None = None,
             acceleration_queue: asyncio.Queue| None = None
     ):
         """ запуск на получение данных """
@@ -248,28 +249,27 @@ class inRat:
             cnt = int(len(data) / event_size)
             for idx in range(cnt):
                 event = Event.from_buffer(data[idx * event_size: (idx + 1) * event_size])
-                await event_queue.put(event)
+                await signal_event_queue.put({
+                    "sample": int(event.Counter / Pkt.SamplesCountEcg),
+                    "counter": event.Counter, "signal": event, "type": "ev"})
 
         async def signal_handler(sender, data):
-            cnt, signal = decode_signal(data)
-            await signal_queue.put({"counter":cnt, "signal":signal, "type": "sig"})
+            smpl, signal = decode_signal(data)
+            await signal_event_queue.put({"sample":smpl, "signal":signal, "type": "sig"}) # "counter" -> "samples"
 
         async def acceleration_handler(sender, data):
-            cnt, accel = decode_acceleration(data, self._enabled_channels)
-            await acceleration_queue.put({"counter":cnt, "signal":accel, "type": "acc"})
+            smpl, accel = decode_acceleration(data, self._enabled_channels)
+            await acceleration_queue.put({"sample":smpl, "signal":accel, "type": "acc"})  # "counter" -> "samples"
 
         settings = self._get_settings()
         await self.setup(Command.AcquisitionStart, settings)
 
-        if event_queue:
+        if signal_event_queue:
+            await self._client.start_notify(self.UUID_CHARACTERISTIC_ECG_EEG, signal_handler)
             await self._client.start_notify(self.UUID_CHARACTERISTIC_EVENT, event_handler)
 
         if acceleration_queue and self._firmware == FIRMWARE_V1:
             await self._client.start_notify(self.UUID_CHARACTERISTIC_ACCELERATION, acceleration_handler)
-
-        if signal_queue:
-            await self._client.start_notify(self.UUID_CHARACTERISTIC_ECG_EEG, signal_handler)
-
 
 
     async def stop_acquisition(self):

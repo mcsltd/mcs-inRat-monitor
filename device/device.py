@@ -58,20 +58,16 @@ class inRatDevice(QObject):
 
         # ресурсы для обработки событий и биосигналов
         self._work_sig: Thread | None = None
-        self._sig_datablock = SignalDatablock(type_signal=TypeSignal.ECG,
-                                              sample_rate=500,
+        self._sig_datablock = SignalDatablock(type_signal=TypeSignal.ECG, sample_rate=500,
                                               counter_per_sample=Pkt.SamplesCountEcg,
-                                              number_channels=Pkt.ChannelsCountEcg,
-                                              channel_names=["ecg"],
-                                              units="V")
+                                              number_channels=Pkt.ChannelsCountEcg, channel_names=["ecg"], units="V")
         self._receivers_sig = []
-        self._event_queue = None
+        # self._event_queue = asyncio.Queue()
         self._sig_queue = asyncio.Queue()
 
         # ресурсы для обработки показаний акселерометра
         self._work_acc: Thread | None = None
-        self._acc_datablock = SignalDatablock(type_signal=TypeSignal.ACC,
-                                              sample_rate=100,
+        self._acc_datablock = SignalDatablock(type_signal=TypeSignal.ACC, sample_rate=100,
                                               counter_per_sample=Pkt.SamplesCountAcc,
                                               number_channels=Pkt.ChannelsCountAcc,
                                               channel_names=["acc_x", "acc_y", "acc_z"],
@@ -97,7 +93,6 @@ class inRatDevice(QObject):
         if self._running:
             receiver.start()
         self._receivers_data.append(receiver)
-
     def remove_receiver_data(self, receiver):
         """ удалить объект приёмника из коллекции """
         if receiver in self._receivers_data:
@@ -110,7 +105,6 @@ class inRatDevice(QObject):
             receiver.start()
         self._receivers_sig.append(receiver)
         receiver.update_params(params=self._sig_datablock)
-
     def remove_receiver_sig(self, receiver):
         """ удалить объект приёмника биосигналов из коллекции """
         if receiver in self._receivers_sig:
@@ -123,7 +117,6 @@ class inRatDevice(QObject):
             receiver.start()
         self._receivers_acc.append(receiver)
         receiver.update_params(params=self._acc_datablock)
-
     def remove_receiver_acc(self, receiver):
         """ удалить объект приёмника из коллекции акселерометра """
         if receiver in self._receivers_acc:
@@ -135,7 +128,6 @@ class inRatDevice(QObject):
         self._inrat = inRat(ble_device=device)
         future = asyncio.run_coroutine_threadsafe(self._inrat.connect(), self._loop)
         future.add_done_callback(self.on_device_connected)
-
     def on_device_connected(self, future: Future):
         """ обработка результата соединения с устройством """
         if self._inrat.is_connected:
@@ -170,10 +162,6 @@ class inRatDevice(QObject):
         self.signal_enable_acc.emit(False)
         self.signal_enable_sig.emit(False)
 
-    def process_start(self):
-        """ обработка запуска устройства """
-        self._control_pane.state_acquisition()
-
     def start(self):
         """ запуск inRat на получение данных """
         try:
@@ -183,7 +171,11 @@ class inRatDevice(QObject):
             return
 
         future = asyncio.run_coroutine_threadsafe(
-            self._inrat.start_acquisition(signal_queue=self._sig_queue, acceleration_queue=self._acc_queue), self._loop
+            self._inrat.start_acquisition(
+                signal_event_queue=self._sig_queue,
+                acceleration_queue=self._acc_queue,
+                # event_queue=self._event_queue
+            ), self._loop
         )
 
         for receiver in self._receivers_sig:
@@ -205,24 +197,34 @@ class inRatDevice(QObject):
 
         logger.debug("Запущен поток обработки приёма и обработки данных с inRat")
 
+    def process_start(self):
+        """ обработка запуска устройства """
+        self._control_pane.state_acquisition()
+
     def _worker_thread_sig(self):
         """ Рабочий поток получает данные из входной очереди биосигналов
-            и помещает обработанные данные в выходную очередь """
+            и помещает обработанные данные в выходную очередь
+            переменная data, содержит:
+            1) event: {"sample": int(event.Counter / Pkt.SamplesCountEcg), "counter": event.Counter,
+                       "signal": event, "type": "ev"}
+            2) signal: {"sample":smpl, "signal":signal, "type": "sig"}
+        """
+
         while self._running:
             try:
-                signal = self._sig_queue.get_nowait()
+                data = self._sig_queue.get_nowait()
             except asyncio.queues.QueueEmpty:
-                signal = None
+                data = None
             else:
                 # logger.debug(f"Получены данные: {signal=}")
                 self._sig_queue.task_done()
 
-            if signal:
+            if data:
                 for receiver in self._receivers_sig:
-                    receiver._transmit_data(signal)
+                    receiver._transmit_data(data)
 
                 for receiver in self._receivers_data:
-                    receiver._transmit_data(signal)
+                    receiver._transmit_data(data)
 
             time.sleep(0.001)
 

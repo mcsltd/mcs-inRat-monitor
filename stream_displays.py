@@ -374,7 +374,10 @@ class StreamViewer(pg.PlotWidget):
 
     def process_input(self, data: dict):
         """ обработка входящего сигнала и добавление в буфер """
-        current_sample, signal = data["counter"], data["signal"]
+        if data["type"] == "ev":
+            return
+
+        current_sample, signal = data["sample"], data["signal"]
         signal = signal[np.newaxis] # .shape = (1,32) for ecg/eeg
 
         # todo: добавить проверку сигнала на соответствие channels_count, count_per_samples
