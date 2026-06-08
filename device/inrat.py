@@ -1,5 +1,6 @@
 import asyncio
 import ctypes
+import logging
 from enum import IntEnum
 from functools import cached_property
 from uuid import UUID
@@ -20,13 +21,14 @@ from device.structures import Status
 FIRMWARE_V0 = "1.0.260317"
 FIRMWARE_V1 = "1.0.260527" # "1.0.260603"
 
+logger = logging.getLogger(__name__)
 
 class inRat:
 
     UUID_CHARACTERISTIC_CONTROL = "7395ca15-5997-5a1b-a138-75a7a573b8e5"
     UUID_CHARACTERISTIC_ECG_EEG = "59573ef1-5389-575f-87d5-5f31fcdcba7b"
     UUID_CHARACTERISTIC_EVENT = "f553739f-9f1f-538d-a7d3-cd987b395eb5"
-    UUID_CHARACTERISTIC_ACCELERATION = "aae8a15e-db13-53fd-9efc-1fab1717aee5"
+    UUID_CHARACTERISTIC_ACC = "aae8a15e-db13-53fd-9efc-1fab1717aee5"
     UUID_CHARACTERISTIC_STATUS = "c3571b1b-e17e-5195-9fd3-8119cb153187"
 
     UUID_TEMPLATE = "0000{:0>4x}-0000-1000-8000-00805f9b34fb"
@@ -228,9 +230,11 @@ class inRat:
     async def connect(self, wait: float = 10.0):
         """ открытие устройства """
         if self.is_connected:
+            logger.warning(f"{self.name} уже открыто!")
             return
         try:
             await asyncio.wait_for(self._client.connect(), timeout=wait)
+            logger.info(f"{self.name} успешно открыт")
         except Exception as err:
             ...
         await self._get_device_info()
@@ -267,40 +271,55 @@ class inRat:
         if signal_event_queue:
             await self._client.start_notify(self.UUID_CHARACTERISTIC_ECG_EEG, signal_handler)
             await self._client.start_notify(self.UUID_CHARACTERISTIC_EVENT, event_handler)
+            logger.info(f"{self.name}: подписка на сервисы UUID_CHARACTERISTIC_ECG_EEG, UUID_CHARACTERISTIC_EVENT")
+
 
         if acceleration_queue and self._firmware == FIRMWARE_V1:
-            await self._client.start_notify(self.UUID_CHARACTERISTIC_ACCELERATION, acceleration_handler)
+            await self._client.start_notify(self.UUID_CHARACTERISTIC_ACC, acceleration_handler)
+            logger.info(f"{self.name}: подписка на сервисы UUID_CHARACTERISTIC_ACC")
 
 
     async def stop_acquisition(self):
         """ остановка получения данных """
         try:
             await self.setup(Command.AcquisitionStop)
+            logger.info(f"{self.name}: остановлено (сmd: stop)")
         except Exception as exc:
             ...
 
         try:
             await self._client.stop_notify(self.UUID_CHARACTERISTIC_ECG_EEG)
+            logger.info(f"{self.name}: отписка от сервиса UUID_CHARACTERISTIC_ECG_EEG")
         except Exception as exc:
             ...
 
         try:
-            await self._client.stop_notify(self.UUID_CHARACTERISTIC_ACCELERATION)
+            await self._client.stop_notify(self.UUID_CHARACTERISTIC_ACC)
+            logger.info(f"{self.name}: отписка от сервиса UUID_CHARACTERISTIC_ECG_EEG")
         except Exception as exc:
             ...
 
         try:
             await self._client.stop_notify(self.UUID_CHARACTERISTIC_EVENT)
+            logger.info(f"{self.name}: отписка от сервиса UUID_CHARACTERISTIC_EVENT")
         except Exception as exc:
             ...
 
     async def disconnect(self):
+        """ закрытие соединения с устройством """
+        try:
+            await self.stop_acquisition()
+        except Exception as exc:
+            ...
+
         try:
             await self.setup(Command.ConnectionClose)
+            logger.info(f"{self.name}: закрыто (cmd: close)")
         except Exception as exc:
             ...
 
         try:
             await self._client.disconnect()
+            logger.info(f"{self.name}: закрыть (bleak: disconnect)")
         except Exception as exc:
             ...
