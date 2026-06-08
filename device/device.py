@@ -10,7 +10,7 @@ from PySide6.QtCore import QObject, Signal
 from bleak import BLEDevice
 
 from device.constants import Pkt
-from device.enums import EnabledChannels, TypeSignal
+from device.enums import EnabledChannels, TypeSignal, EventType
 from device.inrat import inRat, FIRMWARE_V1, FIRMWARE_V0
 from device.ui.config_dialog import DlgConfigDevice
 from device.ui.control_pane import FrmControlPane
@@ -29,13 +29,17 @@ class SignalDatablock:
             number_channels: int, channel_names: list, units: str
     ):
         self.type_signal: TypeSignal = type_signal
-        self.number_channels = number_channels
-        self.sample_rate = sample_rate
-        self.sample_counter = None
-        self.counter_per_sample = counter_per_sample
-        self.channel_names = channel_names
-        self.signal = np.zeros((self.number_channels, self.counter_per_sample), np.float32)
-        self.units = units
+        self.number_channels: int = number_channels
+        self.sample_rate: int = sample_rate
+        self.sample_counter: int | None = None
+        self.counter_per_sample: int = counter_per_sample
+        self.channel_names: list[str] = channel_names
+        self.signal: np.ndarray = np.zeros((self.number_channels, self.counter_per_sample), np.float32)
+        self.units: str = units
+
+        # события
+        self.event_markers: list = list()
+        self.type_events: list = list()
 
 class inRatDevice(QObject):
 
@@ -165,11 +169,9 @@ class inRatDevice(QObject):
     def start(self):
         """ запуск inRat на получение данных """
         while self._acc_queue and not self._acc_queue.empty():
-            self._acc_queue.get_nowait()
-            self._acc_queue.task_done()
+                self._acc_queue.get_nowait()
         while self._sig_queue and not self._sig_queue.empty():
             self._sig_queue.get_nowait()
-            self._sig_queue.task_done()
 
         try:
             self.process_start()
@@ -216,7 +218,6 @@ class inRatDevice(QObject):
                        "signal": event, "type": "ev"}
             2) signal: {"sample":smpl, "signal":signal, "type": "sig"}
         """
-
         while self._running:
             try:
                 data = self._sig_queue.get_nowait()
@@ -278,8 +279,6 @@ class inRatDevice(QObject):
             self._work_acc.join(1.5)
             self._work_acc = None
 
-
-
         self.process_stop()
         logger.debug("Поток обработки приёма и обработки данных с inRat остановлен")
 
@@ -303,6 +302,17 @@ class inRatDevice(QObject):
                 number_channels=Pkt.ChannelsCountEcg,
                 channel_names=[self._inrat.mode.value],  # list[str]
                 units="V") # todo: check it
+
+            # активация событий
+            if bool(self._inrat.enabled_events & EventType.TEMP):
+                self._sig_datablock.type_events.append("temp")
+            if bool(self._inrat.enabled_events & EventType.ORIENTATION):
+                self._sig_datablock.type_events.append("orientation")
+            if bool(self._inrat.enabled_events & EventType.ACTIVITY):
+                self._sig_datablock.type_events.append("activity")
+            if bool(self._inrat.enabled_events & EventType.FREEFALL):
+                self._sig_datablock.type_events.append("freefall")
+
         else:
             self.signal_enable_sig.emit(False)
             self._sig_datablock = None
@@ -323,6 +333,7 @@ class inRatDevice(QObject):
         else:
             self.signal_enable_acc.emit(False)
             self._acc_datablock = None
+
 
         # обновление параметров
         for receiver in self._receivers_sig:
