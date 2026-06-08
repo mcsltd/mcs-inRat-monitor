@@ -11,7 +11,7 @@ from pyqtgraph import mkPen, ScatterPlotItem, LegendItem
 
 from device.constants import Pkt
 from device.device import SignalDatablock
-from device.enums import TypeSignal
+from device.enums import TypeSignal, EventType
 from device.structures import Event
 
 
@@ -317,6 +317,7 @@ class StreamViewer(pg.PlotWidget):
         # объекты отображения сигналов len(traces) = _channels_count
         self.traces: list = []
         self.scatters: dict = {}
+        self.point_scatters: dict ={}
         self.update_display: bool = False
 
         pen = mkPen("w")
@@ -397,6 +398,7 @@ class StreamViewer(pg.PlotWidget):
         # удаление графиков событий
         events = list(self.scatters.keys())
         for ev in events:
+            self.scatters[ev].clear()
             self.removeItem(self.scatters[ev])
             self.legend_ev.removeItem(self.scatters[ev])
             self.scatters.pop(ev)
@@ -419,19 +421,33 @@ class StreamViewer(pg.PlotWidget):
                 continue
 
             self.scatters[type_event] = ScatterPlotItem(name=type_event, symbol=symbol, brush=brush, size=10)
+            self.point_scatters[type_event] = list()
             self.addItem(self.scatters[type_event])
             self.legend_ev.addItem(self.scatters[type_event], name=type_event)
+
+    def set_event_point(self, data: dict):
+        """ добавление на график точек событий """
+        event = data["signal"]
+        t = event.Counter / self._sig_datablock.sample_rate
+        if bool(event.Type & EventType.FREEFALL) and "freefall" in self.scatters:
+            self.point_scatters["freefall"].append({"pos": (t, self.y_min)})
+        if bool(event.Type & EventType.ORIENTATION) and "orientation" in self.scatters:
+            self.point_scatters["orientation"].append({"pos": (t, self.y_min)})
+        if bool(event.Type & EventType.ACTIVITY) and "activity" in self.scatters:
+            self.point_scatters["activity"].append({"pos": (t, self.y_min)})
+        print(f"{self.point_scatters=}")
+        return
 
     def process_input(self, data: dict):
         """ обработка входящего сигнала и добавление в буфер """
         if data["type"] == "ev":
+            self.set_event_point(data)
             return
 
         current_sample, signal = data["sample"], data["signal"]
         signal = signal[np.newaxis] # .shape = (1,32) for ecg/eeg
 
         # print(f"{current_sample=}")
-
         # todo: добавить проверку сигнала на соответствие channels_count, count_per_samples
         if not self._buffer_filled:
             if self.current_position + self._sig_datablock.counter_per_sample < self._signal_buffer.shape[1]:
@@ -452,7 +468,7 @@ class StreamViewer(pg.PlotWidget):
         self.update_display = True
 
 
-    def timerEvent(self, event, /):
+    def timerEvent(self, _, /):
         """ событие отрисовки графиков """
         if not self.update_display:
             return
@@ -478,7 +494,17 @@ class StreamViewer(pg.PlotWidget):
             self.setXRange(current_time - self._timebase, current_time, padding=0)
 
         self.setYRange(self.y_min, self.y_max)
+        self.release_event_points()
         self.update_display = False
+
+    def release_event_points(self):
+        """ отрисовка точек событий на графике"""
+        if len(self.scatters.keys()) == 0:
+            return
+
+        for ev in self.scatters.keys():
+            self.scatters[ev].addPoints(self.point_scatters[ev])
+            self.point_scatters[ev] = list()    # сброс событий
 
     def start(self):
         """ запуск модуля на прием и отображения сигнала """
