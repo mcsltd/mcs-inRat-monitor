@@ -14,7 +14,10 @@ from PySide6.QtWidgets import QFrame
 from pyedflib import EdfWriter
 from typing import Optional
 
+from device.constants import Const
 from device.device import SignalDatablock
+from device.enums import EventType
+from device.utils import get_orientation
 from resources.frm_online_control_recording import Ui_FrmOnlineControlRecording
 
 logger = logging.getLogger(__name__)
@@ -51,6 +54,8 @@ class DataStorage(QObject):
         self._acc_start_sample = None   # начальный семпл записи
         self._acc_current_sample = None
         self._acc_samples_written = 0    # количество записанных в буфер семплов
+
+        self._ev_buffer = []
 
         self._max_timebase = 1200 # 20 минут
 
@@ -139,7 +144,6 @@ class DataStorage(QObject):
             self._acc_current_sample = 0
             self._acc_samples_written = 0
 
-
     def process_event(self, event):
         """ обработка событий """
         if event == "StartRecording":
@@ -175,20 +179,25 @@ class DataStorage(QObject):
                 idx_finish = self._sig_samples_written * self._sig_datablock.counter_per_sample
                 signal = self._sig_buffer[:,idx_start:idx_finish]
 
+                sig_start_datetime = datetime.datetime.fromtimestamp(self._sig_recording_start)
                 self._save_to_edf(
                     sample_rate=self._sig_datablock.sample_rate,
                     number_channels=self._sig_datablock.number_channels,
                     signal=signal,
+                    events=self._ev_buffer,
                     write_dir=self._writedir,
                     filename=self._sig_filename,
                     channel_names=self._sig_datablock.channel_names,
-                    units=self._sig_datablock.units,)
+                    units=self._sig_datablock.units,
+                    start_datetime=sig_start_datetime,
+                )
 
             if self._acc_datablock:
                 idx_start = 0
                 idx_finish = self._acc_samples_written * self._acc_datablock.counter_per_sample
                 acc_signal = self._acc_buffer[:,idx_start:idx_finish]
 
+                acc_start_datetime = datetime.datetime.fromtimestamp(self._acc_recording_start)
                 self._save_to_edf(
                     sample_rate=self._acc_datablock.sample_rate,
                     number_channels=self._acc_datablock.number_channels,
@@ -196,7 +205,9 @@ class DataStorage(QObject):
                     write_dir=self._writedir,
                     filename=self._acc_filename,
                     channel_names=self._acc_datablock.channel_names,
-                    units=self._acc_datablock.units,)
+                    units=self._acc_datablock.units,
+                    start_datetime=acc_start_datetime,
+                )
 
         self._control_pane.pushButtonStartRecording.setEnabled(True)
         self._control_pane.pushButtonStopRecording.setEnabled(False)
@@ -211,6 +222,9 @@ class DataStorage(QObject):
         logger.debug(f"Получены данные для сохранения в {DataStorage.__name__}: {data=}")
 
         type = data["type"]
+        if self._sig_datablock and type == "ev":
+            self._process_input_ev(data)
+            return data
 
         if self._sig_datablock and type == "sig":
             self._process_input_sig(data)
@@ -220,12 +234,35 @@ class DataStorage(QObject):
 
         return data
 
+    def _process_input_ev(self, data: dict):
+        """ обработка входящий событий
+        data: {"sample": int(event.Counter / Pkt.SamplesCountEcg), "counter": event.Counter, "signal": event, "type": "ev"}
+        """
+        event = data["signal"]
+        t = (event.Counter - self._sig_start_sample * self._sig_datablock.counter_per_sample) / self._sig_datablock.sample_rate
+
+        if bool(event.Type & EventType.FREEFALL):
+            ann = "F"
+        elif bool(event.Type & EventType.ACTIVITY):
+            ax = int(Const.AccResolution * event.Acceleration.X)
+            ay = int(Const.AccResolution * event.Acceleration.Y)
+            az = int(Const.AccResolution * event.Acceleration.Z)
+            ann = f"A {ax} {ay} {az}"
+        elif bool(event.Type & EventType.ORIENTATION):
+            axis = get_orientation(event.Value)
+            ann = f"O {axis}"
+        elif bool(event.Type & EventType.TEMP):
+            ann = f"T {round(event.Data / 1000, 1)}"
+        else:
+            return data
+
+        self._ev_buffer.append((t, ann))
+        print(f"{self._ev_buffer=}")
+        return data
+
     def _process_input_sig(self, data: dict) -> dict:
         """ обработка входящих биосигналов """
         sig, sample = data["signal"], data["sample"]
-
-        if data["type"] == "ev":
-            return data
 
         if not self._sig_start_sample:
             self._sig_start_sample = sample
@@ -265,6 +302,12 @@ class DataStorage(QObject):
         self._acc_samples_written += 1
         return data
 
+    def _transmit_data(self, data):
+        try:
+            self._input_queue.put(data, False)
+        except:
+            ...
+
     def _save_to_edf(
             self,
             sample_rate: int,
@@ -274,6 +317,8 @@ class DataStorage(QObject):
             write_dir: str,
             filename: str,
             channel_names: list,
+            start_datetime: datetime.datetime,
+            events: list | None = None,
     ):
         """ сохранение сигнала в edf файл """
         path_to_save = f"{write_dir}/{filename}.edf"
@@ -306,6 +351,12 @@ class DataStorage(QObject):
             physical_max = physical_max + 1.0
             physical_min = physical_min - 1.0
 
+        if events:
+            for data in events:
+                if len(data) == 2:
+                    t, ann = data[0], data[1]
+                    writer.writeAnnotation(onset_in_seconds=t, description=ann, duration_in_seconds=0)
+
         headers = []
         for ch in range(number_channels):
             channel_info = {
@@ -319,15 +370,10 @@ class DataStorage(QObject):
             }
             headers.append(channel_info)
 
+        writer.setStartdatetime(start_datetime)
         writer.setSignalHeaders(headers)
         writer.writeSamples(signal)
         writer.close()
-
-    def _transmit_data(self, data):
-        try:
-            self._input_queue.put(data, False)
-        except:
-            ...
 
 def to_str_mmss(seconds) -> str:
     str_mm_ss = f"{int(seconds // 60):02d}:{seconds % 60:02d}"

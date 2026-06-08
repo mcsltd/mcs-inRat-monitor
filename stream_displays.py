@@ -435,7 +435,6 @@ class StreamViewer(pg.PlotWidget):
             self.point_scatters["orientation"].append({"pos": (t, self.y_min)})
         if bool(event.Type & EventType.ACTIVITY) and "activity" in self.scatters:
             self.point_scatters["activity"].append({"pos": (t, self.y_min)})
-        print(f"{self.point_scatters=}")
         return
 
     def process_input(self, data: dict):
