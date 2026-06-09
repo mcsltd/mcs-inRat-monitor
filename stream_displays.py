@@ -1,3 +1,4 @@
+import logging
 import queue
 import time
 from threading import Thread
@@ -6,11 +7,12 @@ import numpy as np
 import pyqtgraph as pg
 from PySide6 import QtCore
 from PySide6.QtGui import QFont
-from pyqtgraph import mkPen
+from pyqtgraph import mkPen, ScatterPlotItem, LegendItem
 
 from device.constants import Pkt
 from device.device import SignalDatablock
-from device.enums import TypeSignal
+from device.enums import TypeSignal, EventType
+from device.structures import Event
 
 
 # ToDo: переписать на единый класс (?)
@@ -283,6 +285,7 @@ class StreamSignalViewer(pg.PlotWidget):
         self.buffer_filled = False  # флаг заполнения буфера
         self.current_position = 0  # текущая позиция для заполнения буфера
 
+logger = logging.getLogger(__name__)
 
 class StreamViewer(pg.PlotWidget):
 
@@ -302,20 +305,32 @@ class StreamViewer(pg.PlotWidget):
         self._time_buffer: np.ndarray | None = None
         self._buffer_filled = False  # флаг заполнения буфера
         self.current_position = 0  # текущая позиция для заполнения буфера
-        
+
+        # блок данных с параметром
         self._sig_datablock: SignalDatablock | None = None
 
+        # настройки отображения
+        self.y_min, self.y_max = -5 * 1e-3, 5 * 1e-3
         self._timebase: int | None = 10
         self._max_timebase: int | None = 60
 
         # объекты отображения сигналов len(traces) = _channels_count
         self.traces: list = []
+        self.scatters: dict = {}
+        self.point_scatters: dict ={}
         self.update_display: bool = False
 
         pen = mkPen("w")
         font = QFont("Arial", 9)
 
-        self.addLegend(offset=(1,-1), labelTextSize="9pt", colCount=3)
+        # легенды для сигнала
+        self.legend_sig = LegendItem(colCount=3, labelTextColor="white", labelTextSize="12pt")
+        self.legend_sig.setParentItem(self.getPlotItem())
+        self.legend_sig.anchor(offset=(50, 0), itemPos=(0,0), parentPos=(0, 0))
+
+        self.legend_ev = LegendItem(colCount=3, labelTextColor="white", labelTextSize="9pt")
+        self.legend_ev.setParentItem(self.getPlotItem())
+        self.legend_ev.anchor(itemPos=(0, 1), parentPos=(0, 1), offset=(35, -35))
 
         self.setLabel("left", left_label, color="white")
         self.setLabel("bottom", bottom_label, color="white")
@@ -338,8 +353,10 @@ class StreamViewer(pg.PlotWidget):
         # настройка отрисовки графиков разными цветами
         pens = []
         if self._sig_datablock.type_signal is TypeSignal.ECG or self._sig_datablock.type_signal is TypeSignal.EEG:
+            self.y_min, self.y_max = -5 * 1e-3, 5 * 1e-3
             pens.append(mkPen(color=(255, 255, 0)))
         elif self._sig_datablock.type_signal is TypeSignal.ACC:
+            self.y_min, self.y_max = -1e3, 1e3
             pens.extend([mkPen(color=(255, 0, 0)), mkPen(color=(0, 255, 0)), mkPen(color=(173, 216, 230))])
 
         # пересоздание буфера
@@ -348,18 +365,22 @@ class StreamViewer(pg.PlotWidget):
             dtype=np.float32
         )
         self._time_buffer = np.arange(0.0, self._max_timebase, 1 / self._sig_datablock.sample_rate)
+        self._buffer_filled = False  # флаг заполнения буфера
+        self.current_position = 0  # текущая позиция для заполнения буфера
+        self.update_display: bool = False
 
         type_signal = self._sig_datablock.type_signal.value
         unit = self._sig_datablock.units
-        # self.setLabel("left", left_label=type_signal, color="white")
         self.setLabel("left", text=type_signal, units=unit, color="white", force=True)
 
         self._arrange_traces(pens)
+        self._arrange_scatters()
 
     def _arrange_traces(self, pens: list):
         """ настройка объектов отображения сигнала под новое количество каналов """
         # удаление старых графиков
         for ch in self.traces:
+            self.legend_sig.removeItem(ch)
             self.removeItem(ch)
         self.traces = []
 
@@ -370,13 +391,62 @@ class StreamViewer(pg.PlotWidget):
 
             plot = self.plot(pen=pen, name=self._sig_datablock.channel_names[ch])
             self.traces.append(plot)
+            self.legend_sig.addItem(item=plot, name=self._sig_datablock.channel_names[ch])
 
+    def _arrange_scatters(self):
+        """ настройка объектов отображения диаграмм рассеяния для графиков """
+        # удаление графиков событий
+        events = list(self.scatters.keys())
+        for ev in events:
+            self.scatters[ev].clear()
+            self.removeItem(self.scatters[ev])
+            self.legend_ev.removeItem(self.scatters[ev])
+            self.scatters.pop(ev)
+        self.scatters = {}
+
+        # добавление графиков рассеяния для отображения событий
+        for type_event in self._sig_datablock.type_events:
+            if type_event == "temp":
+                continue
+
+            symbol, brush = None, None
+            if type_event == "activity":
+                symbol, brush = 't', pg.mkBrush(0, 255, 0, 180)
+            elif type_event == "freefall":
+                symbol, brush = 'o', pg.mkBrush(0, 0, 255, 180)
+            elif type_event == "orientation":
+                symbol, brush = 's', pg.mkBrush(255, 0, 0, 180),
+            else:
+                logger.warning(f"Не поддерживаемый тип событий - {type_event}")
+                continue
+
+            self.scatters[type_event] = ScatterPlotItem(name=type_event, symbol=symbol, brush=brush, size=10)
+            self.point_scatters[type_event] = list()
+            self.addItem(self.scatters[type_event])
+            self.legend_ev.addItem(self.scatters[type_event], name=type_event)
+
+    def set_event_point(self, data: dict):
+        """ добавление на график точек событий """
+        event = data["signal"]
+        t = event.Counter / self._sig_datablock.sample_rate
+        if bool(event.Type & EventType.FREEFALL) and "freefall" in self.scatters:
+            self.point_scatters["freefall"].append({"pos": (t, self.y_min)})
+        if bool(event.Type & EventType.ORIENTATION) and "orientation" in self.scatters:
+            self.point_scatters["orientation"].append({"pos": (t, self.y_min)})
+        if bool(event.Type & EventType.ACTIVITY) and "activity" in self.scatters:
+            self.point_scatters["activity"].append({"pos": (t, self.y_min)})
+        return
 
     def process_input(self, data: dict):
         """ обработка входящего сигнала и добавление в буфер """
-        current_sample, signal = data["counter"], data["signal"]
+        if data["type"] == "ev":
+            self.set_event_point(data)
+            return
+
+        current_sample, signal = data["sample"], data["signal"]
         signal = signal[np.newaxis] # .shape = (1,32) for ecg/eeg
 
+        # print(f"{current_sample=}")
         # todo: добавить проверку сигнала на соответствие channels_count, count_per_samples
         if not self._buffer_filled:
             if self.current_position + self._sig_datablock.counter_per_sample < self._signal_buffer.shape[1]:
@@ -397,7 +467,7 @@ class StreamViewer(pg.PlotWidget):
         self.update_display = True
 
 
-    def timerEvent(self, event, /):
+    def timerEvent(self, _, /):
         """ событие отрисовки графиков """
         if not self.update_display:
             return
@@ -422,7 +492,18 @@ class StreamViewer(pg.PlotWidget):
             current_time = visible_time[-1] if len(visible_time) > 0 else 0
             self.setXRange(current_time - self._timebase, current_time, padding=0)
 
+        self.setYRange(self.y_min, self.y_max)
+        self.release_event_points()
         self.update_display = False
+
+    def release_event_points(self):
+        """ отрисовка точек событий на графике"""
+        if len(self.scatters.keys()) == 0:
+            return
+
+        for ev in self.scatters.keys():
+            self.scatters[ev].addPoints(self.point_scatters[ev])
+            self.point_scatters[ev] = list()    # сброс событий
 
     def start(self):
         """ запуск модуля на прием и отображения сигнала """

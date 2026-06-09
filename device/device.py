@@ -10,7 +10,7 @@ from PySide6.QtCore import QObject, Signal
 from bleak import BLEDevice
 
 from device.constants import Pkt
-from device.enums import EnabledChannels, TypeSignal
+from device.enums import EnabledChannels, TypeSignal, EventType
 from device.inrat import inRat, FIRMWARE_V1, FIRMWARE_V0
 from device.ui.config_dialog import DlgConfigDevice
 from device.ui.control_pane import FrmControlPane
@@ -29,13 +29,17 @@ class SignalDatablock:
             number_channels: int, channel_names: list, units: str
     ):
         self.type_signal: TypeSignal = type_signal
-        self.number_channels = number_channels
-        self.sample_rate = sample_rate
-        self.sample_counter = None
-        self.counter_per_sample = counter_per_sample
-        self.channel_names = channel_names
-        self.signal = np.zeros((self.number_channels, self.counter_per_sample), np.float32)
-        self.units = units
+        self.number_channels: int = number_channels
+        self.sample_rate: int = sample_rate
+        self.sample_counter: int | None = None
+        self.counter_per_sample: int = counter_per_sample
+        self.channel_names: list[str] = channel_names
+        self.signal: np.ndarray = np.zeros((self.number_channels, self.counter_per_sample), np.float32)
+        self.units: str = units
+
+        # события
+        self.event_markers: list = list()
+        self.type_events: list = list()
 
 class inRatDevice(QObject):
 
@@ -58,20 +62,16 @@ class inRatDevice(QObject):
 
         # ресурсы для обработки событий и биосигналов
         self._work_sig: Thread | None = None
-        self._sig_datablock = SignalDatablock(type_signal=TypeSignal.ECG,
-                                              sample_rate=500,
+        self._sig_datablock = SignalDatablock(type_signal=TypeSignal.ECG, sample_rate=500,
                                               counter_per_sample=Pkt.SamplesCountEcg,
-                                              number_channels=Pkt.ChannelsCountEcg,
-                                              channel_names=["ecg"],
-                                              units="V")
+                                              number_channels=Pkt.ChannelsCountEcg, channel_names=["ecg"], units="V")
         self._receivers_sig = []
-        self._event_queue = None
+        # self._event_queue = asyncio.Queue()
         self._sig_queue = asyncio.Queue()
 
         # ресурсы для обработки показаний акселерометра
         self._work_acc: Thread | None = None
-        self._acc_datablock = SignalDatablock(type_signal=TypeSignal.ACC,
-                                              sample_rate=100,
+        self._acc_datablock = SignalDatablock(type_signal=TypeSignal.ACC, sample_rate=100,
                                               counter_per_sample=Pkt.SamplesCountAcc,
                                               number_channels=Pkt.ChannelsCountAcc,
                                               channel_names=["acc_x", "acc_y", "acc_z"],
@@ -97,7 +97,6 @@ class inRatDevice(QObject):
         if self._running:
             receiver.start()
         self._receivers_data.append(receiver)
-
     def remove_receiver_data(self, receiver):
         """ удалить объект приёмника из коллекции """
         if receiver in self._receivers_data:
@@ -110,7 +109,6 @@ class inRatDevice(QObject):
             receiver.start()
         self._receivers_sig.append(receiver)
         receiver.update_params(params=self._sig_datablock)
-
     def remove_receiver_sig(self, receiver):
         """ удалить объект приёмника биосигналов из коллекции """
         if receiver in self._receivers_sig:
@@ -123,7 +121,6 @@ class inRatDevice(QObject):
             receiver.start()
         self._receivers_acc.append(receiver)
         receiver.update_params(params=self._acc_datablock)
-
     def remove_receiver_acc(self, receiver):
         """ удалить объект приёмника из коллекции акселерометра """
         if receiver in self._receivers_acc:
@@ -135,7 +132,6 @@ class inRatDevice(QObject):
         self._inrat = inRat(ble_device=device)
         future = asyncio.run_coroutine_threadsafe(self._inrat.connect(), self._loop)
         future.add_done_callback(self.on_device_connected)
-
     def on_device_connected(self, future: Future):
         """ обработка результата соединения с устройством """
         if self._inrat.is_connected:
@@ -170,12 +166,13 @@ class inRatDevice(QObject):
         self.signal_enable_acc.emit(False)
         self.signal_enable_sig.emit(False)
 
-    def process_start(self):
-        """ обработка запуска устройства """
-        self._control_pane.state_acquisition()
-
     def start(self):
         """ запуск inRat на получение данных """
+        while self._acc_queue and not self._acc_queue.empty():
+                self._acc_queue.get_nowait()
+        while self._sig_queue and not self._sig_queue.empty():
+            self._sig_queue.get_nowait()
+
         try:
             self.process_start()
         except Exception as exc:
@@ -183,7 +180,11 @@ class inRatDevice(QObject):
             return
 
         future = asyncio.run_coroutine_threadsafe(
-            self._inrat.start_acquisition(signal_queue=self._sig_queue, acceleration_queue=self._acc_queue), self._loop
+            self._inrat.start_acquisition(
+                signal_event_queue=self._sig_queue,
+                acceleration_queue=self._acc_queue,
+                # event_queue=self._event_queue
+            ), self._loop
         )
 
         for receiver in self._receivers_sig:
@@ -205,24 +206,33 @@ class inRatDevice(QObject):
 
         logger.debug("Запущен поток обработки приёма и обработки данных с inRat")
 
+    def process_start(self):
+        """ обработка запуска устройства """
+        self._control_pane.state_acquisition()
+
     def _worker_thread_sig(self):
         """ Рабочий поток получает данные из входной очереди биосигналов
-            и помещает обработанные данные в выходную очередь """
+            и помещает обработанные данные в выходную очередь
+            переменная data, содержит:
+            1) event: {"sample": int(event.Counter / Pkt.SamplesCountEcg), "counter": event.Counter,
+                       "signal": event, "type": "ev"}
+            2) signal: {"sample":smpl, "signal":signal, "type": "sig"}
+        """
         while self._running:
             try:
-                signal = self._sig_queue.get_nowait()
+                data = self._sig_queue.get_nowait()
             except asyncio.queues.QueueEmpty:
-                signal = None
+                data = None
             else:
                 # logger.debug(f"Получены данные: {signal=}")
                 self._sig_queue.task_done()
 
-            if signal:
+            if data:
                 for receiver in self._receivers_sig:
-                    receiver._transmit_data(signal)
+                    receiver._transmit_data(data)
 
                 for receiver in self._receivers_data:
-                    receiver._transmit_data(signal)
+                    receiver._transmit_data(data)
 
             time.sleep(0.001)
 
@@ -252,22 +262,22 @@ class inRatDevice(QObject):
         future = asyncio.run_coroutine_threadsafe(self._inrat.stop_acquisition(), self._loop)
 
         self._running = False
-        if self._work_acc:
-            self._work_acc.join(1.5)
-            self._work_acc = None
 
-        if self._work_acc:
-            self._work_acc.join(1.5)
-            self._work_acc = None
-
+        # остановка классов-приёмников данных
         for receiver in self._receivers_acc:
             receiver.stop()
-
         for receiver in self._receivers_sig:
             receiver.stop()
-
         for receiver in self._receivers_data:
             receiver.stop()
+
+        if self._work_acc:
+            self._work_acc.join(1.5)
+            self._work_acc = None
+
+        if self._work_acc:
+            self._work_acc.join(1.5)
+            self._work_acc = None
 
         self.process_stop()
         logger.debug("Поток обработки приёма и обработки данных с inRat остановлен")
@@ -292,6 +302,17 @@ class inRatDevice(QObject):
                 number_channels=Pkt.ChannelsCountEcg,
                 channel_names=[self._inrat.mode.value],  # list[str]
                 units="V") # todo: check it
+
+            # активация событий
+            if bool(self._inrat.enabled_events & EventType.TEMP):
+                self._sig_datablock.type_events.append("temp")
+            if bool(self._inrat.enabled_events & EventType.ORIENTATION):
+                self._sig_datablock.type_events.append("orientation")
+            if bool(self._inrat.enabled_events & EventType.ACTIVITY):
+                self._sig_datablock.type_events.append("activity")
+            if bool(self._inrat.enabled_events & EventType.FREEFALL):
+                self._sig_datablock.type_events.append("freefall")
+
         else:
             self.signal_enable_sig.emit(False)
             self._sig_datablock = None
@@ -308,10 +329,11 @@ class inRatDevice(QObject):
                                                   counter_per_sample=Pkt.SamplesCountAcc,
                                                   number_channels=Pkt.ChannelsCountAcc,
                                                   channel_names=["acc_x", "acc_y", "acc_z"],
-                                                  units="mg")
+                                                  units="G")
         else:
             self.signal_enable_acc.emit(False)
             self._acc_datablock = None
+
 
         # обновление параметров
         for receiver in self._receivers_sig:

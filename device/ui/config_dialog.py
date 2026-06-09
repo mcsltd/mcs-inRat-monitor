@@ -91,7 +91,6 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
             self.comboBoxMode.hide()
             self.checkBoxAcceleration.hide()
 
-
     def show_device_info(self):
         """ показать информацию об устройстве """
         self.labelDeviceValue.setText(f"{self._device.name}")
