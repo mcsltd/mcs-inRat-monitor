@@ -26,8 +26,9 @@ class StreamViewer(pg.PlotWidget):
 
     def __init__(
             self,
-            left_label: str | None = None, bottom_label: str | None = None, *args, **kwargs
+            left_label: str | None = None, *args, **kwargs
     ):
+        kwargs['axisItems'] = {'bottom': FormatterTimeAxisItem(orientation="bottom")}
         super().__init__(*args, **kwargs)
         self.setBackground((64, 64, 64))
         self.setDisabled(True)
@@ -72,7 +73,7 @@ class StreamViewer(pg.PlotWidget):
         self.legend_temp.anchor(offset=(-120, 0), itemPos=(0,0), parentPos=(1, 0))
 
         self.setLabel("left", left_label, color="white")
-        self.setLabel("bottom", bottom_label, color="white")
+        self.setLabel("bottom", "mm:ss", color="white")
         for ax in ["bottom", "left"]:
             self.getAxis(ax).label.setFont(font)
             self.getAxis(ax).setPen(pen)
@@ -289,3 +290,23 @@ class StreamViewer(pg.PlotWidget):
             self._input_queue.put(data, False)
         except:
             pass
+
+
+class FormatterTimeAxisItem(pg.AxisItem):
+    """ формат mm:ss по оси x """
+    def tickStrings(self, values, scale, spacing) -> list[str]:
+        """ форматирование строки по оси времени """
+        strings = []
+        last_value = None
+        for value in values:
+            is_whole_second = abs(value - round(value)) < 1e-9  # для float
+            if is_whole_second:
+                minutes = int(value // 60)
+                seconds = int(value % 60)
+                tick_str = f"{minutes:02d}:{seconds:02d}"
+                if tick_str != last_value:
+                    strings.append(tick_str)
+                    last_value = tick_str
+            else:
+                strings.append("")
+        return strings

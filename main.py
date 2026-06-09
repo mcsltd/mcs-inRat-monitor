@@ -30,8 +30,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.device = inRatDevice(qt_loop)
         self.scanner = BLEScannerWorker()
         self.storage = DataStorage()
-        self.display_sig = StreamViewer(TypeSignal.ECG.value, "время")
-        self.display_acc = StreamViewer(TypeSignal.ACC.value, "время")
+        self.display_sig = StreamViewer(TypeSignal.ECG.value)
+        self.display_acc = StreamViewer(TypeSignal.ACC.value)
         self.device.add_receiver_data(self.storage)
 
         # create scanner and run it
