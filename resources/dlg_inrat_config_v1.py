@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'dlg_inrat_config_v1ZeTJmS.ui'
+## Form generated from reading UI file 'dlg_inrat_config_v1OtggAA.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog,
     QFrame, QGridLayout, QGroupBox, QHBoxLayout,
     QLabel, QPushButton, QSizePolicy, QSpacerItem,
     QVBoxLayout, QWidget)
-import resources_rc
+import resources.resources_rc
 
 class Ui_DlgDeviceConfig(object):
     def setupUi(self, DlgDeviceConfig):
@@ -58,18 +58,18 @@ class Ui_DlgDeviceConfig(object):
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.horizontalLayout_3 = QHBoxLayout()
         self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
-        self.checkBoxSignal = QCheckBox(DlgDeviceConfig)
-        self.checkBoxSignal.setObjectName(u"checkBoxSignal")
+        self.checkBoxExg = QCheckBox(DlgDeviceConfig)
+        self.checkBoxExg.setObjectName(u"checkBoxExg")
         sizePolicy = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.checkBoxSignal.sizePolicy().hasHeightForWidth())
-        self.checkBoxSignal.setSizePolicy(sizePolicy)
-        self.checkBoxSignal.setMinimumSize(QSize(235, 0))
-        self.checkBoxSignal.setMaximumSize(QSize(400, 16777215))
-        self.checkBoxSignal.setFont(font)
+        sizePolicy.setHeightForWidth(self.checkBoxExg.sizePolicy().hasHeightForWidth())
+        self.checkBoxExg.setSizePolicy(sizePolicy)
+        self.checkBoxExg.setMinimumSize(QSize(235, 0))
+        self.checkBoxExg.setMaximumSize(QSize(400, 16777215))
+        self.checkBoxExg.setFont(font)
 
-        self.horizontalLayout_3.addWidget(self.checkBoxSignal)
+        self.horizontalLayout_3.addWidget(self.checkBoxExg)
 
         self.comboBoxModeSampleRate = QComboBox(DlgDeviceConfig)
         self.comboBoxModeSampleRate.setObjectName(u"comboBoxModeSampleRate")
@@ -303,7 +303,7 @@ class Ui_DlgDeviceConfig(object):
         DlgDeviceConfig.setWindowTitle(QCoreApplication.translate("DlgDeviceConfig", u"\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430 \u043f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u043e\u0432", None))
         self.pushButtonOk.setText(QCoreApplication.translate("DlgDeviceConfig", u"\u041e\u043a", None))
         self.pushButtonCancel.setText(QCoreApplication.translate("DlgDeviceConfig", u"\u041e\u0442\u043c\u0435\u043d\u0430", None))
-        self.checkBoxSignal.setText(QCoreApplication.translate("DlgDeviceConfig", u"ExG", None))
+        self.checkBoxExg.setText(QCoreApplication.translate("DlgDeviceConfig", u"ExG", None))
         self.checkBoxAcceleration.setText(QCoreApplication.translate("DlgDeviceConfig", u"\u0410\u043a\u0441\u0435\u043b\u0435\u0440\u043e\u043c\u0435\u0442\u0440", None))
 #if QT_CONFIG(tooltip)
         self.checkBoxTemp.setToolTip(QCoreApplication.translate("DlgDeviceConfig", u"\u0420\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u044f \u0441\u043e\u0431\u044b\u0442\u0438\u044f \u0442\u0435\u043c\u043f\u0435\u0440\u0430\u0442\u0443\u0440\u044b\n"
