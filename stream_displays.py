@@ -7,7 +7,7 @@ import numpy as np
 import pyqtgraph as pg
 from PySide6 import QtCore
 from PySide6.QtGui import QFont
-from pyqtgraph import mkPen, ScatterPlotItem, LegendItem
+from pyqtgraph import mkPen, ScatterPlotItem, LegendItem, ItemSample
 
 from device.constants import Pkt
 from device.device import SignalDatablock
@@ -66,6 +66,10 @@ class StreamViewer(pg.PlotWidget):
         self.legend_ev = LegendItem(colCount=3, labelTextColor="white", labelTextSize="9pt")
         self.legend_ev.setParentItem(self.getPlotItem())
         self.legend_ev.anchor(itemPos=(0, 1), parentPos=(0, 1), offset=(35, -35))
+
+        self.legend_temp = LegendItem(labelTextColor="white", labelTextSize="18pt")
+        self.legend_temp.setParentItem(self.getPlotItem())
+        self.legend_temp.anchor(offset=(-120, 0), itemPos=(0,0), parentPos=(1, 0))
 
         self.setLabel("left", left_label, color="white")
         self.setLabel("bottom", bottom_label, color="white")
@@ -141,7 +145,11 @@ class StreamViewer(pg.PlotWidget):
 
         # добавление графиков рассеяния для отображения событий
         for type_event in self._sig_datablock.type_events:
+
             if type_event == "temp":
+                empty_sample = ItemSample(item=None)
+                self.legend_temp.clear()
+                self.legend_temp.addItem(empty_sample, "--°C")
                 continue
 
             symbol, brush = None, None
@@ -155,7 +163,7 @@ class StreamViewer(pg.PlotWidget):
                 logger.warning(f"Не поддерживаемый тип событий - {type_event}")
                 continue
 
-            self.scatters[type_event] = ScatterPlotItem(name=type_event, symbol=symbol, brush=brush, size=10)
+            self.scatters[type_event] = ScatterPlotItem(name=type_event, symbol=symbol, brush=brush, size=10) # temp не добавляется
             self.point_scatters[type_event] = list()
             self.addItem(self.scatters[type_event])
             self.legend_ev.addItem(self.scatters[type_event], name=type_event)
@@ -171,6 +179,10 @@ class StreamViewer(pg.PlotWidget):
             self.point_scatters["orientation"].append({"pos": (t, self.y_min)})
         if ev.Type == EventType.ACTIVITY.bit_length() - 1 and "activity" in self.scatters:
             self.point_scatters["activity"].append({"pos": (t, self.y_min)})
+        if ev.Type == EventType.TEMP.bit_length() - 1:
+            self.legend_temp.clear()
+            self.legend_temp.addItem(ItemSample(item=None), f"{round(ev.Data / 1000, 1)}°C")
+
         return
 
     def process_input(self, data: dict):

@@ -114,7 +114,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.comboBoxDevice.clear()
         self.comboBoxDevice.setEnabled(True)
 
-
     def set_combobox_items(self, devices: set[BLEDevice]):
         for device in devices:
             if self.comboBoxDevice.findText(device.name) == -1:
