@@ -156,6 +156,7 @@ class inRatDevice(QObject):
 
         else:
             self._control_pane.state_disconnect()
+            self.signal_disconnected.emit()
 
     def process_disconnect(self):
         """ обработка соединения с inRat """
@@ -228,6 +229,7 @@ class inRatDevice(QObject):
                 self._sig_queue.task_done()
 
             if data:
+                print(f"данные: {data}")
                 for receiver in self._receivers_sig:
                     receiver._transmit_data(data)
 

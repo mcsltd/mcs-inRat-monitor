@@ -234,12 +234,13 @@ class inRat:
             return
         try:
             await asyncio.wait_for(self._client.connect(), timeout=wait)
-            logger.info(f"{self.name} успешно открыт")
+            await self._get_device_info()
+            # set_default_setting_from_firmware(self)
+            await self._get_device_status()
+            logger.info(f"{self.name}: открыто соединение")
         except Exception as err:
-            ...
-        await self._get_device_info()
-        # set_default_setting_from_firmware(self)
-        await self._get_device_status()
+            logger.error(f"{self.name}: во время соединения возникла ошибка - {err}")
+            await self.disconnect()
 
     async def start_acquisition(
             self,

@@ -103,6 +103,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def on_device_disconnected(self):
         """ обработка случая если устройство отсоединено """
+        self._waiting_connection_dlg.close()
         self.pushButtonDisconnect.hide()
         self.pushButtonConnect.setVisible(True)
         self.comboBoxDevice.clear()
