@@ -26,8 +26,6 @@ logger = logging.getLogger(__name__)
 class DataStorage(QObject):
 
     """ Класс для сохранения сигналов с устройства в форматы EDF/WFDB
-        # ToDo: определение типа сигнала для его записи при сохранении
-        # ToDo: возможность синхронной записи экг/ээг, акселерометра и событий
         # ToDo: обновление параметров под выбранную частоту
         # ToDo: сброс параметров при перезапуске модуля
         # ToDo: добавления нескольких каналов в signal_buffer
@@ -224,7 +222,6 @@ class DataStorage(QObject):
         type = data["type"]
         if self._sig_datablock and type == "ev":
             self._process_input_ev(data)
-            return data
 
         if self._sig_datablock and type == "sig":
             self._process_input_sig(data)
@@ -257,7 +254,6 @@ class DataStorage(QObject):
             return data
 
         self._ev_buffer.append((t, ann))
-        print(f"{self._ev_buffer=}")
         return data
 
     def _process_input_sig(self, data: dict) -> dict:
@@ -303,6 +299,7 @@ class DataStorage(QObject):
         return data
 
     def _transmit_data(self, data):
+        """ принять данные и положить в очередь на обработку """
         try:
             self._input_queue.put(data, False)
         except:
@@ -323,6 +320,7 @@ class DataStorage(QObject):
         """ сохранение сигнала в edf файл """
         path_to_save = f"{write_dir}/{filename}.edf"
         writer = EdfWriter(n_channels=number_channels, file_name=path_to_save)
+        writer.set_number_of_annotation_signals(number_of_annotations=64)
         signal = np.round(signal, decimals=6)
         margin = 0.15
 
