@@ -16,7 +16,10 @@ class BLEScannerWorker(QObject):
         self.timer = None
         self._sec_scan_time = 2
         self.event_stop_scan = asyncio.Event()
+        self._running: bool = False
 
+    def is_running(self) -> bool:
+        return self._running
 
     async def _scanning(self):
         ble_devices: set[BLEDevice] = set()
@@ -40,8 +43,10 @@ class BLEScannerWorker(QObject):
     def run(self, qt_loop: QtAsyncio.QAsyncioEventLoop):
         self.timer = 0
         self.event_stop_scan.clear()
+        self._running = True
         asyncio.run_coroutine_threadsafe(self._scanning(), qt_loop)
 
     def stop(self):
         self.event_stop_scan.set()
+        self._running = False
         time.sleep(0.7)

@@ -238,17 +238,17 @@ class DataStorage(QObject):
         event = data["signal"]
         t = (event.Counter - self._sig_start_sample * self._sig_datablock.counter_per_sample) / self._sig_datablock.sample_rate
 
-        if bool(event.Type & EventType.FREEFALL):
+        if event.Type == EventType.FREEFALL.bit_length() - 1:
             ann = "F"
-        elif bool(event.Type & EventType.ACTIVITY):
+        elif event.Type == EventType.ACTIVITY.bit_length() - 1:
             ax = int(Const.AccResolution * event.Acceleration.X)
             ay = int(Const.AccResolution * event.Acceleration.Y)
             az = int(Const.AccResolution * event.Acceleration.Z)
             ann = f"A {ax} {ay} {az}"
-        elif bool(event.Type & EventType.ORIENTATION):
+        elif event.Type == EventType.ORIENTATION.bit_length() - 1:
             axis = get_orientation(event.Value)
             ann = f"O {axis}"
-        elif bool(event.Type & EventType.TEMP):
+        elif event.Type == EventType.TEMP.bit_length() - 1:
             ann = f"T {round(event.Data / 1000, 1)}"
         else:
             return data

@@ -63,6 +63,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._waiting_connection_dlg = WaitingDialog()
 
     def enable_display_acc(self, state: bool):
+        logger.debug("Активация окна отображения сигналов ЭКГ/ЭМГ")
         if state:
             self.device.add_receiver_acc(self.display_acc)
             self.display_acc.setVisible(True)
@@ -71,6 +72,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.display_acc.setVisible(False)
 
     def enable_display_sig(self, state: bool):
+        logger.debug("Активация окна отображения сигналов ЭКГ/ЭМГ")
         if state:
             self.device.add_receiver_sig(self.display_sig)
             self.display_sig.setVisible(True)
@@ -103,10 +105,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def on_device_disconnected(self):
         """ обработка случая если устройство отсоединено """
+        if not self.scanner.is_running():
+            self.scanner.run(self.qt_loop)
+
+        self._waiting_connection_dlg.close()
         self.pushButtonDisconnect.hide()
         self.pushButtonConnect.setVisible(True)
         self.comboBoxDevice.clear()
         self.comboBoxDevice.setEnabled(True)
+
 
     def set_combobox_items(self, devices: set[BLEDevice]):
         for device in devices:
