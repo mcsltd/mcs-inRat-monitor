@@ -17,19 +17,15 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
 
         self._device = device
 
-        data = [("ЭКГ, 500 Гц", (TypeSignal.ECG, 500)),
-                       ("ЭКГ, 1000 Гц", (TypeSignal.ECG, 1000)),
-                       ("ЭКГ, 2000 Гц", (TypeSignal.ECG, 2000)),
-                       ("ЭЭГ, 250 Гц", (TypeSignal.EEG, 250)),
-                       ("ЭЭГ, 500 Гц", (TypeSignal.EEG, 500))]
+        data = [("ЭКГ, 500 Гц", (TypeSignal.ECG, 500)), ("ЭКГ, 1000 Гц", (TypeSignal.ECG, 1000)),
+                ("ЭКГ, 2000 Гц", (TypeSignal.ECG, 2000)), ("ЭЭГ, 250 Гц", (TypeSignal.EEG, 250)),
+                ("ЭЭГ, 500 Гц", (TypeSignal.EEG, 500))]
         for t, v in data:
             self.comboBoxModeSampleRate.addItem(t, userData=v)
-        # self.on_mode_changed(index=0)
 
         scale = [("±2", 2), ("±4", 4), ("±8", 8), ("±16", 16)]
         for s, v in scale:
             self.comboBoxFullScaleAccelerometer.addItem(s, userData=v)
-        # self.comboBoxFullScaleAccelerometer.hide()
 
         thresholds = [("низкая", 2), ("средняя", 6), ("высокая", 9)]
         for text, thr in thresholds:
@@ -41,6 +37,9 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
 
         self.checkBoxExg.checkStateChanged.connect(self.on_exg_clicked)
         self.checkBoxAcceleration.checkStateChanged.connect(self.on_acc_clicked)
+        self.checkBoxFreefall.stateChanged.connect(self.on_event_state_changed)
+        self.checkBoxActivity.stateChanged.connect(self.on_event_state_changed)
+        self.checkBoxOrientation.stateChanged.connect(self.on_event_state_changed)
 
         for label in [self.labelInfoActivity, self.labelInfoFreefall,
                       self.labelInfoOrientation, self.labelInfoTemperature]:
@@ -56,6 +55,7 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
         """ обработка выбора съема exg """
         if state is Qt.CheckState.Unchecked:
             self.comboBoxModeSampleRate.setEnabled(False)
+
         elif state is Qt.CheckState.Checked:
             self.comboBoxModeSampleRate.setEnabled(True)
 
@@ -68,6 +68,18 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
         elif state is Qt.CheckState.Checked:
             self.comboBoxFullScaleAccelerometer.setEnabled(True)
             self.groupBoxEnabledEvents.setEnabled(False)
+
+    def on_event_state_changed(self):
+        if (
+                self.checkBoxOrientation.isChecked()
+                or self.checkBoxActivity.isChecked()
+                or self.checkBoxFreefall.isChecked()
+        ):
+            self.checkBoxAcceleration.setEnabled(False)
+            self.comboBoxActivityThreshold.setEnabled(True)
+        else:
+            self.checkBoxAcceleration.setEnabled(True)
+            self.comboBoxActivityThreshold.setEnabled(False)
 
     def set_default_settings(self):
         """ установка настроек установленных в inRat """
