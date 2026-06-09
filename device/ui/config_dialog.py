@@ -48,8 +48,8 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
             label.setStyleSheet(""" QLabel { background-color: #0078D4; color: white; border-radius: 10px; font-weight: bold; padding: 2px; }
                                     QLabel:hover { background-color: #106EBE; } """)
         self.show_device_info()
-        # self.setup_ui_from_firmware()
-        # self.set_default_settings()
+        self.setup_ui_from_firmware()
+        self.set_default_settings()
 
     def on_exg_clicked(self, state):
         """ обработка выбора съема exg """
@@ -70,6 +70,7 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
             self.groupBoxEnabledEvents.setEnabled(False)
 
     def on_event_state_changed(self):
+        """ обработка смены состояния событий """
         if (
                 self.checkBoxOrientation.isChecked()
                 or self.checkBoxActivity.isChecked()
@@ -81,27 +82,36 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
             self.checkBoxAcceleration.setEnabled(True)
             self.comboBoxActivityThreshold.setEnabled(False)
 
+    def disable_eeg_items(self):
+        """Отключает все пункты с типом сигнала EEG в комбобоксе"""
+        for i in range(self.comboBoxModeSampleRate.count()):
+            item_data = self.comboBoxModeSampleRate.itemData(i)
+            if item_data and item_data[0] == TypeSignal.EEG:
+                self.comboBoxModeSampleRate.model().item(i, 0).setEnabled(False)
+
+    def find_index_by_mode_and_rate(self, mode, rate):
+        """ вспомогательная функция """
+        for i in range(self.comboBoxModeSampleRate.count()):
+            item_mode, item_rate = self.comboBoxModeSampleRate.itemData(i)
+            if item_mode == mode and item_rate == rate:
+                return i
+        return -1
+
     def set_default_settings(self):
         """ установка настроек установленных в inRat """
         if self._device.enabled_channels & EnabledChannels.ECG:
-            self.checkBoxSignal.setChecked(True)
+            self.checkBoxExg.setChecked(True)
+            index = self.find_index_by_mode_and_rate(mode=self._device.mode, rate=self._device.sample_rate)
+            self.comboBoxModeSampleRate.setCurrentIndex(index)
 
         # установить режим съема для inRat с новой версией firmware
         if self._device.firmware == FIRMWARE_V1:
-            index = self.comboBoxModeSampleRate.findData(self._device.mode)
-            self.comboBoxModeSampleRate.setCurrentIndex(index) # установка выбранного режима съема
-            self.on_mode_changed(index)
             if (
                     self._device.enabled_channels & EnabledChannels.ACC_X and
                     self._device.enabled_channels & EnabledChannels.ACC_Y and
                     self._device.enabled_channels & EnabledChannels.ACC_Z
             ):
                 self.checkBoxAcceleration.setChecked(True)
-
-        # установка частоты
-        sampling_rate = str(self._device.sample_rate)
-        idx = self.comboBoxModeSampleRate.findText(sampling_rate)
-        self.comboBoxModeSampleRate.setCurrentIndex(idx)
 
         # установка порога активности
         value = self._device.activity_threshold
@@ -122,9 +132,9 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
     def setup_ui_from_firmware(self):
         # деактивация неподдерживаемых настроек
         if self._device.firmware == FIRMWARE_V0:
-            # self.labelMode.hide()
-            # self.comboBoxMode.hide()
             self.checkBoxAcceleration.hide()
+            self.comboBoxFullScaleAccelerometer.hide()
+            self.disable_eeg_items()
 
     def show_device_info(self):
         """ показать информацию об устройстве """
@@ -133,18 +143,6 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
         self.labelModelValue.setText(f"{self._device.model}")
         self.labelFirmwareValue.setText(f"{self._device.firmware}")
         self.labelHardwareValue.setText(f"{self._device.hardware}")
-
-    # def on_mode_changed(self, index):
-    #     """ обработка выбор режима съема сигнала """
-    #     sample_rates = []
-    #     if self.comboBoxMode.itemData(index) is TypeSignal.ECG:
-    #         sample_rates = [500, 1000, 2000]
-    #     if self.comboBoxMode.itemData(index) is TypeSignal.EEG:
-    #         sample_rates = [250, 500]
-    #     self.comboBoxSampleRate.clear()
-    #     for sr in sample_rates:
-    #         self.comboBoxSampleRate.addItem(str(sr), userData=sr)
-    #     self.checkBoxSignal.setText(self.comboBoxMode.currentText())
 
     def get_enabled_events(self) -> int:
         """ получить активированные события """
@@ -160,39 +158,36 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
         return enabled_events
 
     def on_ok_clicked(self):
-        # # установка режима регистрации
-        # self._device.mode = self.comboBoxMode.currentData()
-        #
-        # # установка частоты
-        # sample_rate = self.comboBoxSampleRate.currentData()
-        # self._device.sample_rate = sample_rate
-        #
-        # # установка масштаба акселерометра
-        # # scale = self.comboBoxFullScaleAccelerometer.currentData()
-        # # self.device.full_scale_accelerometer = scale
-        #
-        # # активация каналов
-        # enabled_channels = EnabledChannels.NONE
-        # if self.checkBoxSignal.isChecked():
-        #     enabled_channels |= EnabledChannels.ECG
-        #     self.signal_ecg_emg.emit(True)
-        # else:
-        #     self.signal_acc.emit(False)
-        #
-        # if self.checkBoxAcceleration.isChecked():
-        #     enabled_channels |= EnabledChannels.ACC_X | EnabledChannels.ACC_Y | EnabledChannels.ACC_Z
-        #     self.signal_acc.emit(True)
-        # else:
-        #     self.signal_acc.emit(False)
-        # self._device.enabled_channels = enabled_channels
-        #
-        # # установка порога активности
-        # thr = self.comboBoxActivityThreshold.currentData()
-        # self._device.activity_threshold = thr
-        #
-        # # установка активированных событий
-        # enabled_events = self.get_enabled_events()
-        # self._device.enabled_events = enabled_events
-        #
-        # self.close()
-        pass
+        # установка режима регистрации и частоты
+        mode, sample_rate = self.comboBoxModeSampleRate.currentData()
+        self._device.mode = mode
+        self._device.sample_rate = sample_rate
+
+        # установка масштаба акселерометра
+        scale = self.comboBoxFullScaleAccelerometer.currentData()
+        self._device.full_scale_accelerometer = scale
+
+        # активация каналов
+        enabled_channels = EnabledChannels.NONE
+        if self.checkBoxExg.isChecked():
+            enabled_channels |= EnabledChannels.ECG
+            self.signal_ecg_emg.emit(True)
+        else:
+            self.signal_acc.emit(False)
+
+        if self.checkBoxAcceleration.isChecked():
+            enabled_channels |= EnabledChannels.ACC_X | EnabledChannels.ACC_Y | EnabledChannels.ACC_Z
+            self.signal_acc.emit(True)
+        else:
+            self.signal_acc.emit(False)
+        self._device.enabled_channels = enabled_channels
+
+        # установка порога активности
+        thr = self.comboBoxActivityThreshold.currentData()
+        self._device.activity_threshold = thr
+
+        # установка активированных событий
+        enabled_events = self.get_enabled_events()
+        self._device.enabled_events = enabled_events
+
+        self.close()
