@@ -96,7 +96,10 @@ class inRatDevice(QObject):
         """ добавление объекта-приёмник всех данных  """
         if self._running:
             receiver.start()
-        self._receivers_data.append(receiver)
+        if receiver not in self._receivers_data:
+            self._receivers_data.append(receiver)
+        else:
+            logger.warning(f"Попытка дублировать {receiver} в приёмниках данных")
     def remove_receiver_data(self, receiver):
         """ удалить объект приёмника из коллекции """
         if receiver in self._receivers_data:
@@ -107,8 +110,12 @@ class inRatDevice(QObject):
         """ добавить объект приёмника в коллекцию биосигналов """
         if self._running:
             receiver.start()
-        self._receivers_sig.append(receiver)
-        receiver.update_params(params=self._sig_datablock)
+
+        if receiver not in self._receivers_sig:
+            self._receivers_sig.append(receiver)
+            receiver.update_params(params=self._sig_datablock)
+        else:
+            logger.warning(f"Попытка дублировать {receiver} в приёмниках сигналов ЭКГ/ЭМГ")
     def remove_receiver_sig(self, receiver):
         """ удалить объект приёмника биосигналов из коллекции """
         if receiver in self._receivers_sig:
@@ -119,8 +126,12 @@ class inRatDevice(QObject):
         """ добавить объект приёмника акселерометра в коллекцию """
         if self._running:
             receiver.start()
-        self._receivers_acc.append(receiver)
-        receiver.update_params(params=self._acc_datablock)
+        if receiver not in self._receivers_acc:
+            self._receivers_acc.append(receiver)
+            receiver.update_params(params=self._acc_datablock)
+        else:
+            logger.warning(f"Попытка дублировать {receiver} в приёмниках акселерометра")
+
     def remove_receiver_acc(self, receiver):
         """ удалить объект приёмника из коллекции акселерометра """
         if receiver in self._receivers_acc:
@@ -134,6 +145,11 @@ class inRatDevice(QObject):
         future.add_done_callback(self.on_device_connected)
     def on_device_connected(self, future: Future):
         """ обработка результата соединения с устройством """
+        try:
+            future.result(timeout=10.0)
+        except Exception as err:
+            ...
+
         if self._inrat.is_connected:
             self._control_pane.state_connection()
             self.signal_connected.emit()
@@ -229,7 +245,7 @@ class inRatDevice(QObject):
                 self._sig_queue.task_done()
 
             if data:
-                print(f"данные: {data}")
+
                 for receiver in self._receivers_sig:
                     receiver._transmit_data(data)
 
