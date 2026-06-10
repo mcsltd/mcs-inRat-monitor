@@ -102,6 +102,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def on_disconnect_clicked(self):
         """ обработка нажатия кнопки отсоединения от устройства """
         self.scanner.run(self.qt_loop)
+        if self.device.is_running():
+            self.device.stop()
         self.device.process_disconnect()
 
     def on_device_disconnected(self):

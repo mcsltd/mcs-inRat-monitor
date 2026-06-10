@@ -93,6 +93,9 @@ class inRatDevice(QObject):
         self._control_pane.pushButtonConfig.clicked.connect(self.on_config_clicked)
         self._control_pane.checkBoxActivated.checkStateChanged.connect(self.on_state_activate_changed)
 
+    def is_running(self) -> bool:
+        return self._running
+
     @property
     def control_pane(self):
         return self._control_pane

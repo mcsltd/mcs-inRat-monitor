@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'frm_online_control_deviceRexzLw.ui'
+## Form generated from reading UI file 'frm_online_control_deviceMIPvfn.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -108,7 +108,7 @@ class Ui_FrmOnlineControlDevice(object):
 
     def retranslateUi(self, FrmOnlineControlDevice):
         FrmOnlineControlDevice.setWindowTitle(QCoreApplication.translate("FrmOnlineControlDevice", u"Frame", None))
-        self.groupBox.setTitle(QCoreApplication.translate("FrmOnlineControlDevice", u"\u0423\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u0438 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430", None))
+        self.groupBox.setTitle(QCoreApplication.translate("FrmOnlineControlDevice", u"\u0423\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435", None))
         self.pushButtonStart.setText(QCoreApplication.translate("FrmOnlineControlDevice", u"\u0421\u0442\u0430\u0440\u0442", None))
         self.pushButtonStop.setText(QCoreApplication.translate("FrmOnlineControlDevice", u"\u0421\u0442\u043e\u043f", None))
         self.pushButtonConfig.setText(QCoreApplication.translate("FrmOnlineControlDevice", u"\u041d\u0430\u0441\u0442\u0440\u043e\u0438\u0442\u044c", None))

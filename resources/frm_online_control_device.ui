@@ -40,7 +40,7 @@
       </font>
      </property>
      <property name="title">
-      <string>Управление и настройка</string>
+      <string>Управление</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_3">
       <property name="leftMargin">
