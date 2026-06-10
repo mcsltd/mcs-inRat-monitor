@@ -9,7 +9,7 @@ from threading import Thread
 import numpy as np
 import wfdb
 from PySide6.QtCore import QObject, QTimer
-from PySide6.QtWidgets import QFrame
+from PySide6.QtWidgets import QFrame, QFileDialog
 
 from pyedflib import EdfWriter
 from typing import Optional
@@ -65,6 +65,8 @@ class DataStorage(QObject):
         # путь и названия файлов записи
         self._filename = None
         self._writedir = None
+        self._selected_folder = "./data"
+        os.makedirs(self._selected_folder, exist_ok=True)
 
         self._running = False
         self._work: Thread | None = None
@@ -72,13 +74,21 @@ class DataStorage(QObject):
         self._control_pane = FrmOnlineControlRecording(self)
         self._control_pane.pushButtonStartRecording.clicked.connect(self._prepare_recording)
         self._control_pane.pushButtonStopRecording.clicked.connect(self._close_recording)
-        self._control_pane.comboBoxFormat.currentTextChanged.connect(self._set_format)
+        self._control_pane.pushButtonSelectSaveDir.clicked.connect(self.handle_select_save_location)
 
-    def _set_format(self, type_format: str):
-        """ установка формата сохранения сигнала """
-        self._format = "EDF"
-        logger.info(f"Выбран формат записи: {self._format}")
-        # self._format = type_format
+    def handle_select_save_location(self):
+        """ выбор место сохранения записей """
+
+        selected_folder = QFileDialog.getExistingDirectory(
+            None,
+            "Выберите папку для сохранения записей",
+            self._selected_folder,
+            QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks,  # несколько опций
+        )
+
+        if selected_folder:
+            self._selected_folder = selected_folder
+
 
     @property
     def control_pane(self):
@@ -123,6 +133,7 @@ class DataStorage(QObject):
         """ обновление параметров записи сигналов """
         # обновление параметров записи для биосигналов
         self._sig_datablock = params_sig
+        self._device_name = self._sig_datablock.device_name
         if params_sig:
             self._sig_filename = params_sig.type_signal.value
             self._sig_buffer = np.zeros((params_sig.number_channels, params_sig.sample_rate * self._max_timebase), dtype=np.float32)
@@ -157,7 +168,7 @@ class DataStorage(QObject):
         self._control_pane.pushButtonStartRecording.setEnabled(False)
 
         now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        self._writedir = f"./data/{str(self._device_name)}/rec_{now}/"
+        self._writedir = f"{self._selected_folder}/{str(self._device_name)}/rec_{now}/"
 
 
     def _close_recording(self):
@@ -188,6 +199,7 @@ class DataStorage(QObject):
                     channel_names=self._sig_datablock.channel_names,
                     units=self._sig_datablock.units,
                     start_datetime=sig_start_datetime,
+                    device_name=self._sig_datablock.device_name
                 )
 
             if self._acc_datablock:
@@ -205,6 +217,7 @@ class DataStorage(QObject):
                     channel_names=self._acc_datablock.channel_names,
                     units=self._acc_datablock.units,
                     start_datetime=acc_start_datetime,
+                    device_name=self._acc_datablock.device_name
                 )
 
         self._control_pane.pushButtonStartRecording.setEnabled(True)
@@ -316,6 +329,7 @@ class DataStorage(QObject):
             channel_names: list,
             start_datetime: datetime.datetime,
             events: list | None = None,
+            device_name: str | None = None
     ):
         """ сохранение сигнала в edf файл """
         path_to_save = f"{write_dir}/{filename}.edf"
@@ -368,6 +382,8 @@ class DataStorage(QObject):
             }
             headers.append(channel_info)
 
+        if device_name:
+            writer.setEquipment(device_name)
         writer.setStartdatetime(start_datetime)
         writer.setSignalHeaders(headers)
         writer.writeSamples(signal)
@@ -387,24 +403,19 @@ class FrmOnlineControlRecording(QFrame, Ui_FrmOnlineControlRecording):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
         self.module = module
-
-        # установка формата
-        formats = ["EDF", "WFDB"]
-        for f in formats:
-            self.comboBoxFormat.addItem(f)
-
         self._timer = 0
         self.startTimer(1000)
 
+
     def set_enable(self):
+        self.pushButtonSelectSaveDir.setEnabled(True)
         self.pushButtonStartRecording.setEnabled(True)
         self.pushButtonStopRecording.setEnabled(False)
-        self.comboBoxFormat.setEnabled(True)
 
     def set_disable(self):
+        self.pushButtonSelectSaveDir.setEnabled(False)
         self.pushButtonStartRecording.setEnabled(False)
         self.pushButtonStopRecording.setEnabled(False)
-        self.comboBoxFormat.setEnabled(False)
 
     def timerEvent(self, event, /):
         if self.module._recording:
