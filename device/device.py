@@ -45,6 +45,7 @@ class inRatDevice(QObject):
 
     signal_connected = Signal()
     signal_disconnected = Signal()
+    signal_error = Signal(str)
 
     signal_enable_sig = Signal(bool)
     signal_enable_acc = Signal(bool)
@@ -203,29 +204,41 @@ class inRatDevice(QObject):
         future = asyncio.run_coroutine_threadsafe(
             self._inrat.start_acquisition(
                 signal_event_queue=self._sig_queue,
-                acceleration_queue=self._acc_queue,
-                # event_queue=self._event_queue
+                acceleration_queue=self._acc_queue
             ), self._loop
         )
+        future.add_done_callback(self.on_device_started)
+        logger.debug("Запущена корутина на получение данных с inRat")
 
-        for receiver in self._receivers_sig:
-            receiver.update_params(self._sig_datablock)
-            receiver.start()
-        for receiver in self._receivers_acc:
-            receiver.update_params(self._acc_datablock)
-            receiver.start()
-        for receiver in self._receivers_data:
-            receiver.update_params(params_acc=self._acc_datablock, params_sig=self._sig_datablock)
-            receiver.start()
+    def on_device_started(self, future: Future):
+        """ обработка результата запуска устройства """
+        try:
+            if future.result(timeout=1.5):
+                for receiver in self._receivers_sig:
+                    receiver.update_params(self._sig_datablock)
+                    receiver.start()
+                for receiver in self._receivers_acc:
+                    receiver.update_params(self._acc_datablock)
+                    receiver.start()
+                for receiver in self._receivers_data:
+                    receiver.update_params(params_acc=self._acc_datablock, params_sig=self._sig_datablock)
+                    receiver.start()
 
-        if not self._running:
-            self._running = True
-            self._work_sig = Thread(target=self._worker_thread_sig)
-            self._work_acc = Thread(target=self._worker_thread_acc)
-            self._work_sig.start()
-            self._work_acc.start()
+                if not self._running:
+                    self._running = True
+                    self._work_sig = Thread(target=self._worker_thread_sig)
+                    self._work_acc = Thread(target=self._worker_thread_acc)
+                    self._work_sig.start()
+                    self._work_acc.start()
 
-        logger.debug("Запущен поток обработки приёма и обработки данных с inRat")
+                logger.debug("Запущен поток обработки приёма и обработки данных с inRat")
+            else:
+                raise ValueError("...")
+        except Exception as err:
+            msg = (f"Возникла ошибка при запуске {self._inrat.name}\n"
+                   f"Соединение будет сброшено")
+            self.signal_error.emit(msg)
+            self.process_disconnect()
 
     def process_start(self):
         """ обработка запуска устройства """

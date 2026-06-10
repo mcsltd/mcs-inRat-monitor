@@ -260,7 +260,7 @@ class inRat:
             # event_queue: asyncio.Queue| None = None,
             signal_event_queue: asyncio.Queue| None = None,
             acceleration_queue: asyncio.Queue| None = None
-    ):
+    ) -> bool:
         """ запуск на получение данных """
         async def event_handler(sender, data: bytearray):
             event_size = ctypes.sizeof(Event)
@@ -277,11 +277,13 @@ class inRat:
             smpl, accel = decode_acceleration(data, self._enabled_channels)
             await acceleration_queue.put({"sample":smpl, "signal":accel, "type": "acc"})  # "counter" -> "samples"
 
+
         settings = self._get_settings()
         try:
             await self.setup(Command.AcquisitionStart, settings)
         except Exception as err:
             logger.error(f"{self.name}: ошибка передачи команды AcquisitionStart - {err}")
+            return False
 
         if signal_event_queue:
             await self._client.start_notify(self.UUID_CHARACTERISTIC_ECG_EEG, exg_handler)
@@ -292,6 +294,7 @@ class inRat:
             await self._client.start_notify(self.UUID_CHARACTERISTIC_ACC, acc_handler)
             logger.info(f"{self.name}: подписка на сервисы UUID_CHARACTERISTIC_ACC")
 
+        return True
 
     async def stop_acquisition(self):
         """ остановка получения данных """
