@@ -7,5 +7,5 @@ PyInstaller.__main__.run([
     # "--console",
     "--name=inRat monitor",
     "--clean",
-    "--icon=./resources/images/icon.ico",
+    "--icon=resources/images/icon.ico",
 ])
