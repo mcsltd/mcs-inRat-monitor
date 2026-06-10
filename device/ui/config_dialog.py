@@ -15,38 +15,44 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
+        # объект для настройки
         self._device = device
 
+        # настройка exg
         data = [("ЭКГ, 500 Гц", (TypeSignal.ECG, 500)), ("ЭКГ, 1000 Гц", (TypeSignal.ECG, 1000)),
                 ("ЭКГ, 2000 Гц", (TypeSignal.ECG, 2000)), ("ЭЭГ, 250 Гц", (TypeSignal.EEG, 250)),
                 ("ЭЭГ, 500 Гц", (TypeSignal.EEG, 500))]
         for t, v in data:
             self.comboBoxModeSampleRate.addItem(t, userData=v)
 
+        # установка масштаба акселерометра
         scale = [("±2", 2), ("±4", 4), ("±8", 8), ("±16", 16)]
         for s, v in scale:
             self.comboBoxFullScaleAccelerometer.addItem(s, userData=v)
 
+        # порог обнаружения событий
         thresholds = [("низкая", 2), ("средняя", 6), ("высокая", 9)]
         for text, thr in thresholds:
             self.comboBoxActivityThreshold.addItem(text, thr)
 
+        # соединение кнопок с событиями
         self.pushButtonOk.clicked.connect(self.on_ok_clicked)
         self.pushButtonCancel.clicked.connect(self.close)
-        # self.comboBoxModeSampleRate.currentIndexChanged.connect(self.on_mode_changed)
-
         self.checkBoxExg.checkStateChanged.connect(self.on_exg_clicked)
         self.checkBoxAcceleration.checkStateChanged.connect(self.on_acc_clicked)
         self.checkBoxFreefall.stateChanged.connect(self.on_event_state_changed)
         self.checkBoxActivity.stateChanged.connect(self.on_event_state_changed)
         self.checkBoxOrientation.stateChanged.connect(self.on_event_state_changed)
 
+        # настройка информационных окон
         for label in [self.labelInfoActivity, self.labelInfoFreefall,
                       self.labelInfoOrientation, self.labelInfoTemperature]:
             label.setAlignment(Qt.AlignCenter)
             label.setFixedSize(20, 20)
             label.setStyleSheet(""" QLabel { background-color: #0078D4; color: white; border-radius: 10px; font-weight: bold; padding: 2px; }
                                     QLabel:hover { background-color: #106EBE; } """)
+
+        # настройки по умолчанию
         self.show_device_info()
         self.setup_ui_from_firmware()
         self.set_default_settings()
@@ -79,11 +85,12 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
             self.checkBoxAcceleration.setEnabled(False)
             self.comboBoxActivityThreshold.setEnabled(True)
         else:
-            self.checkBoxAcceleration.setEnabled(True)
+            if self._device.firmware == FIRMWARE_V1:
+                self.checkBoxAcceleration.setEnabled(True)
             self.comboBoxActivityThreshold.setEnabled(False)
 
     def disable_eeg_items(self):
-        """Отключает все пункты с типом сигнала EEG в комбобоксе"""
+        """ отключение всех пунктов с типом сигнала EEG в комбобоксе"""
         for i in range(self.comboBoxModeSampleRate.count()):
             item_data = self.comboBoxModeSampleRate.itemData(i)
             if item_data and item_data[0] == TypeSignal.EEG:
@@ -132,17 +139,19 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
     def setup_ui_from_firmware(self):
         # деактивация неподдерживаемых настроек
         if self._device.firmware == FIRMWARE_V0:
-            self.checkBoxAcceleration.hide()
-            self.comboBoxFullScaleAccelerometer.hide()
+            # self.checkBoxAcceleration.hide()
+            # self.comboBoxFullScaleAccelerometer.hide()
+            self.checkBoxAcceleration.setDisabled(True)
+            self.comboBoxFullScaleAccelerometer.setDisabled(True)
             self.disable_eeg_items()
 
     def show_device_info(self):
         """ показать информацию об устройстве """
         self.labelDeviceValue.setText(f"{self._device.name}")
-        self.labelSnValue.setText(f"{self._device.serial}")
-        self.labelModelValue.setText(f"{self._device.model}")
-        self.labelFirmwareValue.setText(f"{self._device.firmware}")
-        self.labelHardwareValue.setText(f"{self._device.hardware}")
+        self.labelSnValue.setText(f"SN: {self._device.serial}")
+        self.labelModelValue.setText(f"Model: {self._device.model}")
+        self.labelFirmwareValue.setText(f"Firmware: {self._device.firmware}")
+        self.labelHardwareValue.setText(f"Hardware: {self._device.hardware}")
 
     def get_enabled_events(self) -> int:
         """ получить активированные события """

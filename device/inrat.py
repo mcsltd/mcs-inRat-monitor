@@ -267,7 +267,10 @@ class inRat:
             await acceleration_queue.put({"sample":smpl, "signal":accel, "type": "acc"})  # "counter" -> "samples"
 
         settings = self._get_settings()
-        await self.setup(Command.AcquisitionStart, settings)
+        try:
+            await self.setup(Command.AcquisitionStart, settings)
+        except Exception as err:
+            logger.error(f"{self.name}: ошибка передачи команды AcquisitionStart - {err}")
 
         if signal_event_queue:
             await self._client.start_notify(self.UUID_CHARACTERISTIC_ECG_EEG, signal_handler)
