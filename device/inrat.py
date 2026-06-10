@@ -19,7 +19,7 @@ from device.structures import Status
 
 # версии программного обеспечения
 FIRMWARE_V0 = "1.0.260317"
-FIRMWARE_V1 = "1.0.260527" # "1.0.260603"
+FIRMWARE_V1 = "1.0.260610" # "1.0.260603"
 
 logger = logging.getLogger(__name__)
 
