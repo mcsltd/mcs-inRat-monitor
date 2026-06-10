@@ -19,9 +19,8 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
         self._device = device
 
         # настройка exg
-        data = [("ЭКГ, 500 Гц", (TypeSignal.ECG, 500)), ("ЭКГ, 1000 Гц", (TypeSignal.ECG, 1000)),
-                ("ЭКГ, 2000 Гц", (TypeSignal.ECG, 2000)), ("ЭЭГ, 250 Гц", (TypeSignal.EEG, 250)),
-                ("ЭЭГ, 500 Гц", (TypeSignal.EEG, 500))]
+        data = [("ЭКГ, 500 Гц", (TypeSignal.ECG, 500)), ("ЭКГ, 1000 Гц", (TypeSignal.ECG, 1000)), ("ЭКГ, 2000 Гц", (TypeSignal.ECG, 2000)),
+                ("ЭЭГ, 250 Гц", (TypeSignal.EEG, 250)), ("ЭЭГ, 500 Гц", (TypeSignal.EEG, 500))]
         for t, v in data:
             self.comboBoxModeSampleRate.addItem(t, userData=v)
 
