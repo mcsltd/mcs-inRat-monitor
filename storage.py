@@ -166,6 +166,7 @@ class DataStorage(QObject):
         self._recording = True
         self._control_pane.pushButtonStopRecording.setEnabled(True)
         self._control_pane.pushButtonStartRecording.setEnabled(False)
+        self._control_pane.pushButtonSelectSaveDir.setEnabled(False)
 
         now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         self._writedir = f"{self._selected_folder}/{str(self._device_name)}/rec_{now}/"
@@ -222,6 +223,7 @@ class DataStorage(QObject):
 
         self._control_pane.pushButtonStartRecording.setEnabled(True)
         self._control_pane.pushButtonStopRecording.setEnabled(False)
+        self._control_pane.pushButtonSelectSaveDir.setEnabled(True)
 
     def process_input(self, data: dict):
         """ сохранение данных в буфер

@@ -61,7 +61,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.device.signal_enable_acc.connect(self.enable_display_acc)
 
         # ui elements
-        self._waiting_connection_dlg = WaitingDialog()
+        self._waiting_connection_dlg = WaitingDialog(self)
 
     def enable_display_acc(self, state: bool):
         logger.debug("Активация окна отображения сигналов ЭКГ/ЭМГ")
