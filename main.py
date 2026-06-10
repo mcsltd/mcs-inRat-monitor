@@ -55,6 +55,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.pushButtonDisconnect.clicked.connect(self.on_disconnect_clicked)
         self.device.signal_connected.connect(self.on_device_connected)
         self.device.signal_disconnected.connect(self.on_device_disconnected)
+        self.device.signal_error.connect(self.show_message_error)
 
         self.device.signal_enable_sig.connect(self.enable_display_sig)
         self.device.signal_enable_acc.connect(self.enable_display_acc)
@@ -120,6 +121,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.comboBoxDevice.addItem(device.name, userData=device)
         if self.comboBoxDevice.count() != 0:
             self.pushButtonConnect.setEnabled(True)
+
+    def show_message_error(self, msg: str):
+        QMessageBox.critical(self,"Ошибка", msg, QMessageBox.StandardButton.Ok)
 
     def closeEvent(self, event):
         self.scanner.stop()

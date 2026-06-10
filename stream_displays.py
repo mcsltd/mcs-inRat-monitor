@@ -192,8 +192,7 @@ class StreamViewer(pg.PlotWidget):
             self.set_event_point(data)
             return
 
-        current_sample, signal = data["sample"], data["signal"]
-        signal = signal[np.newaxis] # .shape = (1,32) for ecg/eeg
+        current_sample, signal = data["sample"], data["signal"]  # .shape = (1,32) for exg; .shape = (3,8) for acc
 
         # todo: добавить проверку сигнала на соответствие channels_count, count_per_samples
         if not self._buffer_filled:
@@ -207,12 +206,12 @@ class StreamViewer(pg.PlotWidget):
                 self._buffer_filled = True
 
         if self._buffer_filled and signal.shape[1] != 0:
-
             self._signal_buffer = np.roll(self._signal_buffer, -signal.shape[1])
             self._signal_buffer[:, -signal.shape[1]:] = signal
             self._time_buffer += signal.shape[1] * (1 / self._sig_datablock.sample_rate)
 
         self.update_display = True
+
 
     def timerEvent(self, _, /):
         """ событие отрисовки графиков """

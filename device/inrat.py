@@ -112,7 +112,7 @@ class inRat:
             if value == 250:
                 self._sample_rate = SampleRateEeg.HZ_250
             elif value == 500:
-                self._sample_rate = SampleRateEeg.HZ_250
+                self._sample_rate = SampleRateEeg.HZ_500
             else:
                 raise ValueError(f"В режиме съема ЭЭГ не поддерживается частота {value}")
     @property
@@ -242,12 +242,25 @@ class inRat:
             logger.error(f"{self.name}: во время соединения возникла ошибка - {err}")
             await self.disconnect()
 
+    async def activate(self, state: bool):
+        """ изменение активации устройства"""
+        try:
+            if state:
+                await self.setup(cmd=Command.Activate)
+                logger.debug(f"{self.name}: передана команда Activate ")
+            else:
+                await self.setup(cmd=Command.Deactivate)
+                logger.debug(f"{self.name}: передана команда Deactivate ")
+        except Exception as err:
+            logger.error(f"{self.name}: ошибка передачи команды Activate/Deactivate - {err}")
+
+
     async def start_acquisition(
             self,
             # event_queue: asyncio.Queue| None = None,
             signal_event_queue: asyncio.Queue| None = None,
             acceleration_queue: asyncio.Queue| None = None
-    ):
+    ) -> bool:
         """ запуск на получение данных """
         async def event_handler(sender, data: bytearray):
             event_size = ctypes.sizeof(Event)
@@ -257,28 +270,31 @@ class inRat:
                 await signal_event_queue.put({
                     "sample": int(event.Counter / Pkt.SamplesCountEcg),
                     "counter": event.Counter, "signal": event, "type": "ev"})
-
-        async def signal_handler(sender, data):
+        async def exg_handler(sender, data):
             smpl, signal = decode_signal(data)
             await signal_event_queue.put({"sample":smpl, "signal":signal, "type": "sig"}) # "counter" -> "samples"
-
-        async def acceleration_handler(sender, data):
+        async def acc_handler(sender, data):
             smpl, accel = decode_acceleration(data, self._enabled_channels)
             await acceleration_queue.put({"sample":smpl, "signal":accel, "type": "acc"})  # "counter" -> "samples"
 
+
         settings = self._get_settings()
-        await self.setup(Command.AcquisitionStart, settings)
+        try:
+            await self.setup(Command.AcquisitionStart, settings)
+        except Exception as err:
+            logger.error(f"{self.name}: ошибка передачи команды AcquisitionStart - {err}")
+            return False
 
         if signal_event_queue:
-            await self._client.start_notify(self.UUID_CHARACTERISTIC_ECG_EEG, signal_handler)
+            await self._client.start_notify(self.UUID_CHARACTERISTIC_ECG_EEG, exg_handler)
             await self._client.start_notify(self.UUID_CHARACTERISTIC_EVENT, event_handler)
             logger.info(f"{self.name}: подписка на сервисы UUID_CHARACTERISTIC_ECG_EEG, UUID_CHARACTERISTIC_EVENT")
 
-
         if acceleration_queue and self._firmware == FIRMWARE_V1:
-            await self._client.start_notify(self.UUID_CHARACTERISTIC_ACC, acceleration_handler)
+            await self._client.start_notify(self.UUID_CHARACTERISTIC_ACC, acc_handler)
             logger.info(f"{self.name}: подписка на сервисы UUID_CHARACTERISTIC_ACC")
 
+        return True
 
     async def stop_acquisition(self):
         """ остановка получения данных """
