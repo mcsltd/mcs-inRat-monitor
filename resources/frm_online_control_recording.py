@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'frm_online_control_recordingODigDi.ui'
+## Form generated from reading UI file 'frm_online_control_recordingWjVmPS.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -15,9 +15,9 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QComboBox, QFormLayout, QFrame,
-    QGridLayout, QGroupBox, QHBoxLayout, QLabel,
-    QPushButton, QSizePolicy, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QApplication, QFormLayout, QFrame, QGridLayout,
+    QGroupBox, QHBoxLayout, QLabel, QPushButton,
+    QSizePolicy, QVBoxLayout, QWidget)
 
 class Ui_FrmOnlineControlRecording(object):
     def setupUi(self, FrmOnlineControlRecording):
@@ -49,25 +49,13 @@ class Ui_FrmOnlineControlRecording(object):
         self.labelFormat.setObjectName(u"labelFormat")
         self.labelFormat.setFont(font)
 
-        self.formLayout.setWidget(0, QFormLayout.ItemRole.LabelRole, self.labelFormat)
-
-        self.comboBoxFormat = QComboBox(self.groupBox)
-        self.comboBoxFormat.setObjectName(u"comboBoxFormat")
-        self.comboBoxFormat.setEnabled(False)
-        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
-        sizePolicy1.setHorizontalStretch(0)
-        sizePolicy1.setVerticalStretch(0)
-        sizePolicy1.setHeightForWidth(self.comboBoxFormat.sizePolicy().hasHeightForWidth())
-        self.comboBoxFormat.setSizePolicy(sizePolicy1)
-        self.comboBoxFormat.setFont(font)
-
-        self.formLayout.setWidget(0, QFormLayout.ItemRole.FieldRole, self.comboBoxFormat)
+        self.formLayout.setWidget(1, QFormLayout.ItemRole.LabelRole, self.labelFormat)
 
         self.labelTime = QLabel(self.groupBox)
         self.labelTime.setObjectName(u"labelTime")
         self.labelTime.setFont(font)
 
-        self.formLayout.setWidget(1, QFormLayout.ItemRole.LabelRole, self.labelTime)
+        self.formLayout.setWidget(2, QFormLayout.ItemRole.LabelRole, self.labelTime)
 
         self.horizontalLayout_2 = QHBoxLayout()
         self.horizontalLayout_2.setSpacing(0)
@@ -84,7 +72,24 @@ class Ui_FrmOnlineControlRecording(object):
         self.horizontalLayout_2.addWidget(self.labelMaxRecordingTime)
 
 
-        self.formLayout.setLayout(1, QFormLayout.ItemRole.FieldRole, self.horizontalLayout_2)
+        self.formLayout.setLayout(2, QFormLayout.ItemRole.FieldRole, self.horizontalLayout_2)
+
+        self.labelFormatValue = QLabel(self.groupBox)
+        self.labelFormatValue.setObjectName(u"labelFormatValue")
+        self.labelFormatValue.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.formLayout.setWidget(1, QFormLayout.ItemRole.FieldRole, self.labelFormatValue)
+
+        self.label_2 = QLabel(self.groupBox)
+        self.label_2.setObjectName(u"label_2")
+
+        self.formLayout.setWidget(0, QFormLayout.ItemRole.LabelRole, self.label_2)
+
+        self.pushButtonSelectSaveDir = QPushButton(self.groupBox)
+        self.pushButtonSelectSaveDir.setObjectName(u"pushButtonSelectSaveDir")
+        self.pushButtonSelectSaveDir.setEnabled(False)
+
+        self.formLayout.setWidget(0, QFormLayout.ItemRole.FieldRole, self.pushButtonSelectSaveDir)
 
 
         self.verticalLayout.addLayout(self.formLayout)
@@ -122,11 +127,14 @@ class Ui_FrmOnlineControlRecording(object):
 
     def retranslateUi(self, FrmOnlineControlRecording):
         FrmOnlineControlRecording.setWindowTitle(QCoreApplication.translate("FrmOnlineControlRecording", u"Frame", None))
-        self.groupBox.setTitle(QCoreApplication.translate("FrmOnlineControlRecording", u"\u0417\u0430\u043f\u0438\u0441\u044c \u0441\u0438\u0433\u043d\u0430\u043b\u0430 \u042d\u041a\u0413", None))
+        self.groupBox.setTitle(QCoreApplication.translate("FrmOnlineControlRecording", u"\u0417\u0430\u043f\u0438\u0441\u044c \u0434\u0430\u043d\u043d\u044b\u0445", None))
         self.labelFormat.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"\u0424\u043e\u0440\u043c\u0430\u0442 \u0437\u0430\u043f\u0438\u0441\u0438", None))
         self.labelTime.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"\u0412\u0440\u0435\u043c\u044f \u0437\u0430\u043f\u0438\u0441\u0438", None))
         self.labelRecordingTime.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"00:00", None))
         self.labelMaxRecordingTime.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"/20:00", None))
+        self.labelFormatValue.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"EDF", None))
+        self.label_2.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"\u041c\u0435\u0441\u0442\u043e \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u044f", None))
+        self.pushButtonSelectSaveDir.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"\u0412\u044b\u0431\u0440\u0430\u0442\u044c", None))
         self.pushButtonStartRecording.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"\u041d\u0430\u0447\u0430\u0442\u044c \u0437\u0430\u043f\u0438\u0441\u044c", None))
         self.pushButtonStopRecording.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"\u041e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u0437\u0430\u043f\u0438\u0441\u044c", None))
     # retranslateUi

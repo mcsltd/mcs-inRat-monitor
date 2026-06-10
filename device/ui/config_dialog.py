@@ -3,7 +3,7 @@ from PySide6.QtWidgets import QDialog
 
 from device.enums import EventType, Mode, EnabledChannels, TypeSignal
 from device.inrat import inRat, FIRMWARE_V0, FIRMWARE_V1
-from resources.dlg_inrat_config_v1 import Ui_DlgDeviceConfig
+from resources.dlg_inrat_config import Ui_DlgDeviceConfig
 
 
 class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
@@ -28,6 +28,7 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
         scale = [("±2", 2), ("±4", 4), ("±8", 8), ("±16", 16)]
         for s, v in scale:
             self.comboBoxFullScaleAccelerometer.addItem(s, userData=v)
+        self.comboBoxFullScaleAccelerometer.hide()
 
         # порог обнаружения событий
         thresholds = [("низкая", 2), ("средняя", 6), ("высокая", 9)]

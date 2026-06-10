@@ -61,7 +61,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.device.signal_enable_acc.connect(self.enable_display_acc)
 
         # ui elements
-        self._waiting_connection_dlg = WaitingDialog()
+        self._waiting_connection_dlg = WaitingDialog(self)
 
     def enable_display_acc(self, state: bool):
         logger.debug("Активация окна отображения сигналов ЭКГ/ЭМГ")
@@ -102,6 +102,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def on_disconnect_clicked(self):
         """ обработка нажатия кнопки отсоединения от устройства """
         self.scanner.run(self.qt_loop)
+        if self.device.is_running():
+            self.device.stop()
         self.device.process_disconnect()
 
     def on_device_disconnected(self):

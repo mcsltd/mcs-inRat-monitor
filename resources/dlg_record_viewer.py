@@ -1,17 +1,23 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'dlg_record_vieweriXoNAC.ui'
+## Form generated from reading UI file 'dlg_record_viewerSxgNwB.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
 
-from PySide6.QtCore import (QCoreApplication, QMetaObject, QSize)
-from PySide6.QtGui import (QIcon)
-from PySide6.QtWidgets import (QGridLayout, QVBoxLayout)
-
+from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
+    QMetaObject, QObject, QPoint, QRect,
+    QSize, QTime, QUrl, Qt)
+from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
+    QFont, QFontDatabase, QGradient, QIcon,
+    QImage, QKeySequence, QLinearGradient, QPainter,
+    QPalette, QPixmap, QRadialGradient, QTransform)
+from PySide6.QtWidgets import (QApplication, QDialog, QGridLayout, QSizePolicy,
+    QVBoxLayout, QWidget)
+import resources.resources_rc
 
 class Ui_DlgRecordViewer(object):
     def setupUi(self, DlgRecordViewer):
@@ -19,7 +25,7 @@ class Ui_DlgRecordViewer(object):
             DlgRecordViewer.setObjectName(u"DlgRecordViewer")
         DlgRecordViewer.resize(1131, 730)
         icon = QIcon()
-        icon.addFile(u":/iconMCS.ico", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        icon.addFile(u":/images/icon.ico", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         DlgRecordViewer.setWindowIcon(icon)
         self.gridLayout = QGridLayout(DlgRecordViewer)
         self.gridLayout.setObjectName(u"gridLayout")

@@ -26,7 +26,7 @@ class SignalDatablock:
     def __init__(
             self,
             type_signal: TypeSignal, sample_rate: int, counter_per_sample: int,
-            number_channels: int, channel_names: list, units: str
+            number_channels: int, channel_names: list, units: str, device_name: None | str = None
     ):
         self.type_signal: TypeSignal = type_signal
         self.number_channels: int = number_channels
@@ -40,6 +40,9 @@ class SignalDatablock:
         # события
         self.event_markers: list = list()
         self.type_events: list = list()
+
+        self.device_name: str | None = device_name
+
 
 class inRatDevice(QObject):
 
@@ -89,6 +92,9 @@ class inRatDevice(QObject):
         self._control_pane.pushButtonStop.clicked.connect(self.stop)
         self._control_pane.pushButtonConfig.clicked.connect(self.on_config_clicked)
         self._control_pane.checkBoxActivated.checkStateChanged.connect(self.on_state_activate_changed)
+
+    def is_running(self) -> bool:
+        return self._running
 
     @property
     def control_pane(self):
@@ -158,6 +164,11 @@ class inRatDevice(QObject):
 
             if self._inrat.is_activated:
                 self._control_pane.checkBoxActivated.setChecked(True)
+
+            if self._acc_datablock:
+                self._acc_datablock.device_name = self._inrat.name
+            if self._sig_datablock:
+                self._sig_datablock.device_name = self._inrat.name
 
             # настройка параметров inrat под версию firmware по умолчанию
             if self._inrat.firmware == FIRMWARE_V0:
@@ -339,7 +350,8 @@ class inRatDevice(QObject):
                 counter_per_sample=Pkt.SamplesCountEcg,
                 number_channels=Pkt.ChannelsCountEcg,
                 channel_names=[self._inrat.mode.value],  # list[str]
-                units="V") # todo: check it
+                units="V",
+                device_name=self._inrat.name) # todo: check it
 
             # активация событий
             if bool(self._inrat.enabled_events & EventType.TEMP):
@@ -367,7 +379,8 @@ class inRatDevice(QObject):
                                                   counter_per_sample=Pkt.SamplesCountAcc,
                                                   number_channels=Pkt.ChannelsCountAcc,
                                                   channel_names=["acc_x", "acc_y", "acc_z"],
-                                                  units="G")
+                                                  units="G",
+                                                  device_name=self._inrat.name)
         else:
             self.signal_enable_acc.emit(False)
             self._acc_datablock = None
