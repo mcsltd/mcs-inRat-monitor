@@ -270,12 +270,10 @@ class inRat:
                 await signal_event_queue.put({
                     "sample": int(event.Counter / Pkt.SamplesCountEcg),
                     "counter": event.Counter, "signal": event, "type": "ev"})
-
-        async def signal_handler(sender, data):
+        async def exg_handler(sender, data):
             smpl, signal = decode_signal(data)
             await signal_event_queue.put({"sample":smpl, "signal":signal, "type": "sig"}) # "counter" -> "samples"
-
-        async def acceleration_handler(sender, data):
+        async def acc_handler(sender, data):
             smpl, accel = decode_acceleration(data, self._enabled_channels)
             await acceleration_queue.put({"sample":smpl, "signal":accel, "type": "acc"})  # "counter" -> "samples"
 
@@ -286,13 +284,12 @@ class inRat:
             logger.error(f"{self.name}: ошибка передачи команды AcquisitionStart - {err}")
 
         if signal_event_queue:
-            await self._client.start_notify(self.UUID_CHARACTERISTIC_ECG_EEG, signal_handler)
+            await self._client.start_notify(self.UUID_CHARACTERISTIC_ECG_EEG, exg_handler)
             await self._client.start_notify(self.UUID_CHARACTERISTIC_EVENT, event_handler)
             logger.info(f"{self.name}: подписка на сервисы UUID_CHARACTERISTIC_ECG_EEG, UUID_CHARACTERISTIC_EVENT")
 
-
         if acceleration_queue and self._firmware == FIRMWARE_V1:
-            await self._client.start_notify(self.UUID_CHARACTERISTIC_ACC, acceleration_handler)
+            await self._client.start_notify(self.UUID_CHARACTERISTIC_ACC, acc_handler)
             logger.info(f"{self.name}: подписка на сервисы UUID_CHARACTERISTIC_ACC")
 
 

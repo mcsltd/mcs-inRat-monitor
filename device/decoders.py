@@ -15,18 +15,18 @@ def decode_signal(raw_data: bytearray) -> (int, np.ndarray):
     offset += 4
 
     # decode ecg
-    ecg = np.zeros(Pkt.SamplesCountEcg, dtype=np.float64)
+    ecg = np.zeros((Pkt.ChannelsCountEcg, Pkt.SamplesCountEcg), dtype=np.float64)
     prev = 0
     for i in range(Pkt.SamplesCountEcg):
         if (code >> i) & 0x1 == 0x0:
-            ecg[i] = prev + int.from_bytes([raw_data[offset]], signed=True, byteorder="little")
+            ecg[:,i] = prev + int.from_bytes([raw_data[offset]], signed=True, byteorder="little")
             offset += 1
 
         if (code >> i) & 0x1 == 0x1:
-            ecg[i] = struct.unpack("<h", raw_data[offset:offset + 2])[0]
+            ecg[:,i] = struct.unpack("<h", raw_data[offset:offset + 2])[0]
             offset += 2
 
-        prev = ecg[i]
+        prev = ecg[:,i]
     ecg *= Const.EcgResolution
     return counter, ecg
 
