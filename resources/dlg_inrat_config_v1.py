@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'dlg_inrat_config_v1OtggAA.ui'
+## Form generated from reading UI file 'dlg_inrat_config_v1hMzeQn.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -148,23 +148,11 @@ class Ui_DlgDeviceConfig(object):
 
         self.horizontalLayout_2 = QHBoxLayout()
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
-        self.labelDevice = QLabel(DlgDeviceConfig)
-        self.labelDevice.setObjectName(u"labelDevice")
-        self.labelDevice.setFont(font)
-
-        self.horizontalLayout_2.addWidget(self.labelDevice)
-
         self.labelDeviceValue = QLabel(DlgDeviceConfig)
         self.labelDeviceValue.setObjectName(u"labelDeviceValue")
         self.labelDeviceValue.setFont(font)
 
         self.horizontalLayout_2.addWidget(self.labelDeviceValue)
-
-        self.labelSn = QLabel(DlgDeviceConfig)
-        self.labelSn.setObjectName(u"labelSn")
-        self.labelSn.setFont(font)
-
-        self.horizontalLayout_2.addWidget(self.labelSn)
 
         self.labelSnValue = QLabel(DlgDeviceConfig)
         self.labelSnValue.setObjectName(u"labelSnValue")
@@ -172,35 +160,17 @@ class Ui_DlgDeviceConfig(object):
 
         self.horizontalLayout_2.addWidget(self.labelSnValue)
 
-        self.labelModel = QLabel(DlgDeviceConfig)
-        self.labelModel.setObjectName(u"labelModel")
-        self.labelModel.setFont(font)
-
-        self.horizontalLayout_2.addWidget(self.labelModel)
-
         self.labelModelValue = QLabel(DlgDeviceConfig)
         self.labelModelValue.setObjectName(u"labelModelValue")
         self.labelModelValue.setFont(font)
 
         self.horizontalLayout_2.addWidget(self.labelModelValue)
 
-        self.labelFirmware = QLabel(DlgDeviceConfig)
-        self.labelFirmware.setObjectName(u"labelFirmware")
-        self.labelFirmware.setFont(font)
-
-        self.horizontalLayout_2.addWidget(self.labelFirmware)
-
         self.labelFirmwareValue = QLabel(DlgDeviceConfig)
         self.labelFirmwareValue.setObjectName(u"labelFirmwareValue")
         self.labelFirmwareValue.setFont(font)
 
         self.horizontalLayout_2.addWidget(self.labelFirmwareValue)
-
-        self.labelHardware = QLabel(DlgDeviceConfig)
-        self.labelHardware.setObjectName(u"labelHardware")
-        self.labelHardware.setFont(font)
-
-        self.horizontalLayout_2.addWidget(self.labelHardware)
 
         self.labelHardwareValue = QLabel(DlgDeviceConfig)
         self.labelHardwareValue.setObjectName(u"labelHardwareValue")
@@ -314,16 +284,11 @@ class Ui_DlgDeviceConfig(object):
         self.labelInfoTemperature.setToolTip(QCoreApplication.translate("DlgDeviceConfig", u"<html><head/><body><p>\u0421\u043e\u0431\u044b\u0442\u0438\u0435 &quot;\u0422\u0435\u043c\u043f\u0435\u0440\u0430\u0442\u0443\u0440\u0430&quot;</p><p>\u0415\u0434\u0438\u043d\u0438\u0446\u044b \u0438\u0437\u043c\u0435\u0440\u0435\u043d\u0438\u044f: \u0433\u0440\u0430\u0434\u0443\u0441\u044b \u0426\u0435\u043b\u044c\u0441\u0438\u044f (\u00b0C)<br/>\u0424\u043e\u0440\u043c\u0430\u0442 \u0437\u0430\u043f\u0438\u0441\u0438: T {\u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435}</p></body></html>", None))
 #endif // QT_CONFIG(tooltip)
         self.labelInfoTemperature.setText(QCoreApplication.translate("DlgDeviceConfig", u"?", None))
-        self.labelDevice.setText(QCoreApplication.translate("DlgDeviceConfig", u"\u0423\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u043e", None))
-        self.labelDeviceValue.setText(QCoreApplication.translate("DlgDeviceConfig", u"None;", None))
-        self.labelSn.setText(QCoreApplication.translate("DlgDeviceConfig", u"SN", None))
-        self.labelSnValue.setText(QCoreApplication.translate("DlgDeviceConfig", u"None;", None))
-        self.labelModel.setText(QCoreApplication.translate("DlgDeviceConfig", u"Model", None))
-        self.labelModelValue.setText(QCoreApplication.translate("DlgDeviceConfig", u"None", None))
-        self.labelFirmware.setText(QCoreApplication.translate("DlgDeviceConfig", u"Firmware", None))
-        self.labelFirmwareValue.setText(QCoreApplication.translate("DlgDeviceConfig", u"None;", None))
-        self.labelHardware.setText(QCoreApplication.translate("DlgDeviceConfig", u"Hardware", None))
-        self.labelHardwareValue.setText(QCoreApplication.translate("DlgDeviceConfig", u"None;", None))
+        self.labelDeviceValue.setText(QCoreApplication.translate("DlgDeviceConfig", u"inRat-1", None))
+        self.labelSnValue.setText(QCoreApplication.translate("DlgDeviceConfig", u"SN ...", None))
+        self.labelModelValue.setText(QCoreApplication.translate("DlgDeviceConfig", u"Model ...", None))
+        self.labelFirmwareValue.setText(QCoreApplication.translate("DlgDeviceConfig", u"Firmware ...", None))
+        self.labelHardwareValue.setText(QCoreApplication.translate("DlgDeviceConfig", u"Hardware ...", None))
         self.groupBoxEnabledEvents.setTitle(QCoreApplication.translate("DlgDeviceConfig", u"\u0421\u043e\u0431\u044b\u0442\u0438\u044f", None))
         self.checkBoxFreefall.setText(QCoreApplication.translate("DlgDeviceConfig", u"\u041d\u0435\u0432\u0435\u0441\u043e\u043c\u043e\u0441\u0442\u044c (F)", None))
 #if QT_CONFIG(tooltip)

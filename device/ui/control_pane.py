@@ -12,13 +12,17 @@ class FrmControlPane(QFrame, Ui_FrmOnlineControlDevice):
         self.pushButtonStart.setEnabled(False)
         self.pushButtonStop.setEnabled(True)
         self.pushButtonConfig.setEnabled(False)
+        self.checkBoxActivated.setEnabled(False)
 
     def state_connection(self):
         self.pushButtonStart.setEnabled(True)
         self.pushButtonStop.setEnabled(False)
         self.pushButtonConfig.setEnabled(True)
+        self.checkBoxActivated.setEnabled(True)
 
     def state_disconnect(self):
         self.pushButtonStart.setEnabled(False)
         self.pushButtonStop.setEnabled(False)
         self.pushButtonConfig.setEnabled(False)
+        self.checkBoxActivated.setEnabled(False)
+        self.checkBoxActivated.setChecked(False)

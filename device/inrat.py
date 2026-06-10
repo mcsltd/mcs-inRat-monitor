@@ -242,6 +242,19 @@ class inRat:
             logger.error(f"{self.name}: во время соединения возникла ошибка - {err}")
             await self.disconnect()
 
+    async def activate(self, state: bool):
+        """ изменение активации устройства"""
+        try:
+            if state:
+                await self.setup(cmd=Command.Activate)
+                logger.debug(f"{self.name}: передана команда Activate ")
+            else:
+                await self.setup(cmd=Command.Deactivate)
+                logger.debug(f"{self.name}: передана команда Deactivate ")
+        except Exception as err:
+            logger.error(f"{self.name}: ошибка передачи команды Activate/Deactivate - {err}")
+
+
     async def start_acquisition(
             self,
             # event_queue: asyncio.Queue| None = None,

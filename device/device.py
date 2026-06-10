@@ -6,7 +6,7 @@ from concurrent.futures import Future
 from threading import Thread
 
 import numpy as np
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import QObject, Signal, Qt
 from bleak import BLEDevice
 
 from device.constants import Pkt
@@ -87,6 +87,7 @@ class inRatDevice(QObject):
         self._control_pane.pushButtonStart.clicked.connect(self.start)
         self._control_pane.pushButtonStop.clicked.connect(self.stop)
         self._control_pane.pushButtonConfig.clicked.connect(self.on_config_clicked)
+        self._control_pane.checkBoxActivated.checkStateChanged.connect(self.on_state_activate_changed)
 
     @property
     def control_pane(self):
@@ -154,7 +155,10 @@ class inRatDevice(QObject):
             self._control_pane.state_connection()
             self.signal_connected.emit()
 
-            # настройка параметров inrat под версию firmware
+            if self._inrat.is_activated:
+                self._control_pane.checkBoxActivated.setChecked(True)
+
+            # настройка параметров inrat под версию firmware по умолчанию
             if self._inrat.firmware == FIRMWARE_V0:
                 self._inrat.enabled_channels = EnabledChannels.ECG
                 self._inrat.sample_rate = 500
@@ -360,3 +364,11 @@ class inRatDevice(QObject):
             receiver.update_params(self._acc_datablock)
         for receiver in self._receivers_data:
             receiver.update_params(params_acc=self._acc_datablock, params_sig=self._sig_datablock)
+
+    def on_state_activate_changed(self, state: Qt.CheckState):
+        """ обработка активации/деактивации устройства """
+        if state is Qt.CheckState.Checked:
+            state = True
+        else:
+            state = False
+        _ = asyncio.run_coroutine_threadsafe(self._inrat.activate(state), self._loop)

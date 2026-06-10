@@ -280,18 +280,6 @@
    <item row="0" column="0">
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <item>
-      <widget class="QLabel" name="labelDevice">
-       <property name="font">
-        <font>
-         <pointsize>12</pointsize>
-        </font>
-       </property>
-       <property name="text">
-        <string>Устройство</string>
-       </property>
-      </widget>
-     </item>
-     <item>
       <widget class="QLabel" name="labelDeviceValue">
        <property name="font">
         <font>
@@ -299,19 +287,7 @@
         </font>
        </property>
        <property name="text">
-        <string>None;</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLabel" name="labelSn">
-       <property name="font">
-        <font>
-         <pointsize>12</pointsize>
-        </font>
-       </property>
-       <property name="text">
-        <string>SN</string>
+        <string>inRat-1</string>
        </property>
       </widget>
      </item>
@@ -323,19 +299,7 @@
         </font>
        </property>
        <property name="text">
-        <string>None;</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLabel" name="labelModel">
-       <property name="font">
-        <font>
-         <pointsize>12</pointsize>
-        </font>
-       </property>
-       <property name="text">
-        <string>Model</string>
+        <string>SN ...</string>
        </property>
       </widget>
      </item>
@@ -347,19 +311,7 @@
         </font>
        </property>
        <property name="text">
-        <string>None</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLabel" name="labelFirmware">
-       <property name="font">
-        <font>
-         <pointsize>12</pointsize>
-        </font>
-       </property>
-       <property name="text">
-        <string>Firmware</string>
+        <string>Model ...</string>
        </property>
       </widget>
      </item>
@@ -371,19 +323,7 @@
         </font>
        </property>
        <property name="text">
-        <string>None;</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLabel" name="labelHardware">
-       <property name="font">
-        <font>
-         <pointsize>12</pointsize>
-        </font>
-       </property>
-       <property name="text">
-        <string>Hardware</string>
+        <string>Firmware ...</string>
        </property>
       </widget>
      </item>
@@ -395,7 +335,7 @@
         </font>
        </property>
        <property name="text">
-        <string>None;</string>
+        <string>Hardware ...</string>
        </property>
       </widget>
      </item>
