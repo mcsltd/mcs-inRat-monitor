@@ -178,6 +178,9 @@ class inRatDevice(QObject):
         else:
             self._control_pane.state_disconnect()
             self.signal_disconnected.emit()
+            msg = (f"Не удалось соединиться с {self._inrat.name}!\n"
+                   f"Повторите попытку")
+            self.signal_error.emit(msg)
 
     def process_disconnect(self):
         """ обработка соединения с inRat """
