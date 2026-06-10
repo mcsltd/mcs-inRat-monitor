@@ -1,36 +1,47 @@
-# mcs-inRat-monitor
-Application for viewing and saving signals from inRat.
+# InRat monitor
 
-## Functional
+Приложение для просмотра и сохранения сигналов с inRat в реальном времени.
 
-`inRat monitor` supports the following functions:
+## Возможности
 
-1. Show real-time signal from InRat
+- Подключение к inRat
+- Отображение сигналов ЭКГ, ЭЭГ, акселерометра с inRat в реальном времени
+- Сохранение сигналов в формат EDF
+- Отображение температуры и событий активности
+- Активация/деактивация устройств
 
-2. Save signal from InRat in two data format: edf, wfdb
+## Установка и настройка
 
-## Dependencies
+#### Требования для установки
 
-### Requirements
-* filled .env file
-* Python 3.12
+Перед установкой программы убедитесь, что у вас установлен Python 3.12 или выше.
 
-### System requirements
-* OS: Windows 10
+Если Python отсутствует, то установите его:
+- скачайте Python с официального сайта: https://www.python.org/downloads/
 
-### Requirements for libraries
-You can find other requirements for the library in the [requirements.txt](requirements.txt).
+Существует два варианта установки и запуска приложения:
 
-## Release History
-### v1.0.1
-* Disable events and ui for showing events
+### Вариант 1: Готовый установщик (рекомендуется для пользователей)
 
-### v1.0.0
-* Added display of temperature and events
-* Added saving of events and temperatures to csv files
-* Added a dialog box for viewing completed recordings
-* Added functionality for activating/deactivating devices
+Самый простой способ - скачать готовый установщик InRat monitor со страницы Releases:
 
-### v0.0.1
-* First release
+1. Перейдите на страницу [Releases](https://github.com/mcsltd/mcs-inRat-monitor/releases) этого репозитория
+2. Найдите последний релиз (самый верхний)
+3. В разделе Assets скачайте архив с установщиком
+4. Распакуйте архив
+5. Запустите установщик
+6. Следуйте инструкциям установщика
 
+### Вариант 2: Запуск из исходного кода (для разработчиков)
+
+Если вы хотите запустить приложение из исходного кода или внести изменения:
+
+#### Требования
+
+- Python 3.12 или выше
+- Git (для клонирования репозитория)
+- Заполненный файл `.env`
+
+#### Шаги по установке
+
+1. Клонируйте репозиторий:
