@@ -112,7 +112,7 @@ class inRat:
             if value == 250:
                 self._sample_rate = SampleRateEeg.HZ_250
             elif value == 500:
-                self._sample_rate = SampleRateEeg.HZ_250
+                self._sample_rate = SampleRateEeg.HZ_500
             else:
                 raise ValueError(f"В режиме съема ЭЭГ не поддерживается частота {value}")
     @property
