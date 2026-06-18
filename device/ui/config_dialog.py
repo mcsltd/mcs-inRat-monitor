@@ -43,6 +43,7 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
         self.checkBoxFreefall.stateChanged.connect(self.on_event_state_changed)
         self.checkBoxActivity.stateChanged.connect(self.on_event_state_changed)
         self.checkBoxOrientation.stateChanged.connect(self.on_event_state_changed)
+        self.comboBoxModeSampleRate.activated.connect(self.on_combobox_mode_changed)
 
         # настройка информационных окон
         for label in [self.labelInfoActivity, self.labelInfoFreefall,
@@ -62,8 +63,25 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
         if state is Qt.CheckState.Unchecked:
             self.comboBoxModeSampleRate.setEnabled(False)
 
+            self.comboBoxHpfGain.hide()
+            self.labelHpfGain.hide()
+
         elif state is Qt.CheckState.Checked:
             self.comboBoxModeSampleRate.setEnabled(True)
+            self.comboBoxHpfGain.setVisible(True)
+            self.labelHpfGain.setVisible(True)
+
+            if self._device.mode is TypeSignal.ECG:
+                self.labelHpfGain.setText("ФВЧ")
+                self.comboBoxHpfGain.setEnabled(False)
+
+            if self._device.mode is TypeSignal.EEG:
+                self.labelHpfGain.setText("Усиление")
+                self.comboBoxHpfGain.setEnabled(True)
+
+                gain = [("1x", 0), ("2x", 1), ("3x", 2), ("4x", 3)]
+                for t, v in gain:
+                    self.comboBoxHpfGain.addItem(t, userData=v)
 
     def on_acc_clicked(self, state):
         """ обработка выбора съема акселерометра """
@@ -74,6 +92,24 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
         elif state is Qt.CheckState.Checked:
             self.comboBoxFullScaleAccelerometer.setEnabled(True)
             self.groupBoxEnabledEvents.setEnabled(False)
+
+    def on_combobox_mode_changed(self):
+        """ обработка изменения режима регистрации """
+        mode, sr = self.comboBoxModeSampleRate.currentData()
+
+        if mode is TypeSignal.ECG:
+            self.labelHpfGain.setText("ФВЧ")
+            self.comboBoxHpfGain.clear()
+            self.comboBoxHpfGain.setEnabled(False)
+
+        if mode is TypeSignal.EEG:
+            self.labelHpfGain.setText("Усиление")
+            self.comboBoxHpfGain.clear()
+            self.comboBoxHpfGain.setEnabled(True)
+
+            gain = [("1x", 0), ("2x", 1), ("3x", 2), ("4x", 3)]
+            for t, v in gain:
+                self.comboBoxHpfGain.addItem(t, userData=v)
 
     def on_event_state_changed(self):
         """ обработка смены состояния событий """
@@ -111,6 +147,18 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
             index = self.find_index_by_mode_and_rate(mode=self._device.mode, rate=self._device.sample_rate)
             self.comboBoxModeSampleRate.setCurrentIndex(index)
 
+        if self._device.mode is TypeSignal.ECG:
+            self.labelHpfGain.setText("ФВЧ")
+            self.comboBoxHpfGain.setEnabled(False)
+
+        if self._device.mode is TypeSignal.EEG:
+            self.labelHpfGain.setText("Усиление")
+            self.comboBoxHpfGain.setEnabled(True)
+
+            gain = [("1x", 0), ("2x", 1), ("3x", 2), ("4x", 3)]
+            for t, v in gain:
+                self.comboBoxHpfGain.addItem(t, userData=v)
+
         # установить режим съема для inRat с новой версией firmware
         if self._device.firmware in FIRMWARE_ACC_EXG:
             if (
@@ -144,6 +192,10 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
             self.checkBoxAcceleration.setDisabled(True)
             self.comboBoxFullScaleAccelerometer.setDisabled(True)
             self.disable_eeg_items()
+
+            # не настраивать hpf и gain для старых версий firmware
+            self.labelHpfGain.hide()
+            self.comboBoxHpfGain.hide()
 
     def show_device_info(self):
         """ показать информацию об устройстве """
