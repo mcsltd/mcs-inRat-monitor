@@ -171,7 +171,6 @@ class DataStorage(QObject):
         now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         self._writedir = f"{self._selected_folder}/{str(self._device_name)}/rec_{now}/"
 
-
     def _close_recording(self):
         """ остановка записи"""
         logger.debug(f"Остановка записи {DataStorage.__name__}")
@@ -337,7 +336,12 @@ class DataStorage(QObject):
         path_to_save = f"{write_dir}/{filename}.edf"
         writer = EdfWriter(n_channels=number_channels, file_name=path_to_save)
         writer.set_number_of_annotation_signals(number_of_annotations=64)
-        signal = np.round(signal, decimals=6)
+
+        if units == "V":
+            signal = np.round(signal * 1e6, decimals=3) # to uV
+            units = "uV"
+        else:
+            signal = np.round(signal, decimals=6)
         margin = 0.15
 
         # Проверяем, есть ли ненулевой сигнал

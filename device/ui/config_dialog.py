@@ -2,7 +2,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QDialog
 
 from device.enums import EventType, Mode, EnabledChannels, TypeSignal
-from device.inrat import inRat, FIRMWARE_V0, FIRMWARE_V1
+from device.inrat import inRat, FIRMWARE_V0, FIRMWARE_ACC_EXG
 from resources.dlg_inrat_config import Ui_DlgDeviceConfig
 
 
@@ -43,6 +43,7 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
         self.checkBoxFreefall.stateChanged.connect(self.on_event_state_changed)
         self.checkBoxActivity.stateChanged.connect(self.on_event_state_changed)
         self.checkBoxOrientation.stateChanged.connect(self.on_event_state_changed)
+        self.comboBoxModeSampleRate.activated.connect(self.on_combobox_mode_changed)
 
         # настройка информационных окон
         for label in [self.labelInfoActivity, self.labelInfoFreefall,
@@ -62,8 +63,23 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
         if state is Qt.CheckState.Unchecked:
             self.comboBoxModeSampleRate.setEnabled(False)
 
+            self.comboBoxHpfGain.hide()
+            self.labelHpfGain.hide()
+
         elif state is Qt.CheckState.Checked:
             self.comboBoxModeSampleRate.setEnabled(True)
+            self.comboBoxHpfGain.setVisible(True)
+            self.labelHpfGain.setVisible(True)
+
+            if self._device.mode is TypeSignal.ECG:
+                self.labelHpfGain.setText("ФВЧ")
+                self.comboBoxHpfGain.setEnabled(False)
+
+            if self._device.mode is TypeSignal.EEG:
+                self.labelHpfGain.setText("Усиление")
+                self.comboBoxHpfGain.setEnabled(True)
+
+                self.setup_combobox_gain()
 
     def on_acc_clicked(self, state):
         """ обработка выбора съема акселерометра """
@@ -75,6 +91,29 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
             self.comboBoxFullScaleAccelerometer.setEnabled(True)
             self.groupBoxEnabledEvents.setEnabled(False)
 
+    def on_combobox_mode_changed(self):
+        """ обработка изменения режима регистрации """
+        mode, sr = self.comboBoxModeSampleRate.currentData()
+
+        if mode is TypeSignal.ECG:
+            self.labelHpfGain.setText("ФВЧ")
+            self.comboBoxHpfGain.clear()
+            self.comboBoxHpfGain.setEnabled(False)
+
+        if mode is TypeSignal.EEG:
+            self.labelHpfGain.setText("Усиление")
+            self.comboBoxHpfGain.clear()
+            self.comboBoxHpfGain.setEnabled(True)
+
+            self.setup_combobox_gain()
+
+    def setup_combobox_gain(self):
+        """ заполнение comboboxHpfGain элементами в режиме регистрации ЭЭГ """
+        self.comboBoxHpfGain.clear()
+        gain = [("1x", 1), ("2x", 2), ("3x", 3), ("4x", 4)]
+        for t, v in gain:
+            self.comboBoxHpfGain.addItem(t, userData=v)
+
     def on_event_state_changed(self):
         """ обработка смены состояния событий """
         if (
@@ -85,7 +124,7 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
             self.checkBoxAcceleration.setEnabled(False)
             self.comboBoxActivityThreshold.setEnabled(True)
         else:
-            if self._device.firmware == FIRMWARE_V1:
+            if self._device.firmware in FIRMWARE_ACC_EXG:
                 self.checkBoxAcceleration.setEnabled(True)
             self.comboBoxActivityThreshold.setEnabled(False)
 
@@ -111,8 +150,20 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
             index = self.find_index_by_mode_and_rate(mode=self._device.mode, rate=self._device.sample_rate)
             self.comboBoxModeSampleRate.setCurrentIndex(index)
 
+        if self._device.mode is TypeSignal.ECG:
+            self.labelHpfGain.setText("ФВЧ")
+            self.comboBoxHpfGain.setEnabled(False)
+
+        if self._device.mode is TypeSignal.EEG:
+            self.labelHpfGain.setText("Усиление")
+            self.comboBoxHpfGain.setEnabled(True)
+
+            self.setup_combobox_gain()
+            idx_gain = self.comboBoxHpfGain.findData(self._device.gain)
+            self.comboBoxHpfGain.setCurrentIndex(idx_gain)
+
         # установить режим съема для inRat с новой версией firmware
-        if self._device.firmware == FIRMWARE_V1:
+        if self._device.firmware in FIRMWARE_ACC_EXG:
             if (
                     self._device.enabled_channels & EnabledChannels.ACC_X and
                     self._device.enabled_channels & EnabledChannels.ACC_Y and
@@ -145,6 +196,10 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
             self.comboBoxFullScaleAccelerometer.setDisabled(True)
             self.disable_eeg_items()
 
+            # не настраивать hpf и gain для старых версий firmware
+            self.labelHpfGain.hide()
+            self.comboBoxHpfGain.hide()
+
     def show_device_info(self):
         """ показать информацию об устройстве """
         self.labelDeviceValue.setText(f"{self._device.name}")
@@ -171,6 +226,11 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
         mode, sample_rate = self.comboBoxModeSampleRate.currentData()
         self._device.mode = mode
         self._device.sample_rate = sample_rate
+
+        # установка gain
+        if self._device.mode is TypeSignal.EEG:
+            gain = self.comboBoxHpfGain.currentData()
+            self._device.gain = gain
 
         # установка масштаба акселерометра
         scale = self.comboBoxFullScaleAccelerometer.currentData()

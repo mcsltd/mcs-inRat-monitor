@@ -11,7 +11,7 @@ from bleak import BLEDevice
 
 from device.constants import Pkt
 from device.enums import EnabledChannels, TypeSignal, EventType
-from device.inrat import inRat, FIRMWARE_V1, FIRMWARE_V0
+from device.inrat import inRat, FIRMWARE_ACC_EXG, FIRMWARE_V0
 from device.ui.config_dialog import DlgConfigDevice
 from device.ui.control_pane import FrmControlPane
 
@@ -68,7 +68,7 @@ class inRatDevice(QObject):
         self._work_sig: Thread | None = None
         self._sig_datablock = SignalDatablock(type_signal=TypeSignal.ECG, sample_rate=500,
                                               counter_per_sample=Pkt.SamplesCountEcg,
-                                              number_channels=Pkt.ChannelsCountEcg, channel_names=["ecg"], units="V")
+                                              number_channels=Pkt.ChannelsCountEcg, channel_names=["ecg"], units="uV")
         self._receivers_sig = []
         # self._event_queue = asyncio.Queue()
         self._sig_queue = asyncio.Queue()
@@ -178,7 +178,7 @@ class inRatDevice(QObject):
 
                 self.signal_enable_sig.emit(True)
 
-            if self._inrat.firmware == FIRMWARE_V1:
+            if self._inrat.firmware in FIRMWARE_ACC_EXG:
                 self._inrat.enabled_channels = EnabledChannels.ECG | EnabledChannels.ACC_X | EnabledChannels.ACC_Z | EnabledChannels.ACC_Y
                 self._inrat.sample_rate = 500
                 self._inrat.activity_threshold = 2

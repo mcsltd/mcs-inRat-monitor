@@ -5,6 +5,7 @@ from enum import IntEnum
 from functools import cached_property
 from uuid import UUID
 
+import numpy as np
 from bleak import BLEDevice, BleakClient
 
 from device.constants import Pkt
@@ -19,7 +20,7 @@ from device.structures import Status
 
 # версии программного обеспечения
 FIRMWARE_V0 = "1.0.260317"
-FIRMWARE_V1 = "1.0.260610" # "1.0.260603"
+FIRMWARE_ACC_EXG = ("1.0.260610", "1.0.260617") # "1.0.260603"
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +64,8 @@ class inRat:
         # settings
         self._mode = Mode.ECG
         self._sample_rate = SampleRateEcg.HZ_500
-        self._hpf_and_gain = 0 # todo: what is this?
+        self._hpf = 0 # (0 - 0.83 Hz, 1 > 2 Hz)
+        self._gain = 0  # (0 - 1x, 1 - 2x, 2 - 3x, 3 - 4x)
         self._full_scale_accelerometer = ScaleAccelerometer.G_2
         self._enabled_events = EventType.NONE
         self._activity_threshold = 2
@@ -164,6 +166,18 @@ class inRat:
         self._enabled_channels = value
 
     @property
+    def gain(self) -> int | None:
+        if self._mode is Mode.EEG:
+            return self._gain + 1
+        return None
+
+    @gain.setter
+    def gain(self, value: int):
+        if self._mode is Mode.EEG:
+        # (0 - 1x, 1 - 2x, 2 - 3x, 3 - 4x)
+            self._gain = value - 1
+
+    @property
     def name(self) -> str | None:
         return self._name
     @property
@@ -213,7 +227,7 @@ class inRat:
     def _get_settings(self) -> Settings:
         settings = Settings(
             DataRateEcgEeg=self._sample_rate,
-            HPFandGain=self._hpf_and_gain,
+            HPFandGain=(self._gain << 1) | self._hpf,
             FullScaleAccelerometer=self._full_scale_accelerometer,
             EnabledChannels=self._enabled_channels,
             EnabledEvents=self._enabled_events,
@@ -271,7 +285,7 @@ class inRat:
                     "sample": int(event.Counter / Pkt.SamplesCountEcg),
                     "counter": event.Counter, "signal": event, "type": "ev"})
         async def exg_handler(sender, data):
-            smpl, signal = decode_signal(data)
+            smpl, signal = decode_signal(data, gain=gain)
             await signal_event_queue.put({"sample":smpl, "signal":signal, "type": "sig"}) # "counter" -> "samples"
         async def acc_handler(sender, data):
             smpl, accel = decode_acceleration(data, self._enabled_channels)
@@ -286,11 +300,16 @@ class inRat:
             return False
 
         if signal_event_queue:
+            gain = 1
+            if self._mode is Mode.EEG:
+                logger.debug(f"Запуск регистрации ЭЭГ, gain={self.gain}")
+                gain = self.gain
+
             await self._client.start_notify(self.UUID_CHARACTERISTIC_ECG_EEG, exg_handler)
             await self._client.start_notify(self.UUID_CHARACTERISTIC_EVENT, event_handler)
             logger.info(f"{self.name}: подписка на сервисы UUID_CHARACTERISTIC_ECG_EEG, UUID_CHARACTERISTIC_EVENT")
 
-        if acceleration_queue and self._firmware == FIRMWARE_V1:
+        if acceleration_queue and self._firmware in FIRMWARE_ACC_EXG:
             await self._client.start_notify(self.UUID_CHARACTERISTIC_ACC, acc_handler)
             logger.info(f"{self.name}: подписка на сервисы UUID_CHARACTERISTIC_ACC")
 

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'dlg_inrat_config_v1NMwqxC.ui'
+## Form generated from reading UI file 'dlg_inrat_configrqMshQ.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -25,7 +25,7 @@ class Ui_DlgDeviceConfig(object):
     def setupUi(self, DlgDeviceConfig):
         if not DlgDeviceConfig.objectName():
             DlgDeviceConfig.setObjectName(u"DlgDeviceConfig")
-        DlgDeviceConfig.resize(688, 490)
+        DlgDeviceConfig.resize(684, 482)
         icon = QIcon()
         icon.addFile(u":/images/icon.ico", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         DlgDeviceConfig.setWindowIcon(icon)
@@ -81,6 +81,23 @@ class Ui_DlgDeviceConfig(object):
         self.comboBoxModeSampleRate.setFont(font)
 
         self.horizontalLayout_3.addWidget(self.comboBoxModeSampleRate)
+
+        self.labelHpfGain = QLabel(DlgDeviceConfig)
+        self.labelHpfGain.setObjectName(u"labelHpfGain")
+        self.labelHpfGain.setFont(font)
+        self.labelHpfGain.setInputMethodHints(Qt.InputMethodHint.ImhNone)
+
+        self.horizontalLayout_3.addWidget(self.labelHpfGain)
+
+        self.comboBoxHpfGain = QComboBox(DlgDeviceConfig)
+        self.comboBoxHpfGain.setObjectName(u"comboBoxHpfGain")
+        sizePolicy.setHeightForWidth(self.comboBoxHpfGain.sizePolicy().hasHeightForWidth())
+        self.comboBoxHpfGain.setSizePolicy(sizePolicy)
+        self.comboBoxHpfGain.setMinimumSize(QSize(100, 0))
+        self.comboBoxHpfGain.setMaximumSize(QSize(150, 16777215))
+        self.comboBoxHpfGain.setFont(font)
+
+        self.horizontalLayout_3.addWidget(self.comboBoxHpfGain)
 
         self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
@@ -274,6 +291,7 @@ class Ui_DlgDeviceConfig(object):
         self.pushButtonOk.setText(QCoreApplication.translate("DlgDeviceConfig", u"\u041e\u043a", None))
         self.pushButtonCancel.setText(QCoreApplication.translate("DlgDeviceConfig", u"\u041e\u0442\u043c\u0435\u043d\u0430", None))
         self.checkBoxExg.setText(QCoreApplication.translate("DlgDeviceConfig", u"ExG", None))
+        self.labelHpfGain.setText(QCoreApplication.translate("DlgDeviceConfig", u"\u0423\u0441\u0438\u043b\u0435\u043d\u0438\u0435", None))
         self.checkBoxAcceleration.setText(QCoreApplication.translate("DlgDeviceConfig", u"\u0410\u043a\u0441\u0435\u043b\u0435\u0440\u043e\u043c\u0435\u0442\u0440", None))
 #if QT_CONFIG(tooltip)
         self.checkBoxTemp.setToolTip(QCoreApplication.translate("DlgDeviceConfig", u"\u0420\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u044f \u0441\u043e\u0431\u044b\u0442\u0438\u044f \u0442\u0435\u043c\u043f\u0435\u0440\u0430\u0442\u0443\u0440\u044b\n"
