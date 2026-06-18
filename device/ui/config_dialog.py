@@ -2,7 +2,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QDialog
 
 from device.enums import EventType, Mode, EnabledChannels, TypeSignal
-from device.inrat import inRat, FIRMWARE_V0, FIRMWARE_V1
+from device.inrat import inRat, FIRMWARE_V0, FIRMWARE_ACC_EXG
 from resources.dlg_inrat_config import Ui_DlgDeviceConfig
 
 
@@ -85,7 +85,7 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
             self.checkBoxAcceleration.setEnabled(False)
             self.comboBoxActivityThreshold.setEnabled(True)
         else:
-            if self._device.firmware == FIRMWARE_V1:
+            if self._device.firmware in FIRMWARE_ACC_EXG:
                 self.checkBoxAcceleration.setEnabled(True)
             self.comboBoxActivityThreshold.setEnabled(False)
 
@@ -112,7 +112,7 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
             self.comboBoxModeSampleRate.setCurrentIndex(index)
 
         # установить режим съема для inRat с новой версией firmware
-        if self._device.firmware == FIRMWARE_V1:
+        if self._device.firmware in FIRMWARE_ACC_EXG:
             if (
                     self._device.enabled_channels & EnabledChannels.ACC_X and
                     self._device.enabled_channels & EnabledChannels.ACC_Y and
