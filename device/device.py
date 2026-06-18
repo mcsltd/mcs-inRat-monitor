@@ -68,7 +68,7 @@ class inRatDevice(QObject):
         self._work_sig: Thread | None = None
         self._sig_datablock = SignalDatablock(type_signal=TypeSignal.ECG, sample_rate=500,
                                               counter_per_sample=Pkt.SamplesCountEcg,
-                                              number_channels=Pkt.ChannelsCountEcg, channel_names=["ecg"], units="V")
+                                              number_channels=Pkt.ChannelsCountEcg, channel_names=["ecg"], units="uV")
         self._receivers_sig = []
         # self._event_queue = asyncio.Queue()
         self._sig_queue = asyncio.Queue()

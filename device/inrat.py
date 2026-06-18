@@ -5,6 +5,7 @@ from enum import IntEnum
 from functools import cached_property
 from uuid import UUID
 
+import numpy as np
 from bleak import BLEDevice, BleakClient
 
 from device.constants import Pkt

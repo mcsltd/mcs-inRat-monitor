@@ -24,7 +24,7 @@ class inRatCharacteristic(IntEnum):
 
 @dataclass(slots=True, frozen=True)
 class Const:
-    EcgResolution = (2.42 / 171.) / ((1 << 16) - 1)
+    EcgResolution = (2.42 / 171.) / 0xFFFF
     AccResolution = 4000.0 / ((1 << 16) - 1)
 
 @dataclass(slots=True, frozen=True)
