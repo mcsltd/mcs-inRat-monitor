@@ -225,16 +225,9 @@ class inRat:
         self._activated = status.Activated
 
     def _get_settings(self) -> Settings:
-        if self._mode is Mode.ECG:
-            value = self._hpf
-        elif self._mode is Mode.EEG:
-            value = self._gain
-        else:
-            raise ValueError("Не задан режим регистрации!")
-
         settings = Settings(
             DataRateEcgEeg=self._sample_rate,
-            HPFandGain=value,
+            HPFandGain=(self._gain << 1) | self._hpf,
             FullScaleAccelerometer=self._full_scale_accelerometer,
             EnabledChannels=self._enabled_channels,
             EnabledEvents=self._enabled_events,
