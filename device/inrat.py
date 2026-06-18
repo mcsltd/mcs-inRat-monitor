@@ -291,7 +291,7 @@ class inRat:
                     "sample": int(event.Counter / Pkt.SamplesCountEcg),
                     "counter": event.Counter, "signal": event, "type": "ev"})
         async def exg_handler(sender, data):
-            smpl, signal = decode_signal(data)
+            smpl, signal = decode_signal(data, gain=gain)
             await signal_event_queue.put({"sample":smpl, "signal":signal, "type": "sig"}) # "counter" -> "samples"
         async def acc_handler(sender, data):
             smpl, accel = decode_acceleration(data, self._enabled_channels)
@@ -306,6 +306,11 @@ class inRat:
             return False
 
         if signal_event_queue:
+            gain = 1
+            if self._mode is Mode.EEG:
+                logger.debug(f"Запуск регистрации ЭЭГ, gain={self.gain}")
+                gain = self.gain
+
             await self._client.start_notify(self.UUID_CHARACTERISTIC_ECG_EEG, exg_handler)
             await self._client.start_notify(self.UUID_CHARACTERISTIC_EVENT, event_handler)
             logger.info(f"{self.name}: подписка на сервисы UUID_CHARACTERISTIC_ECG_EEG, UUID_CHARACTERISTIC_EVENT")

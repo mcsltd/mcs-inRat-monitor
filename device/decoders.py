@@ -4,8 +4,8 @@ import numpy as np
 from device.constants import Pkt, Const
 
 
-def decode_signal(raw_data: bytearray) -> (int, np.ndarray):
-    """ Декодирование сырых данных в сигнал ЭКГ """
+def decode_signal(raw_data: bytearray, gain: int) -> (int, np.ndarray):
+    """ Декодирование сырых данных в сигнал exg  """
     # read counter
     offset = 2
     counter = struct.unpack('<H', raw_data[:offset])[0]
@@ -15,20 +15,20 @@ def decode_signal(raw_data: bytearray) -> (int, np.ndarray):
     offset += 4
 
     # decode ecg
-    ecg = np.zeros((Pkt.ChannelsCountEcg, Pkt.SamplesCountEcg), dtype=np.float64)
+    exg = np.zeros((Pkt.ChannelsCountEcg, Pkt.SamplesCountEcg), dtype=np.float64)
     prev = 0
     for i in range(Pkt.SamplesCountEcg):
         if (code >> i) & 0x1 == 0x0:
-            ecg[:,i] = prev + int.from_bytes([raw_data[offset]], signed=True, byteorder="little")
+            exg[:,i] = prev + int.from_bytes([raw_data[offset]], signed=True, byteorder="little")
             offset += 1
 
         if (code >> i) & 0x1 == 0x1:
-            ecg[:,i] = struct.unpack("<h", raw_data[offset:offset + 2])[0]
+            exg[:,i] = struct.unpack("<h", raw_data[offset:offset + 2])[0]
             offset += 2
 
-        prev = ecg[:,i]
-    ecg *= Const.EcgResolution
-    return counter, ecg
+        prev = exg[:,i]
+    exg *= Const.EcgResolution / gain
+    return counter, exg
 
 def decode_acceleration(raw_data, enabled_channels):
     """ декодирование ускорения """
