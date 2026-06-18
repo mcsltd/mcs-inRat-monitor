@@ -79,9 +79,7 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
                 self.labelHpfGain.setText("Усиление")
                 self.comboBoxHpfGain.setEnabled(True)
 
-                gain = [("1x", 0), ("2x", 1), ("3x", 2), ("4x", 3)]
-                for t, v in gain:
-                    self.comboBoxHpfGain.addItem(t, userData=v)
+                self.setup_combobox_gain()
 
     def on_acc_clicked(self, state):
         """ обработка выбора съема акселерометра """
@@ -107,9 +105,14 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
             self.comboBoxHpfGain.clear()
             self.comboBoxHpfGain.setEnabled(True)
 
-            gain = [("1x", 0), ("2x", 1), ("3x", 2), ("4x", 3)]
-            for t, v in gain:
-                self.comboBoxHpfGain.addItem(t, userData=v)
+            self.setup_combobox_gain()
+
+    def setup_combobox_gain(self):
+        """ заполнение comboboxHpfGain элементами в режиме регистрации ЭЭГ """
+        self.comboBoxHpfGain.clear()
+        gain = [("1x", 1), ("2x", 2), ("3x", 3), ("4x", 4)]
+        for t, v in gain:
+            self.comboBoxHpfGain.addItem(t, userData=v)
 
     def on_event_state_changed(self):
         """ обработка смены состояния событий """
@@ -155,9 +158,9 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
             self.labelHpfGain.setText("Усиление")
             self.comboBoxHpfGain.setEnabled(True)
 
-            gain = [("1x", 0), ("2x", 1), ("3x", 2), ("4x", 3)]
-            for t, v in gain:
-                self.comboBoxHpfGain.addItem(t, userData=v)
+            self.setup_combobox_gain()
+            idx_gain = self.comboBoxHpfGain.findData(self._device.gain)
+            self.comboBoxHpfGain.setCurrentIndex(idx_gain)
 
         # установить режим съема для inRat с новой версией firmware
         if self._device.firmware in FIRMWARE_ACC_EXG:
@@ -223,6 +226,11 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
         mode, sample_rate = self.comboBoxModeSampleRate.currentData()
         self._device.mode = mode
         self._device.sample_rate = sample_rate
+
+        # установка gain
+        if self._device.mode is TypeSignal.EEG:
+            gain = self.comboBoxHpfGain.currentData()
+            self._device.gain = gain
 
         # установка масштаба акселерометра
         scale = self.comboBoxFullScaleAccelerometer.currentData()

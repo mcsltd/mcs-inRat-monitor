@@ -63,7 +63,8 @@ class inRat:
         # settings
         self._mode = Mode.ECG
         self._sample_rate = SampleRateEcg.HZ_500
-        self._hpf_and_gain = 0 # todo: what is this?
+        self._hpf = 0 # (0 - 0.83 Hz, 1 > 2 Hz)
+        self._gain = 0  # (0 - 1x, 1 - 2x, 2 - 3x, 3 - 4x)
         self._full_scale_accelerometer = ScaleAccelerometer.G_2
         self._enabled_events = EventType.NONE
         self._activity_threshold = 2
@@ -164,6 +165,18 @@ class inRat:
         self._enabled_channels = value
 
     @property
+    def gain(self) -> int | None:
+        if self._mode is Mode.EEG:
+            return self._gain + 1
+        return None
+
+    @gain.setter
+    def gain(self, value: int):
+        if self._mode is Mode.EEG:
+        # (0 - 1x, 1 - 2x, 2 - 3x, 3 - 4x)
+            self._gain = value - 1
+
+    @property
     def name(self) -> str | None:
         return self._name
     @property
@@ -211,9 +224,16 @@ class inRat:
         self._activated = status.Activated
 
     def _get_settings(self) -> Settings:
+        if self._mode is Mode.ECG:
+            value = self._hpf
+        elif self._mode is Mode.EEG:
+            value = self._gain
+        else:
+            raise ValueError("Не задан режим регистрации!")
+
         settings = Settings(
             DataRateEcgEeg=self._sample_rate,
-            HPFandGain=self._hpf_and_gain,
+            HPFandGain=value,
             FullScaleAccelerometer=self._full_scale_accelerometer,
             EnabledChannels=self._enabled_channels,
             EnabledEvents=self._enabled_events,
