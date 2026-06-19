@@ -7,6 +7,7 @@ from threading import Thread
 
 import numpy as np
 from PySide6.QtCore import QObject, Signal, Qt
+from PySide6.QtWidgets import QMessageBox
 from bleak import BLEDevice
 
 from device.constants import Pkt
@@ -178,13 +179,19 @@ class inRatDevice(QObject):
 
                 self.signal_enable_sig.emit(True)
 
-            if self._inrat.firmware in FIRMWARE_ACC_EXG:
+            else:
+                if self._inrat.firmware not in FIRMWARE_ACC_EXG:
+                    title = "Новая версия прошивки"
+                    msg = f"Обнаружена новая версия прошивки {self._inrat.firmware}!"
+                    QMessageBox.warning(None, title, msg, QMessageBox.StandardButton.Ok)
+
                 self._inrat.enabled_channels = EnabledChannels.ECG | EnabledChannels.ACC_X | EnabledChannels.ACC_Z | EnabledChannels.ACC_Y
                 self._inrat.sample_rate = 500
                 self._inrat.activity_threshold = 2
 
                 self.signal_enable_acc.emit(True)
                 self.signal_enable_sig.emit(True)
+
 
         else:
             self._control_pane.state_disconnect()
