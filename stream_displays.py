@@ -212,7 +212,6 @@ class StreamViewer(pg.PlotWidget):
 
         self.update_display = True
 
-
     def timerEvent(self, _, /):
         """ событие отрисовки графиков """
         if not self.update_display:
@@ -232,9 +231,8 @@ class StreamViewer(pg.PlotWidget):
             self.traces[ch].setData(visible_time, self._signal_buffer[ch, start_idx: end_idx])
 
             # for test
-            # v_min = self._signal_buffer[ch, start_idx:].min()
-            # v_max = self._signal_buffer[ch, :].max()
-            # print(f"Vpp: ch_{ch} {int((v_max - v_min) * 1_000_000)} мкВ")
+            v_min = self._signal_buffer[ch, start_idx:end_idx].min()
+            v_max = self._signal_buffer[ch, start_idx:end_idx].max()
 
         # подстройка по оси времени
         if not self._buffer_filled and end_idx <= self._timebase * self._sig_datablock.sample_rate:
@@ -243,7 +241,7 @@ class StreamViewer(pg.PlotWidget):
             current_time = visible_time[-1] if len(visible_time) > 0 else 0
             self.setXRange(current_time - self._timebase, current_time, padding=0)
 
-        self.setYRange(self.y_min, self.y_max)
+        # self.setYRange(self.y_min, self.y_max)
         self.release_event_points()
         self.update_display = False
 
