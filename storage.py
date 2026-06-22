@@ -133,7 +133,7 @@ class DataStorage(QObject):
         """ обновление параметров записи сигналов """
         # обновление параметров записи для биосигналов
         self._sig_datablock = params_sig
-        self._device_name = self._sig_datablock.device_name
+
         if params_sig:
             self._sig_filename = params_sig.type_signal.value
             self._sig_buffer = np.zeros((params_sig.number_channels, params_sig.sample_rate * self._max_timebase), dtype=np.float32)
@@ -152,6 +152,11 @@ class DataStorage(QObject):
             self._acc_start_sample = 0  # начальный семпл записи
             self._acc_current_sample = 0
             self._acc_samples_written = 0
+
+        if params_sig:
+            self._device_name = self._sig_datablock.device_name
+        elif params_acc:
+            self._device_name = self._acc_datablock.device_name
 
     def process_event(self, event):
         """ обработка событий """

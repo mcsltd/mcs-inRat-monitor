@@ -203,8 +203,19 @@ class inRatDevice(QObject):
     def process_disconnect(self):
         """ обработка соединения с inRat """
         future = asyncio.run_coroutine_threadsafe(self._inrat.disconnect(), self._loop)
+        future.add_done_callback(self.on_device_disconnected)
+
+    def on_device_disconnected(self, future: Future):
+        """ обработка результата отсоединения от устройства """
+        try:
+            future.result(1.0)
+        except Exception as exc:
+            ...
+
         self.signal_disconnected.emit()
-        self._control_pane.state_disconnect()
+
+        if not self._inrat.is_connected:
+            self._control_pane.state_disconnect()
 
         self.signal_enable_acc.emit(False)
         self.signal_enable_sig.emit(False)
