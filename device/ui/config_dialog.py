@@ -56,10 +56,12 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
         if state is Qt.CheckState.Unchecked:
             self.comboBoxFullScaleAccelerometer.setEnabled(False)
             self.groupBoxEnabledEvents.setEnabled(True)
+            self.labelFullScale.setEnabled(False)
 
         elif state is Qt.CheckState.Checked:
             self.comboBoxFullScaleAccelerometer.setEnabled(True)
             self.groupBoxEnabledEvents.setEnabled(False)
+            self.labelFullScale.setEnabled(True)
 
     def on_exg_clicked(self, state):
         """ обработка выбора режима exg """
@@ -128,13 +130,14 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
 
     def set_default_settings(self):
         """ установка настроек установленных в inRat """
+        self.setup_combobox_hpf()
+        self.setup_combobox_gain()
+        self.setup_combobox_full_scale()
+
         if self._device.enabled_channels & EnabledChannels.ECG:
             self.checkBoxExg.setChecked(True)
             index = self.find_index_by_mode_and_rate(mode=self._device.mode, rate=self._device.sample_rate)
             self.comboBoxModeSampleRate.setCurrentIndex(index)
-            self.setup_combobox_hpf()
-            self.setup_combobox_gain()
-            self.setup_combobox_full_scale()
 
         # установить режим съема для inRat с новой версией firmware
         if self._device.firmware in FIRMWARE_ACC_EXG:
@@ -143,7 +146,11 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
                     self._device.enabled_channels & EnabledChannels.ACC_Y and
                     self._device.enabled_channels & EnabledChannels.ACC_Z
             ):
+                index = self.comboBoxFullScaleAccelerometer.findData(self._device.full_scale_accelerometer)
+                self.comboBoxFullScaleAccelerometer.setCurrentIndex(index)
+
                 self.checkBoxAcceleration.setChecked(True)
+                self.comboBoxFullScaleAccelerometer.setEnabled(True)
 
         # установка gain
         index = self.comboBoxGain.findData(self._device.gain)

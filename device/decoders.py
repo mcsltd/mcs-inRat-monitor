@@ -4,7 +4,7 @@ import numpy as np
 from device.constants import Pkt, Const
 
 
-def decode_signal(raw_data: bytearray, gain: int) -> (int, np.ndarray):
+def decode_exg(raw_data: bytearray, resolution: float) -> (int, np.ndarray):
     """ Декодирование сырых данных в сигнал exg  """
     # read counter
     offset = 2
@@ -27,10 +27,10 @@ def decode_signal(raw_data: bytearray, gain: int) -> (int, np.ndarray):
             offset += 2
 
         prev = exg[:,i]
-    exg *= Const.EcgResolution / gain
+    exg *= resolution
     return counter, exg
 
-def decode_acceleration(raw_data, enabled_channels):
+def decode_acc(raw_data, enabled_channels, resolution: float):
     """ декодирование ускорения """
     offset = 2
     counter = struct.unpack('<H', raw_data[:offset])[0]
@@ -53,6 +53,6 @@ def decode_acceleration(raw_data, enabled_channels):
                     offset += 2
 
             prevs[ch] = val
-            acceleration[ch][i] = int(val * 4000 / 0xFFFF)
+            acceleration[ch][i] = int(val * resolution)
 
     return counter, acceleration

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'dlg_inrat_configZRwXHS.ui'
+## Form generated from reading UI file 'dlg_inrat_configlFHZiE.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -25,7 +25,7 @@ class Ui_DlgDeviceConfig(object):
     def setupUi(self, DlgDeviceConfig):
         if not DlgDeviceConfig.objectName():
             DlgDeviceConfig.setObjectName(u"DlgDeviceConfig")
-        DlgDeviceConfig.resize(824, 532)
+        DlgDeviceConfig.resize(828, 540)
         icon = QIcon()
         icon.addFile(u":/images/icon.ico", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         DlgDeviceConfig.setWindowIcon(icon)
@@ -146,6 +146,13 @@ class Ui_DlgDeviceConfig(object):
 
         self.horizontalLayout_5.addWidget(self.checkBoxAcceleration)
 
+        self.labelFullScale = QLabel(DlgDeviceConfig)
+        self.labelFullScale.setObjectName(u"labelFullScale")
+        self.labelFullScale.setEnabled(False)
+        self.labelFullScale.setFont(font)
+
+        self.horizontalLayout_5.addWidget(self.labelFullScale)
+
         self.comboBoxFullScaleAccelerometer = QComboBox(DlgDeviceConfig)
         self.comboBoxFullScaleAccelerometer.setObjectName(u"comboBoxFullScaleAccelerometer")
         self.comboBoxFullScaleAccelerometer.setEnabled(False)
@@ -159,21 +166,6 @@ class Ui_DlgDeviceConfig(object):
         self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_5.addItem(self.horizontalSpacer_3)
-
-        self.labelFullScale = QLabel(DlgDeviceConfig)
-        self.labelFullScale.setObjectName(u"labelFullScale")
-        self.labelFullScale.setEnabled(False)
-        self.labelFullScale.setFont(font)
-
-        self.horizontalLayout_5.addWidget(self.labelFullScale)
-
-        self.comboBoxFullScale = QComboBox(DlgDeviceConfig)
-        self.comboBoxFullScale.setObjectName(u"comboBoxFullScale")
-        self.comboBoxFullScale.setEnabled(False)
-        self.comboBoxFullScale.setMinimumSize(QSize(100, 0))
-        self.comboBoxFullScale.setFont(font)
-
-        self.horizontalLayout_5.addWidget(self.comboBoxFullScale)
 
 
         self.verticalLayout.addLayout(self.horizontalLayout_5)
