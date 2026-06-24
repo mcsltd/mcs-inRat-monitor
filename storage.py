@@ -65,8 +65,8 @@ class DataStorage(QObject):
         # путь и названия файлов записи
         self._filename = None
         self._writedir = None
-        self._selected_folder = "./data"
-        os.makedirs(self._selected_folder, exist_ok=True)
+        self._selected_folder = None # "./data"
+        # os.makedirs(self._selected_folder, exist_ok=True)
 
         self._running = False
         self._work: Thread | None = None
@@ -88,6 +88,7 @@ class DataStorage(QObject):
 
         if selected_folder:
             self._selected_folder = selected_folder
+
 
 
     @property
@@ -168,12 +169,16 @@ class DataStorage(QObject):
     def _prepare_recording(self):
         """ подготовка и запись данных """
         logger.debug(f"Подготовка для начала записи {DataStorage.__name__}")
+        if not self._selected_folder:
+            self.handle_select_save_location()
+
         self._recording = True
         self._control_pane.pushButtonStopRecording.setEnabled(True)
         self._control_pane.pushButtonStartRecording.setEnabled(False)
         self._control_pane.pushButtonSelectSaveDir.setEnabled(False)
 
         now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
         self._writedir = f"{self._selected_folder}/{str(self._device_name)}/rec_{now}/"
 
     def _close_recording(self):
