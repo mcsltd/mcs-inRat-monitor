@@ -19,7 +19,7 @@ from device.structures import Status
 
 # версии программного обеспечения
 FIRMWARE_V0 = "1.0.260317"
-FIRMWARE_ACC_EXG = ("1.0.260610", "1.0.260617", "1.0.260619", "1.0.260619") # "1.0.260603"
+FIRMWARE_ACC_EXG = ("1.0.260610", "1.0.260617", "1.0.260619", "1.0.260624") # "1.0.260603"
 
 logger = logging.getLogger(__name__)
 
@@ -320,8 +320,8 @@ class inRat:
             return False
 
         if signal_event_queue:
-            await self._client.start_notify(self.UUID_CHARACTERISTIC_ECG_EEG, exg_handler)
             await self._client.start_notify(self.UUID_CHARACTERISTIC_EVENT, event_handler)
+            await self._client.start_notify(self.UUID_CHARACTERISTIC_ECG_EEG, exg_handler)
             logger.info(f"{self.name}: подписка на сервисы UUID_CHARACTERISTIC_ECG_EEG, UUID_CHARACTERISTIC_EVENT")
 
         if acceleration_queue and self._firmware in FIRMWARE_ACC_EXG:
