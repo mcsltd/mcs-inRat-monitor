@@ -148,7 +148,7 @@ class inRat:
             return
         elif value == 8:
             self._full_scale_accelerometer = ScaleAccelerometer.G_8
-            self._acc_resolution = 4000.0 / ((1 << 16) - 1) * (1 << ScaleAccelerometer.G_2)
+            self._acc_resolution = 4000.0 / ((1 << 16) - 1) * (1 << ScaleAccelerometer.G_8)
             return
         elif value == 16:
             self._full_scale_accelerometer = ScaleAccelerometer.G_16

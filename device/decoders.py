@@ -36,7 +36,7 @@ def decode_acc(raw_data, enabled_channels, resolution: float):
     counter = struct.unpack('<H', raw_data[:offset])[0]
 
     prevs = np.zeros(Pkt.ChannelsCountAcc, dtype=np.int32)
-    acceleration = np.zeros((Pkt.ChannelsCountAcc, Pkt.SamplesCountAcc), dtype=np.int32)
+    acc = np.zeros((Pkt.ChannelsCountAcc, Pkt.SamplesCountAcc), dtype=np.float64)
     for i in range(Pkt.SamplesCountAcc):
         code = raw_data[offset]
         offset += 1
@@ -53,6 +53,7 @@ def decode_acc(raw_data, enabled_channels, resolution: float):
                     offset += 2
 
             prevs[ch] = val
-            acceleration[ch][i] = int(val * resolution)
+            acc[ch][i] = val * resolution
 
-    return counter, acceleration
+    acc /= 1000 # g
+    return counter, acc
