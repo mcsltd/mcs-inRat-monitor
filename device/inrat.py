@@ -5,11 +5,10 @@ from enum import IntEnum
 from functools import cached_property
 from uuid import UUID
 
-import numpy as np
 from bleak import BLEDevice, BleakClient
 
 from device.constants import Pkt
-from device.decoders import decode_signal, decode_acceleration
+from device.decoders import decode_acc, decode_exg
 from device.enums import EnabledChannels, SampleRateEcg, SampleRateEeg, Mode, EventType, Command, ScaleAccelerometer, \
     TypeSignal
 from device.structures import Event, Settings
@@ -20,7 +19,7 @@ from device.structures import Status
 
 # версии программного обеспечения
 FIRMWARE_V0 = "1.0.260317"
-FIRMWARE_ACC_EXG = ("1.0.260610", "1.0.260617", "1.0.260619") # "1.0.260603"
+FIRMWARE_ACC_EXG = ("1.0.260610", "1.0.260617", "1.0.260619", "1.0.260619") # "1.0.260603"
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +51,9 @@ class inRat:
     def __init__(self, ble_device: BLEDevice):
         self._client: BleakClient = BleakClient(ble_device)
         self._activated: bool = False
+
+        self._acc_resolution = 4000.0 / ((1 << 16) - 1)
+        self._exg_resolution = (2.42 / 171.0) / ((1 << 16) - 1)
 
         # information
         self._name: None | str = ble_device.name
@@ -138,15 +140,19 @@ class inRat:
     def full_scale_accelerometer(self, value: int):
         if value == 2:
             self._full_scale_accelerometer = ScaleAccelerometer.G_2
+            self._acc_resolution = 4000.0 / ((1 << 16) - 1) * (1 << ScaleAccelerometer.G_2)
             return
         elif value == 4:
             self._full_scale_accelerometer = ScaleAccelerometer.G_4
+            self._acc_resolution = 4000.0 / ((1 << 16) - 1) * (1 << ScaleAccelerometer.G_4)
             return
         elif value == 8:
             self._full_scale_accelerometer = ScaleAccelerometer.G_8
+            self._acc_resolution = 4000.0 / ((1 << 16) - 1) * (1 << ScaleAccelerometer.G_8)
             return
         elif value == 16:
             self._full_scale_accelerometer = ScaleAccelerometer.G_16
+            self._acc_resolution = 4000.0 / ((1 << 16) - 1) * (1 << ScaleAccelerometer.G_16)
             return
         raise ValueError("Не поддерживается масштаб акселерометра")
     @property
@@ -167,15 +173,29 @@ class inRat:
 
     @property
     def gain(self) -> int | None:
-        if self._mode is Mode.EEG:
-            return self._gain + 1
-        return None
+        return self._gain + 1
 
     @gain.setter
     def gain(self, value: int):
-        if self._mode is Mode.EEG:
         # (0 - 1x, 1 - 2x, 2 - 3x, 3 - 4x)
-            self._gain = value - 1
+        self._gain = value - 1
+        # recalculation resolution
+        self._exg_resolution = (2.42 / 171.0) / ((1 << 16) - 1) / (self._gain + 1)
+
+    @property
+    def hpf(self) -> float | None:
+        if self._hpf == 0:
+            return 0.83
+        if self._hpf == 1:
+            return 2.5
+        return None
+
+    @hpf.setter
+    def hpf(self, value):
+        if value == 0.83:
+            self._hpf = 0
+        if value == 2.5:
+            self._hpf = 1
 
     @property
     def name(self) -> str | None:
@@ -285,11 +305,11 @@ class inRat:
                     "sample": int(event.Counter / Pkt.SamplesCountEcg),
                     "counter": event.Counter, "signal": event, "type": "ev"})
         async def exg_handler(sender, data):
-            smpl, signal = decode_signal(data, gain=gain)
+            smpl, signal = decode_exg(data, self._exg_resolution)
             await signal_event_queue.put({"sample":smpl, "signal":signal, "type": "sig"}) # "counter" -> "samples"
         async def acc_handler(sender, data):
-            smpl, accel = decode_acceleration(data, self._enabled_channels)
-            await acceleration_queue.put({"sample":smpl, "signal":accel, "type": "acc"})  # "counter" -> "samples"
+            smpl, acc = decode_acc(data, enabled_channels=self._enabled_channels, resolution=self._acc_resolution)
+            await acceleration_queue.put({"sample":smpl, "signal":acc, "type": "acc"})  # "counter" -> "samples"
 
 
         settings = self._get_settings()
@@ -300,11 +320,6 @@ class inRat:
             return False
 
         if signal_event_queue:
-            gain = 1
-            if self._mode is Mode.EEG:
-                logger.debug(f"Запуск регистрации ЭЭГ, gain={self.gain}")
-                gain = self.gain
-
             await self._client.start_notify(self.UUID_CHARACTERISTIC_ECG_EEG, exg_handler)
             await self._client.start_notify(self.UUID_CHARACTERISTIC_EVENT, event_handler)
             logger.info(f"{self.name}: подписка на сервисы UUID_CHARACTERISTIC_ECG_EEG, UUID_CHARACTERISTIC_EVENT")
