@@ -167,15 +167,32 @@ class inRat:
 
     @property
     def gain(self) -> int | None:
-        if self._mode is Mode.EEG:
-            return self._gain + 1
-        return None
+        return self._gain + 1
 
     @gain.setter
     def gain(self, value: int):
-        if self._mode is Mode.EEG:
         # (0 - 1x, 1 - 2x, 2 - 3x, 3 - 4x)
-            self._gain = value - 1
+        self._gain = value - 1
+
+    @property
+    def hpf(self) -> float | None:
+        if self._hpf == 0:
+            return 0.83
+        if self._hpf == 1:
+            return 2.5
+        return None
+
+    @hpf.setter
+    def hpf(self, value):
+        if value == 0.83:
+            self._hpf = 0
+        if value == 2.5:
+            self._hpf = 1
+
+    @gain.setter
+    def gain(self, value: int):
+        # (0 - 1x, 1 - 2x, 2 - 3x, 3 - 4x)
+        self._gain = value - 1
 
     @property
     def name(self) -> str | None:
