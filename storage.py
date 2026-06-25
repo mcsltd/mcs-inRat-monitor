@@ -35,7 +35,6 @@ class DataStorage(QObject):
         super().__init__(*args, **kwargs)
 
         self._input_queue = Queue()
-        self._recording = False
 
         # параметры записи биосигнала
         self._sig_datablock: None | SignalDatablock = None
@@ -68,6 +67,7 @@ class DataStorage(QObject):
         self._selected_folder = None # "./data"
         # os.makedirs(self._selected_folder, exist_ok=True)
 
+        self._recording = False # флаг начала записи
         self._running = False
         self._work: Thread | None = None
 
@@ -88,8 +88,6 @@ class DataStorage(QObject):
 
         if selected_folder:
             self._selected_folder = selected_folder
-
-
 
     @property
     def control_pane(self):
@@ -124,6 +122,7 @@ class DataStorage(QObject):
         """ остановка записи данных """
         logger.debug(f"Остановка рабочего потока для {DataStorage.__name__}")
 
+        self._recording = False
         self._running = False
         self._control_pane.set_disable()
         if self._work:
@@ -421,7 +420,6 @@ class FrmOnlineControlRecording(QFrame, Ui_FrmOnlineControlRecording):
         self.module = module
         self._timer = 0
         self.startTimer(1000)
-
 
     def set_enable(self):
         self.pushButtonSelectSaveDir.setEnabled(True)
