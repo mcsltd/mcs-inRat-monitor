@@ -35,7 +35,6 @@ class DataStorage(QObject):
         super().__init__(*args, **kwargs)
 
         self._input_queue = Queue()
-        self._recording = False
 
         # параметры записи биосигнала
         self._sig_datablock: None | SignalDatablock = None
@@ -65,9 +64,10 @@ class DataStorage(QObject):
         # путь и названия файлов записи
         self._filename = None
         self._writedir = None
-        self._selected_folder = "./data"
-        os.makedirs(self._selected_folder, exist_ok=True)
+        self._selected_folder = None # "./data"
+        # os.makedirs(self._selected_folder, exist_ok=True)
 
+        self._recording = False # флаг начала записи
         self._running = False
         self._work: Thread | None = None
 
@@ -88,7 +88,6 @@ class DataStorage(QObject):
 
         if selected_folder:
             self._selected_folder = selected_folder
-
 
     @property
     def control_pane(self):
@@ -123,6 +122,7 @@ class DataStorage(QObject):
         """ остановка записи данных """
         logger.debug(f"Остановка рабочего потока для {DataStorage.__name__}")
 
+        self._recording = False
         self._running = False
         self._control_pane.set_disable()
         if self._work:
@@ -168,12 +168,16 @@ class DataStorage(QObject):
     def _prepare_recording(self):
         """ подготовка и запись данных """
         logger.debug(f"Подготовка для начала записи {DataStorage.__name__}")
+        if not self._selected_folder:
+            self.handle_select_save_location()
+
         self._recording = True
         self._control_pane.pushButtonStopRecording.setEnabled(True)
         self._control_pane.pushButtonStartRecording.setEnabled(False)
         self._control_pane.pushButtonSelectSaveDir.setEnabled(False)
 
         now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
         self._writedir = f"{self._selected_folder}/{str(self._device_name)}/rec_{now}/"
 
     def _close_recording(self):
@@ -416,7 +420,6 @@ class FrmOnlineControlRecording(QFrame, Ui_FrmOnlineControlRecording):
         self.module = module
         self._timer = 0
         self.startTimer(1000)
-
 
     def set_enable(self):
         self.pushButtonSelectSaveDir.setEnabled(True)

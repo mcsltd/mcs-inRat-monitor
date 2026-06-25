@@ -95,7 +95,7 @@ class DlgConfigDevice(QDialog, Ui_DlgDeviceConfig):
 
     def setup_combobox_full_scale(self):
         """ заполнение comboboxFullScale элементами в режиме регистрации ЭЭГ """
-        scale = [("±2", 2), ("±4", 4), ("±8", 8), ("±16", 16)]
+        scale = [("±2g", 2), ("±4g", 4), ("±8g", 8), ("±16g", 16)]
         for s, v in scale:
             self.comboBoxFullScaleAccelerometer.addItem(s, userData=v)
 
