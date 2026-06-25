@@ -45,3 +45,36 @@
 #### Шаги по установке
 
 1. Клонируйте репозиторий:
+```
+git clone git@github.com:mcsltd/mcs-inRat-monitor.git
+```
+
+2. Создайте виртуальное окружение:
+```
+python -m venv venv
+venv\Scripts\activate
+```
+
+3. Установите зависимости:
+```
+pip install -r requirements.txt
+```
+
+4. Запустите приложение:
+```
+python main.py
+```
+
+## Copyrights
+
+Copyright © 2026, Medical Computer Systems Ltd
+
+## Лицензия
+
+Этот проект лицензирован под [MIT License](LICENSE).
+
+### Используемые сторонние библиотеки
+
+- PySide6 (Qt for Python) используется под лицензией LGPL
+- Другие библиотеки под MIT, BSD, Apache 2.0
+- Подробности в [NOTICE](NOTICE)
