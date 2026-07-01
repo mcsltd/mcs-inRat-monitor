@@ -309,8 +309,8 @@ class DataStorage(QObject):
             self._acc_start_sample = sample
             self._acc_recording_start = time.time()
 
-        idx_start = (sample - self._sig_start_sample) * self._acc_datablock.counter_per_sample
-        idx_finish = (sample - self._sig_start_sample) * self._acc_datablock.counter_per_sample + self._acc_datablock.counter_per_sample
+        idx_start = (sample - self._acc_start_sample) * self._acc_datablock.counter_per_sample
+        idx_finish = (sample - self._acc_start_sample) * self._acc_datablock.counter_per_sample + self._acc_datablock.counter_per_sample
 
         # дошли до конца буфера?
         if idx_finish >= self._acc_buffer.shape[1]:
