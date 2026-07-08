@@ -16,7 +16,7 @@ from typing import Optional
 
 from device.constants import Const
 from device.device import SignalDatablock
-from device.enums import EventType
+from device.enums import EventType, TypeSignal
 from device.utils import get_orientation
 from resources.frm_online_control_recording import Ui_FrmOnlineControlRecording
 
@@ -25,10 +25,8 @@ logger = logging.getLogger(__name__)
 
 class DataStorage(QObject):
 
-    """ Класс для сохранения сигналов с устройства в форматы EDF/WFDB
-        # ToDo: обновление параметров под выбранную частоту
-        # ToDo: сброс параметров при перезапуске модуля
-        # ToDo: добавления нескольких каналов в signal_buffer
+    """
+    Класс для сохранения сигналов с устройства в форматы EDF
     """
 
     def __init__(self, *args, **kwargs):
@@ -37,17 +35,19 @@ class DataStorage(QObject):
         self._input_queue = Queue()
 
         # параметры записи биосигнала
-        self._sig_datablock: None | SignalDatablock = None
-        self._sig_filename = None
-        self._sig_buffer = None
-        self._sig_start_sample = None   # начальный семпл записи
-        self._sig_current_sample = None
-        self._sig_samples_written = 0    # количество записанных в буфер семплов
+        self._exg_writer: None | EdfWriter = None
+        self._exg_datablock: None | SignalDatablock = None
+        self._exg_filename = None
+        # self._exg_buffer = None
+        self._exg_start_sample = None   # начальный семпл записи
+        self._exg_current_sample = None
+        self._exg_samples_written = 0    # количество записанных в буфер семплов
 
         # параметры записи акселерометра
+        self._acc_writer: None | EdfWriter = None
         self._acc_datablock: None | SignalDatablock = None
         self._acc_filename = None
-        self._acc_buffer = None
+        # self._acc_buffer = None
         self._acc_start_sample = None   # начальный семпл записи
         self._acc_current_sample = None
         self._acc_samples_written = 0    # количество записанных в буфер семплов
@@ -75,6 +75,42 @@ class DataStorage(QObject):
         self._control_pane.pushButtonStartRecording.clicked.connect(self._prepare_recording)
         self._control_pane.pushButtonStopRecording.clicked.connect(self._close_recording)
         self._control_pane.pushButtonSelectSaveDir.clicked.connect(self.handle_select_save_location)
+
+    def create_edf_writer(self, param: SignalDatablock | None) -> None:
+        """ создание edf writer для указанного типа сигнала """
+        if not param:
+            return
+
+        if not self._writedir:
+            raise ValueError("Не указана директория сохранения файлов")
+
+        os.makedirs(self._writedir, exist_ok=True)
+
+        path_to_save = f"{self._writedir}/{param.type_signal.value}_test.edf"
+        writer = EdfWriter(n_channels=param.number_channels, file_name=path_to_save)
+        writer.set_number_of_annotation_signals(number_of_annotations=64)
+
+        for idx_ch in range(param.number_channels):
+            channel_info = {
+                'label': param.type_signal.value,
+                'dimension': param.units,
+                'sample_frequency': param.sample_rate,
+                'physical_max': 1.0, 'physical_min': -1.0,
+                'digital_max': 32767, 'digital_min': -32768
+            }
+            writer.setSignalHeader(idx_ch, channel_info)
+
+        writer.setEquipment(param.device_name)
+        writer.setStartdatetime(datetime.datetime.now())
+
+        if param.type_signal == TypeSignal.ECG or param.type_signal == TypeSignal.EEG:
+            self._exg_writer = writer
+        elif param.type_signal == TypeSignal.ACC:
+            self._acc_writer = writer
+        else:
+            raise ValueError(f"Неизвестный тип сигнала {param.type_signal}")
+
+        logger.debug(f"Инициализирован указатель на файл для записи сигнала {param.type_signal}")
 
     def handle_select_save_location(self):
         """ выбор место сохранения записей """
@@ -129,18 +165,18 @@ class DataStorage(QObject):
             self._work.join(5.0)
             self._work = None
 
-    def update_params(self, params_sig: SignalDatablock | None, params_acc: SignalDatablock | None):
+    def update_params(self, params_exg: SignalDatablock | None, params_acc: SignalDatablock | None):
         """ обновление параметров записи сигналов """
         # обновление параметров записи для биосигналов
-        self._sig_datablock = params_sig
+        self._exg_datablock = params_exg
 
-        if params_sig:
-            self._sig_filename = params_sig.type_signal.value
-            self._sig_buffer = np.zeros((params_sig.number_channels, params_sig.sample_rate * self._max_timebase), dtype=np.float32)
+        if params_exg:
+            self._exg_filename = params_exg.type_signal.value
+            self._exg_buffer = np.zeros((params_exg.number_channels, params_exg.sample_rate * self._max_timebase), dtype=np.float32)
 
-            self._sig_start_sample = 0  # начальный семпл записи
-            self._sig_current_sample = 0
-            self._sig_samples_written = 0
+            self._exg_start_sample = 0  # начальный семпл записи
+            self._exg_current_sample = 0
+            self._exg_samples_written = 0
 
         # обновление параметров записи для акселерометра
         self._acc_datablock = params_acc
@@ -153,8 +189,8 @@ class DataStorage(QObject):
             self._acc_current_sample = 0
             self._acc_samples_written = 0
 
-        if params_sig:
-            self._device_name = self._sig_datablock.device_name
+        if params_exg:
+            self._device_name = self._exg_datablock.device_name
         elif params_acc:
             self._device_name = self._acc_datablock.device_name
 
@@ -171,14 +207,16 @@ class DataStorage(QObject):
         if not self._selected_folder:
             self.handle_select_save_location()
 
+        now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        self._writedir = f"{self._selected_folder}/{str(self._device_name)}/rec_{now}/"
+
+        self.create_edf_writer(param=self._exg_datablock)
+        self.create_edf_writer(param=self._acc_datablock)
+
         self._recording = True
         self._control_pane.pushButtonStopRecording.setEnabled(True)
         self._control_pane.pushButtonStartRecording.setEnabled(False)
         self._control_pane.pushButtonSelectSaveDir.setEnabled(False)
-
-        now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-
-        self._writedir = f"{self._selected_folder}/{str(self._device_name)}/rec_{now}/"
 
     def _close_recording(self):
         """ остановка записи"""
@@ -192,23 +230,23 @@ class DataStorage(QObject):
         if self._format == "EDF":
             os.makedirs(self._writedir, exist_ok=True)
 
-            if self._sig_datablock:
+            if self._exg_datablock:
                 idx_start = 0
-                idx_finish = self._sig_samples_written * self._sig_datablock.counter_per_sample
-                signal = self._sig_buffer[:,idx_start:idx_finish]
+                idx_finish = self._exg_samples_written * self._exg_datablock.counter_per_sample
+                signal = self._exg_buffer[:,idx_start:idx_finish]
 
-                sig_start_datetime = datetime.datetime.fromtimestamp(self._sig_recording_start)
+                sig_start_datetime = datetime.datetime.fromtimestamp(self._exg_recording_start)
                 self._save_to_edf(
-                    sample_rate=self._sig_datablock.sample_rate,
-                    number_channels=self._sig_datablock.number_channels,
+                    sample_rate=self._exg_datablock.sample_rate,
+                    number_channels=self._exg_datablock.number_channels,
                     signal=signal,
                     events=self._ev_buffer,
                     write_dir=self._writedir,
-                    filename=self._sig_filename,
-                    channel_names=self._sig_datablock.channel_names,
-                    units=self._sig_datablock.units,
+                    filename=self._exg_filename,
+                    channel_names=self._exg_datablock.channel_names,
+                    units=self._exg_datablock.units,
                     start_datetime=sig_start_datetime,
-                    device_name=self._sig_datablock.device_name
+                    device_name=self._exg_datablock.device_name
                 )
 
             if self._acc_datablock:
@@ -229,6 +267,14 @@ class DataStorage(QObject):
                     device_name=self._acc_datablock.device_name
                 )
 
+        if self._exg_writer:
+            self._exg_writer.close()
+            self._exg_writer = None
+
+        if self._acc_writer:
+            self._acc_writer.close()
+            self._acc_writer = None
+
         self._control_pane.pushButtonStartRecording.setEnabled(True)
         self._control_pane.pushButtonStopRecording.setEnabled(False)
         self._control_pane.pushButtonSelectSaveDir.setEnabled(True)
@@ -243,11 +289,11 @@ class DataStorage(QObject):
         logger.debug(f"Получены данные для сохранения в {DataStorage.__name__}: {data=}")
 
         type = data["type"]
-        if self._sig_datablock and type == "ev":
+        if self._exg_datablock and type == "ev":
             self._process_input_ev(data)
 
-        if self._sig_datablock and type == "sig":
-            self._process_input_sig(data)
+        if self._exg_datablock and type == "sig":
+            self._process_input_exg(data)
 
         if self._acc_datablock and type == "acc":
             self._process_input_acc(data)
@@ -259,7 +305,7 @@ class DataStorage(QObject):
         data: {"sample": int(event.Counter / Pkt.SamplesCountEcg), "counter": event.Counter, "signal": event, "type": "ev"}
         """
         event = data["signal"]
-        t = (event.Counter - self._sig_start_sample * self._sig_datablock.counter_per_sample) / self._sig_datablock.sample_rate
+        t = (event.Counter - self._exg_start_sample * self._exg_datablock.counter_per_sample) / self._exg_datablock.sample_rate
 
         if event.Type == EventType.FREEFALL.bit_length() - 1:
             ann = "F"
@@ -279,24 +325,24 @@ class DataStorage(QObject):
         self._ev_buffer.append((t, ann))
         return data
 
-    def _process_input_sig(self, data: dict) -> dict:
+    def _process_input_exg(self, data: dict) -> dict:
         """ обработка входящих биосигналов """
         sig, sample = data["signal"], data["sample"]
 
-        if not self._sig_start_sample:
-            self._sig_start_sample = sample
-            self._sig_recording_start = time.time()
+        if not self._exg_start_sample:
+            self._exg_start_sample = sample
+            self._exg_recording_start = time.time()
 
-        idx_start = (sample - self._sig_start_sample) * self._sig_datablock.counter_per_sample
-        idx_finish = (sample - self._sig_start_sample) * self._sig_datablock.counter_per_sample + self._sig_datablock.counter_per_sample
+        idx_start = (sample - self._exg_start_sample) * self._exg_datablock.counter_per_sample
+        idx_finish = (sample - self._exg_start_sample) * self._exg_datablock.counter_per_sample + self._exg_datablock.counter_per_sample
 
         # дошли до конца буфера? закрываем запись
-        if idx_finish >= self._sig_buffer.shape[1]:
+        if idx_finish >= self._exg_buffer.shape[1]:
             self._close_recording()
             return data
 
-        self._sig_buffer[:, idx_start:idx_finish] = sig
-        self._sig_samples_written += 1
+        self._exg_buffer[:, idx_start:idx_finish] = sig
+        self._exg_samples_written += 1
         return data
 
     def _process_input_acc(self, data: dict) -> dict:
