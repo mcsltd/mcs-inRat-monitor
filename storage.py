@@ -356,24 +356,23 @@ class DataStorage(QObject):
             self._idx_finish_acc = acc.shape[1]
 
         buffer_width = self._acc_buffer_stream.shape[1]
-
         # проверка на заполнение буфера
         if self._idx_finish_acc >= buffer_width:
             remaining_space = buffer_width - self._idx_start_acc
             self._acc_buffer_stream[:, self._idx_start_acc:] = acc[:, :remaining_space]  # заполнение буфера до конца
 
-            self._exg_writer.writeSamples(self._acc_buffer_stream)
+            self._acc_writer.writeSamples(self._acc_buffer_stream)
 
             remaining_data = acc.shape[1] - remaining_space
             if remaining_data > 0:
                 self._acc_buffer_stream[:, :remaining_data] = acc[:, remaining_space:]
-            self._idx_start_exg = remaining_data
-            self._idx_finish_exg = remaining_data + acc.shape[1]
+            self._idx_start_acc = remaining_data
+            self._idx_finish_acc = remaining_data + acc.shape[1]
 
         else:
-            self._acc_buffer_stream[:, self._idx_start_exg:self._idx_finish_exg] = acc
-            self._idx_start_exg += acc.shape[1]
-            self._idx_finish_exg += acc.shape[1]
+            self._acc_buffer_stream[:, self._idx_start_acc:self._idx_finish_acc] = acc
+            self._idx_start_acc += acc.shape[1]
+            self._idx_finish_acc += acc.shape[1]
 
         return data
 
