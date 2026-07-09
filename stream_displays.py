@@ -5,14 +5,11 @@ from threading import Thread
 
 import numpy as np
 import pyqtgraph as pg
-from PySide6 import QtCore
 from PySide6.QtGui import QFont
 from pyqtgraph import mkPen, ScatterPlotItem, LegendItem, ItemSample
 
-from device.constants import Pkt
 from device.device import SignalDatablock
 from device.enums import TypeSignal, EventType
-from device.structures import Event
 
 
 # ToDo: переписать на единый класс (?)
@@ -37,6 +34,7 @@ class StreamViewer(pg.PlotWidget):
         self._work = None
         self._running = False
 
+        self.unit = None
         self._signal_buffer: np.ndarray | None = None
         self._time_buffer: np.ndarray | None = None
         self._buffer_filled = False  # флаг заполнения буфера
@@ -90,14 +88,23 @@ class StreamViewer(pg.PlotWidget):
         if not params:
             return None
 
+        type_signal = self._sig_datablock.type_signal.value
+        self.unit = self._sig_datablock.units
         # настройка отрисовки графиков разными цветами
         pens = []
         if self._sig_datablock.type_signal is TypeSignal.ECG or self._sig_datablock.type_signal is TypeSignal.EEG:
             self.y_min, self.y_max = -5 * 1e-3, 5 * 1e-3
             pens.append(mkPen(color=(255, 255, 0)))
+
+            if self.unit == "uV":
+                self.setLabel("left", text=type_signal, units="V", color="white", force=True)
+            else:
+                self.setLabel("left", text=type_signal, units=self.unit, color="white", force=True)
+
         elif self._sig_datablock.type_signal is TypeSignal.ACC:
             self.y_min, self.y_max = -1e3, 1e3
             pens.extend([mkPen(color=(255, 0, 0)), mkPen(color=(0, 255, 0)), mkPen(color=(173, 216, 230))])
+            self.setLabel("left", text=type_signal, units=self.unit, color="white", force=True)
 
         # пересоздание буфера
         self._signal_buffer = np.zeros(
@@ -108,10 +115,6 @@ class StreamViewer(pg.PlotWidget):
         self._buffer_filled = False  # флаг заполнения буфера
         self.current_position = 0  # текущая позиция для заполнения буфера
         self.update_display: bool = False
-
-        type_signal = self._sig_datablock.type_signal.value
-        unit = self._sig_datablock.units
-        self.setLabel("left", text=type_signal, units=unit, color="white", force=True)
 
         self._arrange_traces(pens)
         self._arrange_scatters()
@@ -193,6 +196,9 @@ class StreamViewer(pg.PlotWidget):
             return
 
         current_sample, signal = data["sample"], data["signal"]  # .shape = (1,32) for exg; .shape = (3,8) for acc
+
+        if self.unit == "uV":
+            signal /= 1e6   # to V
 
         # todo: добавить проверку сигнала на соответствие channels_count, count_per_samples
         if not self._buffer_filled:

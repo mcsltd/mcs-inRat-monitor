@@ -15,20 +15,20 @@ def decode_exg(raw_data: bytearray, resolution: float) -> (int, np.ndarray):
     offset += 4
 
     # decode ecg
-    exg = np.zeros((Pkt.ChannelsCountEcg, Pkt.SamplesCountEcg), dtype=np.float64)
+    exg_uv = np.zeros((Pkt.ChannelsCountEcg, Pkt.SamplesCountEcg), dtype=np.float64)
     prev = 0
     for i in range(Pkt.SamplesCountEcg):
         if (code >> i) & 0x1 == 0x0:
-            exg[:,i] = prev + int.from_bytes([raw_data[offset]], signed=True, byteorder="little")
+            exg_uv[:,i] = prev + int.from_bytes([raw_data[offset]], signed=True, byteorder="little")
             offset += 1
 
         if (code >> i) & 0x1 == 0x1:
-            exg[:,i] = struct.unpack("<h", raw_data[offset:offset + 2])[0]
+            exg_uv[:,i] = struct.unpack("<h", raw_data[offset:offset + 2])[0]
             offset += 2
 
-        prev = exg[:,i]
-    exg *= resolution
-    return counter, exg
+        prev = exg_uv[:,i]
+    exg_uv *= resolution * 1e6
+    return counter, exg_uv
 
 def decode_acc(raw_data, enabled_channels, resolution: float):
     """ декодирование ускорения """
