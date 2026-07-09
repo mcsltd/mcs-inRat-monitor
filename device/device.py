@@ -74,23 +74,29 @@ class inRatDevice(QObject):
 
         # ресурсы для обработки событий и биосигналов
         self._work_sig: Thread | None = None
-        self._exg_datablock = SignalDatablock(type_signal=TypeSignal.ECG, sample_rate=500,
-                                              counter_per_sample=Pkt.SamplesCountEcg,
-                                              number_channels=Pkt.ChannelsCountEcg,
-                                              channel_names=["ecg"],
-                                              units="uV",
-                                              physical_max=6000, physical_min=-6000)
+        self._exg_datablock = SignalDatablock(
+            type_signal=TypeSignal.ECG, sample_rate=500,
+            counter_per_sample=Pkt.SamplesCountEcg,
+            number_channels=Pkt.ChannelsCountEcg,
+            channel_names=["ecg"],
+            units="uV",
+            physical_max=6000, physical_min=-6000
+        )
         self._receivers_sig = []
         # self._event_queue = asyncio.Queue()
         self._sig_queue = asyncio.Queue()
 
         # ресурсы для обработки показаний акселерометра
         self._work_acc: Thread | None = None
-        self._acc_datablock = SignalDatablock(type_signal=TypeSignal.ACC, sample_rate=100,
-                                              counter_per_sample=Pkt.SamplesCountAcc,
-                                              number_channels=Pkt.ChannelsCountAcc,
-                                              channel_names=["acc_x", "acc_y", "acc_z"],
-                                              units="mg")
+        self._acc_datablock = SignalDatablock(
+            type_signal=TypeSignal.ACC, sample_rate=100,
+            counter_per_sample=Pkt.SamplesCountAcc,
+            number_channels=Pkt.ChannelsCountAcc,
+            channel_names=["acc_x", "acc_y", "acc_z"],
+            units="G",
+            physical_max=16.0,
+            physical_min=-16.0
+        )
         self._receivers_acc = []
         self._acc_queue = asyncio.Queue()
 
@@ -404,13 +410,16 @@ class inRatDevice(QObject):
                 bool(self._inrat.enabled_channels & EnabledChannels.ACC_Z)
         ):
             self.signal_enable_acc.emit(True)
-            self._acc_datablock = SignalDatablock(type_signal=TypeSignal.ACC,
-                                                  sample_rate=100,
-                                                  counter_per_sample=Pkt.SamplesCountAcc,
-                                                  number_channels=Pkt.ChannelsCountAcc,
-                                                  channel_names=["acc_x", "acc_y", "acc_z"],
-                                                  units="G",
-                                                  device_name=self._inrat.name)
+            self._acc_datablock = SignalDatablock(
+                type_signal=TypeSignal.ACC,
+                sample_rate=100,
+                counter_per_sample=Pkt.SamplesCountAcc,
+                number_channels=Pkt.ChannelsCountAcc,
+                channel_names=["acc_x", "acc_y", "acc_z"],
+                units="G",
+                device_name=self._inrat.name,
+                physical_max=16.0, physical_min=-16.0
+            )
         else:
             self.signal_enable_acc.emit(False)
             self._acc_datablock = None
