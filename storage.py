@@ -173,6 +173,9 @@ class DataStorage(QObject):
         """ остановка записи данных """
         logger.debug(f"Остановка рабочего потока для {DataStorage.__name__}")
 
+        if self._recording:
+            self._close_recording()
+
         self._recording = False
         self._running = False
         self._control_pane.set_disable()
