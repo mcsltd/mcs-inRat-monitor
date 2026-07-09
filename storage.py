@@ -38,23 +38,29 @@ class DataStorage(QObject):
         self._exg_writer: None | EdfWriter = None
         self._exg_datablock: None | SignalDatablock = None
         self._exg_filename = None
-        # self._exg_buffer = None
+        self._exg_buffer = None
+        self._exg_buffer_stream = None
         self._exg_start_sample = None   # начальный семпл записи
         self._exg_current_sample = None
         self._exg_samples_written = 0    # количество записанных в буфер семплов
+        self._exg_recording_start = None
+        self._idx_start_exg = None
+        self._idx_finish_exg = None
 
         # параметры записи акселерометра
         self._acc_writer: None | EdfWriter = None
         self._acc_datablock: None | SignalDatablock = None
         self._acc_filename = None
-        # self._acc_buffer = None
+        self._acc_buffer = None
+        self._acc_buffer_stream = None
         self._acc_start_sample = None   # начальный семпл записи
         self._acc_current_sample = None
         self._acc_samples_written = 0    # количество записанных в буфер семплов
+        self._acc_recording_start = None
 
         self._ev_buffer = []
-
-        self._max_timebase = 1200 # 20 минут
+        self._buffer_dur = 1
+        self._max_timebase = 1200
 
         # параметры записи
         self._format = "EDF"         # выбранный формат записи
@@ -78,6 +84,7 @@ class DataStorage(QObject):
 
     def create_edf_writer(self, param: SignalDatablock | None) -> None:
         """ создание edf writer для указанного типа сигнала """
+        # todo обработка исключений
         if not param:
             return
 
@@ -88,25 +95,29 @@ class DataStorage(QObject):
 
         path_to_save = f"{self._writedir}/{param.type_signal.value}_test.edf"
         writer = EdfWriter(n_channels=param.number_channels, file_name=path_to_save)
-        writer.set_number_of_annotation_signals(number_of_annotations=64)
 
         for idx_ch in range(param.number_channels):
             channel_info = {
                 'label': param.type_signal.value,
                 'dimension': param.units,
                 'sample_frequency': param.sample_rate,
-                'physical_max': 1.0, 'physical_min': -1.0,
+                'physical_max': param.physical_max, 'physical_min': param.physical_min,
                 'digital_max': 32767, 'digital_min': -32768
             }
             writer.setSignalHeader(idx_ch, channel_info)
 
+        record_start = datetime.datetime.now()
+        # setup
+        writer.set_number_of_annotation_signals(number_of_annotations=64)
         writer.setEquipment(param.device_name)
-        writer.setStartdatetime(datetime.datetime.now())
+        writer.setStartdatetime(record_start)
 
         if param.type_signal == TypeSignal.ECG or param.type_signal == TypeSignal.EEG:
             self._exg_writer = writer
+            self._exg_recording_start = record_start
         elif param.type_signal == TypeSignal.ACC:
             self._acc_writer = writer
+            self._acc_recording_start = record_start
         else:
             raise ValueError(f"Неизвестный тип сигнала {param.type_signal}")
 
@@ -173,6 +184,8 @@ class DataStorage(QObject):
         if params_exg:
             self._exg_filename = params_exg.type_signal.value
             self._exg_buffer = np.zeros((params_exg.number_channels, params_exg.sample_rate * self._max_timebase), dtype=np.float32)
+            self._exg_buffer_stream = np.zeros((params_exg.number_channels, params_exg.sample_rate * self._buffer_dur),
+                                        dtype=np.float32)
 
             self._exg_start_sample = 0  # начальный семпл записи
             self._exg_current_sample = 0
@@ -184,6 +197,8 @@ class DataStorage(QObject):
             self._acc_filename = params_acc.type_signal.value
             self._acc_buffer = np.zeros((params_acc.number_channels, params_acc.sample_rate * self._max_timebase),
                                         dtype=np.float32)
+            self._acc_buffer_stream = np.zeros((params_acc.number_channels, params_acc.sample_rate * self._buffer_dur),
+                                        dtype=np.float32)
 
             self._acc_start_sample = 0  # начальный семпл записи
             self._acc_current_sample = 0
@@ -193,13 +208,6 @@ class DataStorage(QObject):
             self._device_name = self._exg_datablock.device_name
         elif params_acc:
             self._device_name = self._acc_datablock.device_name
-
-    def process_event(self, event):
-        """ обработка событий """
-        if event == "StartRecording":
-            self._prepare_recording()
-        if event == "StopRecording":
-            self._close_recording()
 
     def _prepare_recording(self):
         """ подготовка и запись данных """
@@ -286,44 +294,83 @@ class DataStorage(QObject):
         if not self._recording:
             return data
 
-        logger.debug(f"Получены данные для сохранения в {DataStorage.__name__}: {data=}")
+        # logger.debug(f"Получены данные для сохранения в {DataStorage.__name__}: {data=}")
 
         type = data["type"]
         if self._exg_datablock and type == "ev":
-            self._process_input_ev(data)
-
+            # self._process_input_ev(data)
+            pass
         if self._exg_datablock and type == "sig":
             self._process_input_exg(data)
+            self._process_input_exg_stream(data)
 
         if self._acc_datablock and type == "acc":
             self._process_input_acc(data)
+            self._process_input_acc_stream(data)
 
         return data
 
-    def _process_input_ev(self, data: dict):
-        """ обработка входящий событий
-        data: {"sample": int(event.Counter / Pkt.SamplesCountEcg), "counter": event.Counter, "signal": event, "type": "ev"}
-        """
-        event = data["signal"]
-        t = (event.Counter - self._exg_start_sample * self._exg_datablock.counter_per_sample) / self._exg_datablock.sample_rate
+    def _process_input_exg_stream(self, data: dict):
+        """ обработка exg сигнала """
+        exg: np.ndarray = data["signal"]
+        sample: int = data["sample"]
 
-        if event.Type == EventType.FREEFALL.bit_length() - 1:
-            ann = "F"
-        elif event.Type == EventType.ACTIVITY.bit_length() - 1:
-            ax = int(Const.AccResolution * event.Acceleration.X)
-            ay = int(Const.AccResolution * event.Acceleration.Y)
-            az = int(Const.AccResolution * event.Acceleration.Z)
-            ann = f"A {ax} {ay} {az}"
-        elif event.Type == EventType.ORIENTATION.bit_length() - 1:
-            axis = get_orientation(event.Value)
-            ann = f"O {axis}"
-        elif event.Type == EventType.TEMP.bit_length() - 1:
-            ann = f"T {round(event.Data / 1000, 1)}"
+        # инициализация индексов
+        if not self._idx_start_exg:
+            self._idx_start_exg = 0
+            self._idx_finish_exg = exg.shape[1]
+
+        buffer_width = self._exg_buffer_stream.shape[1]
+
+        # проверка на заполнение буфера
+        if self._idx_finish_exg >= buffer_width:
+            remaining_space = buffer_width - self._idx_start_exg
+            self._exg_buffer_stream[:, self._idx_start_exg:] = exg[:, :remaining_space]  # заполнение буфера до конца
+
+            self._exg_writer.writeSamples(self._exg_buffer_stream)
+
+            remaining_data = exg.shape[1] - remaining_space
+            if remaining_data > 0:
+                self._exg_buffer_stream[:, :remaining_data] = exg[:, remaining_space:]
+            self._idx_start_exg = remaining_data
+            self._idx_finish_exg = remaining_data + exg.shape[1]
+
         else:
-            return data
+            self._exg_buffer_stream[:, self._idx_start_exg:self._idx_finish_exg] = exg
+            self._idx_start_exg += exg.shape[1]
+            self._idx_finish_exg += exg.shape[1]
 
-        self._ev_buffer.append((t, ann))
         return data
+
+    def _process_input_acc_stream(self, data: dict):
+        """ обработка входящих биосигналов """
+        acc, sample = data["signal"], data["sample"]
+        self._acc_writer.writeSamples(acc)
+
+    # def _process_input_ev(self, data: dict):
+    #     """ обработка входящий событий
+    #     data: {"sample": int(event.Counter / Pkt.SamplesCountEcg), "counter": event.Counter, "signal": event, "type": "ev"}
+    #     """
+    #     event = data["signal"]
+    #     t = (event.Counter - self._exg_start_sample * self._exg_datablock.counter_per_sample) / self._exg_datablock.sample_rate
+    #
+    #     if event.Type == EventType.FREEFALL.bit_length() - 1:
+    #         ann = "F"
+    #     elif event.Type == EventType.ACTIVITY.bit_length() - 1:
+    #         ax = int(Const.AccResolution * event.Acceleration.X)
+    #         ay = int(Const.AccResolution * event.Acceleration.Y)
+    #         az = int(Const.AccResolution * event.Acceleration.Z)
+    #         ann = f"A {ax} {ay} {az}"
+    #     elif event.Type == EventType.ORIENTATION.bit_length() - 1:
+    #         axis = get_orientation(event.Value)
+    #         ann = f"O {axis}"
+    #     elif event.Type == EventType.TEMP.bit_length() - 1:
+    #         ann = f"T {round(event.Data / 1000, 1)}"
+    #     else:
+    #         return data
+    #
+    #     self._ev_buffer.append((t, ann))
+    #     return data
 
     def _process_input_exg(self, data: dict) -> dict:
         """ обработка входящих биосигналов """
