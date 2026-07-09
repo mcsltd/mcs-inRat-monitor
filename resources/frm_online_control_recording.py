@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'frm_online_control_recordingWjVmPS.ui'
+## Form generated from reading UI file 'frm_online_control_recordingPnikfM.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -62,14 +62,9 @@ class Ui_FrmOnlineControlRecording(object):
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
         self.labelRecordingTime = QLabel(self.groupBox)
         self.labelRecordingTime.setObjectName(u"labelRecordingTime")
-        self.labelRecordingTime.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
+        self.labelRecordingTime.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.horizontalLayout_2.addWidget(self.labelRecordingTime)
-
-        self.labelMaxRecordingTime = QLabel(self.groupBox)
-        self.labelMaxRecordingTime.setObjectName(u"labelMaxRecordingTime")
-
-        self.horizontalLayout_2.addWidget(self.labelMaxRecordingTime)
 
 
         self.formLayout.setLayout(2, QFormLayout.ItemRole.FieldRole, self.horizontalLayout_2)
@@ -90,6 +85,17 @@ class Ui_FrmOnlineControlRecording(object):
         self.pushButtonSelectSaveDir.setEnabled(False)
 
         self.formLayout.setWidget(0, QFormLayout.ItemRole.FieldRole, self.pushButtonSelectSaveDir)
+
+        self.labelCounter = QLabel(self.groupBox)
+        self.labelCounter.setObjectName(u"labelCounter")
+
+        self.formLayout.setWidget(3, QFormLayout.ItemRole.LabelRole, self.labelCounter)
+
+        self.labelFileCounter = QLabel(self.groupBox)
+        self.labelFileCounter.setObjectName(u"labelFileCounter")
+        self.labelFileCounter.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.formLayout.setWidget(3, QFormLayout.ItemRole.FieldRole, self.labelFileCounter)
 
 
         self.verticalLayout.addLayout(self.formLayout)
@@ -130,11 +136,12 @@ class Ui_FrmOnlineControlRecording(object):
         self.groupBox.setTitle(QCoreApplication.translate("FrmOnlineControlRecording", u"\u0417\u0430\u043f\u0438\u0441\u044c \u0434\u0430\u043d\u043d\u044b\u0445", None))
         self.labelFormat.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"\u0424\u043e\u0440\u043c\u0430\u0442 \u0437\u0430\u043f\u0438\u0441\u0438", None))
         self.labelTime.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"\u0412\u0440\u0435\u043c\u044f \u0437\u0430\u043f\u0438\u0441\u0438", None))
-        self.labelRecordingTime.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"00:00", None))
-        self.labelMaxRecordingTime.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"/20:00", None))
+        self.labelRecordingTime.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"00:00:00", None))
         self.labelFormatValue.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"EDF", None))
         self.label_2.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"\u041c\u0435\u0441\u0442\u043e \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u044f", None))
         self.pushButtonSelectSaveDir.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"\u0412\u044b\u0431\u0440\u0430\u0442\u044c", None))
+        self.labelCounter.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"\u0417\u0430\u043f\u0438\u0441\u0435\u0439", None))
+        self.labelFileCounter.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"000", None))
         self.pushButtonStartRecording.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"\u041d\u0430\u0447\u0430\u0442\u044c \u0437\u0430\u043f\u0438\u0441\u044c", None))
         self.pushButtonStopRecording.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"\u041e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u0437\u0430\u043f\u0438\u0441\u044c", None))
     # retranslateUi
