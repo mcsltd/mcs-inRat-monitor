@@ -57,6 +57,8 @@ class DataStorage(QObject):
         self._acc_current_sample = None
         self._acc_samples_written = 0    # количество записанных в буфер семплов
         self._acc_recording_start = None
+        self._idx_start_acc = None
+        self._idx_finish_acc = None
 
         self._ev_buffer = []
         self._buffer_dur = 1
@@ -299,7 +301,8 @@ class DataStorage(QObject):
         type = data["type"]
         if self._exg_datablock and type == "ev":
             # self._process_input_ev(data)
-            pass
+            self._process_input_ev_stream(data)
+
         if self._exg_datablock and type == "sig":
             self._process_input_exg(data)
             self._process_input_exg_stream(data)
@@ -343,34 +346,82 @@ class DataStorage(QObject):
         return data
 
     def _process_input_acc_stream(self, data: dict):
-        """ обработка входящих биосигналов """
-        acc, sample = data["signal"], data["sample"]
-        self._acc_writer.writeSamples(acc)
+        """ обработка acc """
+        acc: np.ndarray = data["signal"]
+        sample: int = data["sample"]
 
-    # def _process_input_ev(self, data: dict):
-    #     """ обработка входящий событий
-    #     data: {"sample": int(event.Counter / Pkt.SamplesCountEcg), "counter": event.Counter, "signal": event, "type": "ev"}
-    #     """
-    #     event = data["signal"]
-    #     t = (event.Counter - self._exg_start_sample * self._exg_datablock.counter_per_sample) / self._exg_datablock.sample_rate
-    #
-    #     if event.Type == EventType.FREEFALL.bit_length() - 1:
-    #         ann = "F"
-    #     elif event.Type == EventType.ACTIVITY.bit_length() - 1:
-    #         ax = int(Const.AccResolution * event.Acceleration.X)
-    #         ay = int(Const.AccResolution * event.Acceleration.Y)
-    #         az = int(Const.AccResolution * event.Acceleration.Z)
-    #         ann = f"A {ax} {ay} {az}"
-    #     elif event.Type == EventType.ORIENTATION.bit_length() - 1:
-    #         axis = get_orientation(event.Value)
-    #         ann = f"O {axis}"
-    #     elif event.Type == EventType.TEMP.bit_length() - 1:
-    #         ann = f"T {round(event.Data / 1000, 1)}"
-    #     else:
-    #         return data
-    #
-    #     self._ev_buffer.append((t, ann))
-    #     return data
+        # инициализация индексов
+        if not self._idx_start_acc:
+            self._idx_start_acc = 0
+            self._idx_finish_acc = acc.shape[1]
+
+        buffer_width = self._acc_buffer_stream.shape[1]
+
+        # проверка на заполнение буфера
+        if self._idx_finish_acc >= buffer_width:
+            remaining_space = buffer_width - self._idx_start_acc
+            self._acc_buffer_stream[:, self._idx_start_acc:] = acc[:, :remaining_space]  # заполнение буфера до конца
+
+            self._exg_writer.writeSamples(self._acc_buffer_stream)
+
+            remaining_data = acc.shape[1] - remaining_space
+            if remaining_data > 0:
+                self._acc_buffer_stream[:, :remaining_data] = acc[:, remaining_space:]
+            self._idx_start_exg = remaining_data
+            self._idx_finish_exg = remaining_data + acc.shape[1]
+
+        else:
+            self._acc_buffer_stream[:, self._idx_start_exg:self._idx_finish_exg] = acc
+            self._idx_start_exg += acc.shape[1]
+            self._idx_finish_exg += acc.shape[1]
+
+        return data
+
+    def _process_input_ev(self, data: dict):
+        """ обработка входящий событий
+        data: {"sample": int(event.Counter / Pkt.SamplesCountEcg), "counter": event.Counter, "signal": event, "type": "ev"}
+        """
+        event = data["signal"]
+        t = (event.Counter - self._exg_start_sample * self._exg_datablock.counter_per_sample) / self._exg_datablock.sample_rate
+
+        if event.Type == EventType.FREEFALL.bit_length() - 1:
+            ann = "F"
+        elif event.Type == EventType.ACTIVITY.bit_length() - 1:
+            ax = int(Const.AccResolution * event.Acceleration.X)
+            ay = int(Const.AccResolution * event.Acceleration.Y)
+            az = int(Const.AccResolution * event.Acceleration.Z)
+            ann = f"A {ax} {ay} {az}"
+        elif event.Type == EventType.ORIENTATION.bit_length() - 1:
+            axis = get_orientation(event.Value)
+            ann = f"O {axis}"
+        elif event.Type == EventType.TEMP.bit_length() - 1:
+            ann = f"T {round(event.Data / 1000, 1)}"
+        else:
+            return data
+
+        self._ev_buffer.append((t, ann))
+        return data
+
+    def _process_input_ev_stream(self, data: dict):
+        """ запись событий в потоке в edf файл"""
+        event = data["signal"]
+        t = (event.Counter - self._exg_start_sample * self._exg_datablock.counter_per_sample) / self._exg_datablock.sample_rate
+
+        ann = "None"
+        if event.Type == EventType.FREEFALL.bit_length() - 1:
+            ann = "F"
+        elif event.Type == EventType.ACTIVITY.bit_length() - 1:
+            ax = int(Const.AccResolution * event.Acceleration.X)
+            ay = int(Const.AccResolution * event.Acceleration.Y)
+            az = int(Const.AccResolution * event.Acceleration.Z)
+            ann = f"A {ax} {ay} {az}"
+        elif event.Type == EventType.ORIENTATION.bit_length() - 1:
+            axis = get_orientation(event.Value)
+            ann = f"O {axis}"
+        elif event.Type == EventType.TEMP.bit_length() - 1:
+            ann = f"T {round(event.Data / 1000, 1)}"
+
+        self._exg_writer.writeAnnotation(description=ann, onset_in_seconds=t, duration_in_seconds=0)
 
     def _process_input_exg(self, data: dict) -> dict:
         """ обработка входящих биосигналов """
