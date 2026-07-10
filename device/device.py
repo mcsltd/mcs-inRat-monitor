@@ -209,7 +209,6 @@ class inRatDevice(QObject):
                 self.signal_enable_acc.emit(True)
                 self.signal_enable_sig.emit(True)
 
-
         else:
             self._control_pane.state_disconnect()
             self.signal_disconnected.emit()
