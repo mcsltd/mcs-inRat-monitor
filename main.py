@@ -129,6 +129,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def closeEvent(self, event):
         self.scanner.stop()
+        if self.device.is_running():
+            self.device.stop()
 
 if __name__ == "__main__":
     app = QApplication([])
@@ -147,5 +149,11 @@ if __name__ == "__main__":
     else:
         window = MainWindow(loop)
         window.showMaximized()
-        loop.run_forever()
 
+        try:
+            loop.run_forever()
+        except Exception as err:
+            logger.error(f"Ошибка в цикле событий: {err}")
+        finally:
+            if loop.is_running():
+                loop.stop()
