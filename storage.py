@@ -322,6 +322,10 @@ class DataStorage(QObject):
             self._exg_start_sample = sample
             self._exg_recording_start = time.time()
 
+        # test
+        # t = 1 / self._exg_datablock.sample_rate * (sample - self._exg_start_sample)* self._exg_datablock.counter_per_sample
+        # self._exg_writer.writeAnnotation(onset_in_seconds=t, description=f"smpl exg: {sample}", duration_in_seconds=0)
+
         if not self._idx_start_exg:
             self._idx_start_exg = 0
             self._idx_finish_exg = exg.shape[1]
@@ -355,6 +359,10 @@ class DataStorage(QObject):
         if not self._acc_start_sample:
             self._acc_start_sample = sample
             self._acc_recording_start = time.time()
+
+        # test
+        # t = 1 / self._acc_datablock.sample_rate * (sample - self._acc_start_sample) * self._acc_datablock.counter_per_sample
+        # self._acc_writer.writeAnnotation(onset_in_seconds=t, description=f"smpl acc: {sample}", duration_in_seconds=0)
 
         if not self._idx_start_acc:
             self._idx_start_acc = 0
