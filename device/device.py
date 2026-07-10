@@ -354,9 +354,9 @@ class inRatDevice(QObject):
         for receiver in self._receivers_data:
             receiver.stop()
 
-        if self._work_acc:
-            self._work_acc.join(1.5)
-            self._work_acc = None
+        if self._work_sig:
+            self._work_sig.join(1.5)
+            self._work_sig = None
 
         if self._work_acc:
             self._work_acc.join(1.5)
