@@ -118,11 +118,11 @@ class inRatDevice(QObject):
     def check_connection(self):
         """ проверка соединения """
         if self._inrat and not self._inrat.is_connected:
+            self._timer_check_conn.stop()
             self.stop()
             self.signal_error.emit(f"Потеряно соединение с {self._inrat.name}")
             self.process_disconnect()
             self.signal_disconnected.emit()
-            self._timer_check_conn.stop()
 
     def is_running(self) -> bool:
         return self._running
