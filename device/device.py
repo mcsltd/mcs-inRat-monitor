@@ -1,4 +1,5 @@
 import asyncio
+import copy
 import logging
 import time
 from asyncio import AbstractEventLoop
@@ -312,10 +313,10 @@ class inRatDevice(QObject):
             if data:
 
                 for receiver in self._receivers_sig:
-                    receiver._transmit_data(data)
+                    receiver._transmit_data(copy.deepcopy(data))
 
                 for receiver in self._receivers_data:
-                    receiver._transmit_data(data)
+                    receiver._transmit_data(copy.deepcopy(data))
 
             time.sleep(0.001)
 
@@ -333,10 +334,10 @@ class inRatDevice(QObject):
 
             if acc:
                 for receiver in self._receivers_acc:
-                    receiver._transmit_data(acc)
+                    receiver._transmit_data(copy.deepcopy(acc))
 
                 for receiver in self._receivers_data:
-                    receiver._transmit_data(acc)
+                    receiver._transmit_data(copy.deepcopy(acc))
 
             time.sleep(0.001)
 
