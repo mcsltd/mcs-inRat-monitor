@@ -7,7 +7,7 @@ from concurrent.futures import Future
 from threading import Thread
 
 import numpy as np
-from PySide6.QtCore import QObject, Signal, Qt
+from PySide6.QtCore import QObject, Signal, Qt, QTimer
 from PySide6.QtWidgets import QMessageBox
 from bleak import BLEDevice
 
@@ -110,6 +110,19 @@ class inRatDevice(QObject):
         self._control_pane.pushButtonStop.clicked.connect(self.stop)
         self._control_pane.pushButtonConfig.clicked.connect(self.on_config_clicked)
         self._control_pane.checkBoxActivated.checkStateChanged.connect(self.on_state_activate_changed)
+
+        self._timer_check_conn = QTimer()
+        self._timer_check_conn.setInterval(1000)
+        self._timer_check_conn.timeout.connect(self.check_connection)
+
+    def check_connection(self):
+        """ проверка соединения """
+        if self._inrat and not self._inrat.is_connected:
+            self.stop()
+            self.signal_error.emit(f"Потеряно соединение с {self._inrat.name}")
+            self.process_disconnect()
+            self.signal_disconnected.emit()
+            self._timer_check_conn.stop()
 
     def is_running(self) -> bool:
         return self._running
@@ -291,6 +304,7 @@ class inRatDevice(QObject):
     def process_start(self):
         """ обработка запуска устройства """
         self._control_pane.state_acquisition()
+        self._timer_check_conn.start()
 
     def _worker_thread_sig(self):
         """ Рабочий поток получает данные из входной очереди биосигналов
@@ -368,6 +382,7 @@ class inRatDevice(QObject):
     def process_stop(self):
         """ обработка остановки устройства """
         self._control_pane.state_connection()
+        self._timer_check_conn.stop()
 
     def on_config_clicked(self):
         """ обработка нажатия окна конфигураций """
