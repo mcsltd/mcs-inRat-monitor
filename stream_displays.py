@@ -5,19 +5,64 @@ from threading import Thread
 
 import numpy as np
 import pyqtgraph as pg
+from PySide6.QtCore import Signal
 from PySide6.QtGui import QFont
+from PySide6.QtWidgets import QFrame
 from pyqtgraph import mkPen, ScatterPlotItem, LegendItem, ItemSample
 
 from device.device import SignalDatablock
 from device.enums import TypeSignal, EventType
-
+from resources.frm_control_xy_range import Ui_FrmControlXYRange
 
 # ToDo: переписать на единый класс (?)
 # ToDo: сделать адаптацию под выбранные настройки устройства
-# ToDo: сделать виджеты для контроля параметров отрисовки
-
 
 logger = logging.getLogger(__name__)
+
+
+class FrmControlXYRange(QFrame, Ui_FrmControlXYRange):
+    """ Виджет контроля параметров по оси X, Y"""
+
+    signal_y_changed = Signal(object)
+    signal_x_changed = Signal(object)
+
+    def __init__(
+            self,
+            x_values: list[tuple] | None = None,
+            y_values: list[tuple] | None = None,
+            *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setupUi(self)
+        self.comboBoxXRange.setEnabled(False)
+        self.comboBoxYRange.setEnabled(False)
+
+        if x_values:
+            self._set_x_values(x_values)
+            self.comboBoxXRange.currentIndexChanged.connect(self._get_current_x_value)
+        if y_values:
+            self._set_y_values(y_values)
+            self.comboBoxYRange.currentIndexChanged.connect(self._get_current_y_value)
+
+    def _set_y_values(self, values: list[tuple]):
+        for v, d in values:
+            self.comboBoxYRange.addItem(v, d)
+        self.comboBoxYRange.setCurrentIndex(2)
+        self.comboBoxYRange.setEnabled(True)
+
+    def _get_current_y_value(self, index):
+        value = self.comboBoxYRange.currentData()
+        self.signal_y_changed.emit(value)
+
+    def _set_x_values(self, values: list[tuple]):
+        for v, d in values:
+            self.comboBoxXRange.addItem(v, d)
+        self.comboBoxXRange.setCurrentIndex(2)
+        self.comboBoxXRange.setEnabled(True)
+
+    def _get_current_x_value(self, index):
+        value = self.comboBoxXRange.currentData()
+        self.signal_x_changed.emit(value)
+
 
 class StreamViewer(pg.PlotWidget):
 
@@ -44,7 +89,7 @@ class StreamViewer(pg.PlotWidget):
         self._sig_datablock: SignalDatablock | None = None
 
         # настройки отображения
-        self.y_min, self.y_max = -5 * 1e-3, 5 * 1e-3
+        self._y_max, self._y_min = None, None
         self._timebase: int | None = 10
         self._max_timebase: int | None = 60
 
@@ -71,7 +116,7 @@ class StreamViewer(pg.PlotWidget):
         self.legend_temp.anchor(offset=(-120, 0), itemPos=(0,0), parentPos=(1, 0))
 
         self.setLabel("left", left_label, color="white")
-        self.setLabel("bottom", "mm:ss", color="white")
+        self.setLabel("bottom", color="white") # "mm:ss",
         for ax in ["bottom", "left"]:
             self.getAxis(ax).label.setFont(font)
             self.getAxis(ax).setPen(pen)
@@ -80,6 +125,22 @@ class StreamViewer(pg.PlotWidget):
             self.getAxis(ax).setTickFont(font)
 
         self.startTimer(16)
+
+    def set_x_range(self, value: float):
+        """ установка окна отображения сигнала """
+        if value > self._max_timebase:
+            logger.warning(f"Диапазон вывода сигнала по оси x {value} c. не можеть быть больше чем {self._max_timebase} с.")
+            return
+        self._timebase = value
+
+    def set_y_range(self, value: float):
+        """ установка ограничения выводимого сигнала """
+        if value < 0:
+            logger.warning("Значение не может быть меньше 0")
+            return
+        self._y_min = -value
+        self._y_max = value
+        logger.info(f"Установлен диапазон отображения по оси y - ({-self._y_min};{self._y_max};)")
 
     def update_params(self, params: SignalDatablock | None):
         """ установка параметров для начала отображения сигналов """
@@ -93,7 +154,7 @@ class StreamViewer(pg.PlotWidget):
         # настройка отрисовки графиков разными цветами
         pens = []
         if self._sig_datablock.type_signal is TypeSignal.ECG or self._sig_datablock.type_signal is TypeSignal.EEG:
-            self.y_min, self.y_max = -5 * 1e-3, 5 * 1e-3
+            # self.y_min, self.y_max = -5 * 1e-3, 5 * 1e-3
             pens.append(mkPen(color=(255, 255, 0)))
 
             if self.unit == "uV":
@@ -102,7 +163,7 @@ class StreamViewer(pg.PlotWidget):
                 self.setLabel("left", text=type_signal, units=self.unit, color="white", force=True)
 
         elif self._sig_datablock.type_signal is TypeSignal.ACC:
-            self.y_min, self.y_max = -1e3, 1e3
+            # self.y_min, self.y_max = -1e3, 1e3
             pens.extend([mkPen(color=(255, 0, 0)), mkPen(color=(0, 255, 0)), mkPen(color=(173, 216, 230))])
             self.setLabel("left", text=type_signal, units=self.unit, color="white", force=True)
 
@@ -150,18 +211,21 @@ class StreamViewer(pg.PlotWidget):
         # добавление графиков рассеяния для отображения событий
         for type_event in self._sig_datablock.type_events:
 
-            if type_event == "temp":
-                empty_sample = ItemSample(item=None)
-                self.legend_temp.clear()
-                self.legend_temp.addItem(empty_sample, "--°C")
-                continue
+            # if type_event == "temp":
+            #     empty_sample = ItemSample(item=None)
+            #     self.legend_temp.clear()
+            #     self.legend_temp.addItem(empty_sample, "--°C")
+            #     continue
 
-            symbol, brush = None, None
+            symbol, brush, event_name = None, None, None
             if type_event == "activity":
+                event_name = "Активность(A)"
                 symbol, brush = 't', pg.mkBrush(0, 255, 0, 180)
             elif type_event == "freefall":
+                event_name = "Невесомость(F)"
                 symbol, brush = 'o', pg.mkBrush(0, 0, 255, 180)
             elif type_event == "orientation":
+                event_name = "Ориентация(O)"
                 symbol, brush = 's', pg.mkBrush(255, 0, 0, 180),
             else:
                 logger.warning(f"Не поддерживаемый тип событий - {type_event}")
@@ -170,22 +234,26 @@ class StreamViewer(pg.PlotWidget):
             self.scatters[type_event] = ScatterPlotItem(name=type_event, symbol=symbol, brush=brush, size=10) # temp не добавляется
             self.point_scatters[type_event] = list()
             self.addItem(self.scatters[type_event])
-            self.legend_ev.addItem(self.scatters[type_event], name=type_event)
+            self.legend_ev.addItem(self.scatters[type_event], name=event_name)
 
     def set_event_point(self, data: dict):
         """ добавление на график точек событий """
         ev = data["signal"]
         t = ev.Counter / self._sig_datablock.sample_rate
 
+        y_pos = 0
+        if self._y_min:
+            y_pos = self._y_min
+
         if ev.Type == EventType.FREEFALL.bit_length() - 1 and "freefall" in self.scatters:
-            self.point_scatters["freefall"].append({"pos": (t, self.y_min)})
+            self.point_scatters["freefall"].append({"pos": (t, y_pos)})
         if ev.Type == EventType.ORIENTATION.bit_length() - 1 and "orientation" in self.scatters:
-            self.point_scatters["orientation"].append({"pos": (t, self.y_min)})
+            self.point_scatters["orientation"].append({"pos": (t, y_pos)})
         if ev.Type == EventType.ACTIVITY.bit_length() - 1 and "activity" in self.scatters:
-            self.point_scatters["activity"].append({"pos": (t, self.y_min)})
-        if ev.Type == EventType.TEMP.bit_length() - 1:
-            self.legend_temp.clear()
-            self.legend_temp.addItem(ItemSample(item=None), f"{round(ev.Data / 1000, 1)}°C")
+            self.point_scatters["activity"].append({"pos": (t, y_pos)})
+        # if ev.Type == EventType.TEMP.bit_length() - 1:
+        #     self.legend_temp.clear()
+        #     self.legend_temp.addItem(ItemSample(item=None), f"{round(ev.Data / 1000, 1)}°C")
 
         return
 
@@ -249,6 +317,10 @@ class StreamViewer(pg.PlotWidget):
 
         # self.setYRange(self.y_min, self.y_max)
         self.release_event_points()
+
+        if self._y_min and self._y_max:
+            self.setYRange(self._y_min, self._y_max, padding=0.1)
+
         self.update_display = False
 
     def release_event_points(self):
@@ -299,6 +371,91 @@ class StreamViewer(pg.PlotWidget):
         except:
             pass
 
+
+class TempStreamViewer(pg.PlotWidget):
+    """ Виджет отображения сигнала температуры """
+
+    def __init__(self, left_label: str | None = None, units: str | None = None, *args, **kwargs):
+        kwargs['axisItems'] = {'bottom': FormatterTimeAxisItem(orientation="bottom")}
+        super().__init__(*args, **kwargs)
+
+        self.setBackground((64,64,64))
+        self.setEnabled(False)
+
+        white_pen = pg.mkPen(color='w')
+        font = QFont("Arial", 9)
+
+        self._timebase = 600
+
+        # отображение температуры с помощью графика рассеяния
+        self.temp_scatter = ScatterPlotItem(pen=pg.mkPen((255,255,0)), brush=pg.mkBrush('y'))
+        self.addItem(self.temp_scatter)
+
+        # отображение текущего значения температуры в легенде
+        self.legend_temp = LegendItem(labelTextSize="25pt", labelTextColor="white")
+        self.legend_temp.setParentItem(self.graphicsItem())
+        self.legend_temp.anchor(itemPos=(1, 0.5), parentPos=(1, 0.5))
+        empty_sample = ItemSample(item=None)
+        self.legend_temp.addItem(empty_sample, "--°C")
+
+        self.setLabel("left", left_label, units=units, color="white") # "°C",
+        self.setLabel("bottom", color="white") # "Время", units="s",
+        for ax in ["bottom", "left"]:
+            self.getAxis(ax).label.setFont(font)
+            self.getAxis(ax).setPen(white_pen)
+            self.getAxis(ax).setTickPen(white_pen)
+            self.getAxis(ax).setTextPen(white_pen)
+            self.getAxis(ax).setTickFont(font)
+
+        self.setYRange(20, 45, padding=0)
+        self.setXRange(0, self._timebase, padding=0)
+
+        self.lines = []
+
+    def set_temperature(self, t: float, value: float):
+        """ установка температуры в график """
+        line = self.plot([t, t], [0, value], pen=pg.mkPen("y", width=0.5))
+        self.temp_scatter.addPoints([{'pos': (t, value)}])
+
+        if self.legend_temp:
+            self.legend_temp.clear()
+            empty_sample = ItemSample(item=None)
+            self.legend_temp.addItem(empty_sample, f"{value}°C")
+
+        self.lines.append(line)
+
+        # регулировка отображения
+        if t < self._timebase:
+            self.setXRange(0, self._timebase, padding=0)
+        else:
+            self.setXRange(t - self._timebase, t, padding=0)
+        self.setYRange(20, 45, padding=0)
+
+    def set_timebase(self, value: float):
+        """ установка окна вывода графика """
+        self._timebase = value
+
+    def clear_plot(self):
+        """ очистка графика при перезапуске """
+        for line in self.lines:
+            self.removeItem(line)
+        self.temp_scatter.clear()
+        self.lines.clear()
+
+        self.legend_temp.clear()
+        # self.legend_temp.addItem(self.temp_scatter, f"--°C")
+        empty_sample = ItemSample(item=None)
+        self.legend_temp.addItem(empty_sample, f"--°C")
+
+        self.setYRange(20, 45, padding=0)
+        self.setXRange(0, self._timebase, padding=0)
+
+    # def disable_legend(self):
+    #     """Отключение и удаление легенды с графика"""
+    #     if self.legend_temp is not None:
+    #         self.legend_temp.clear()
+    #         self.removeItem(self.legend_temp)
+    #         self.legend_temp = None
 
 class FormatterTimeAxisItem(pg.AxisItem):
     """ формат mm:ss по оси x """
