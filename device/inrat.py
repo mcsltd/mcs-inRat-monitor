@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 class inRat:
 
     UUID_CHARACTERISTIC_CONTROL = "7395ca15-5997-5a1b-a138-75a7a573b8e5"
-    UUID_CHARACTERISTIC_ECG_EEG = "59573ef1-5389-575f-87d5-5f31fcdcba7b"
+    UUID_CHARACTERISTIC_EXG = "59573ef1-5389-575f-87d5-5f31fcdcba7b"
     UUID_CHARACTERISTIC_EVENT = "f553739f-9f1f-538d-a7d3-cd987b395eb5"
     UUID_CHARACTERISTIC_ACC = "aae8a15e-db13-53fd-9efc-1fab1717aee5"
     UUID_CHARACTERISTIC_STATUS = "c3571b1b-e17e-5195-9fd3-8119cb153187"
@@ -311,22 +311,37 @@ class inRat:
             smpl, acc = decode_acc(data, enabled_channels=self._enabled_channels, resolution=self._acc_resolution)
             await acceleration_queue.put({"sample":smpl, "signal":acc, "type": "acc"})  # "counter" -> "samples"
 
+        if signal_event_queue:
+
+            if (
+                    bool(self._enabled_events & EventType.ORIENTATION) or
+                    bool(self._enabled_events & EventType.ACTIVITY) or
+                    bool(self._enabled_events & EventType.FREEFALL) or
+                    bool(self._enabled_events & EventType.TEMP)
+            ):
+                await self._client.start_notify(self.UUID_CHARACTERISTIC_EVENT, event_handler)
+                logger.info(f"{self.name}: подписка на сервисы UUID_CHARACTERISTIC_EVENT")
+
+            if bool(self._enabled_channels & EnabledChannels.ECG):
+                await self._client.start_notify(self.UUID_CHARACTERISTIC_EXG, exg_handler)
+                logger.info(f"{self.name}: подписка на сервисы UUID_CHARACTERISTIC_EXG")
+
+        if acceleration_queue and self._firmware in FIRMWARE_ACC_EXG:
+            if (
+                    bool(self._enabled_channels & EnabledChannels.ACC_X) and
+                    bool(self._enabled_channels & EnabledChannels.ACC_Y) and
+                    bool(self._enabled_channels & EnabledChannels.ACC_Z)
+            ):
+                    await self._client.start_notify(self.UUID_CHARACTERISTIC_ACC, acc_handler)
+                    logger.info(f"{self.name}: подписка на сервисы UUID_CHARACTERISTIC_ACC")
 
         settings = self._get_settings()
         try:
             await self.setup(Command.AcquisitionStart, settings)
         except Exception as err:
+            await self.stop_acquisition()
             logger.error(f"{self.name}: ошибка передачи команды AcquisitionStart - {err}")
             return False
-
-        if signal_event_queue:
-            await self._client.start_notify(self.UUID_CHARACTERISTIC_EVENT, event_handler)
-            await self._client.start_notify(self.UUID_CHARACTERISTIC_ECG_EEG, exg_handler)
-            logger.info(f"{self.name}: подписка на сервисы UUID_CHARACTERISTIC_ECG_EEG, UUID_CHARACTERISTIC_EVENT")
-
-        if acceleration_queue and self._firmware in FIRMWARE_ACC_EXG:
-            await self._client.start_notify(self.UUID_CHARACTERISTIC_ACC, acc_handler)
-            logger.info(f"{self.name}: подписка на сервисы UUID_CHARACTERISTIC_ACC")
 
         return True
 
@@ -339,14 +354,14 @@ class inRat:
             ...
 
         try:
-            await self._client.stop_notify(self.UUID_CHARACTERISTIC_ECG_EEG)
-            logger.info(f"{self.name}: отписка от сервиса UUID_CHARACTERISTIC_ECG_EEG")
+            await self._client.stop_notify(self.UUID_CHARACTERISTIC_EXG)
+            logger.info(f"{self.name}: отписка от сервиса UUID_CHARACTERISTIC_EXG")
         except Exception as exc:
             ...
 
         try:
             await self._client.stop_notify(self.UUID_CHARACTERISTIC_ACC)
-            logger.info(f"{self.name}: отписка от сервиса UUID_CHARACTERISTIC_ECG_EEG")
+            logger.info(f"{self.name}: отписка от сервиса UUID_CHARACTERISTIC_ACC")
         except Exception as exc:
             ...
 

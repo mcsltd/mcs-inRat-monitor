@@ -150,11 +150,11 @@ class StreamViewer(pg.PlotWidget):
         # добавление графиков рассеяния для отображения событий
         for type_event in self._sig_datablock.type_events:
 
-            if type_event == "temp":
-                empty_sample = ItemSample(item=None)
-                self.legend_temp.clear()
-                self.legend_temp.addItem(empty_sample, "--°C")
-                continue
+            # if type_event == "temp":
+            #     empty_sample = ItemSample(item=None)
+            #     self.legend_temp.clear()
+            #     self.legend_temp.addItem(empty_sample, "--°C")
+            #     continue
 
             symbol, brush = None, None
             if type_event == "activity":
@@ -183,9 +183,9 @@ class StreamViewer(pg.PlotWidget):
             self.point_scatters["orientation"].append({"pos": (t, self.y_min)})
         if ev.Type == EventType.ACTIVITY.bit_length() - 1 and "activity" in self.scatters:
             self.point_scatters["activity"].append({"pos": (t, self.y_min)})
-        if ev.Type == EventType.TEMP.bit_length() - 1:
-            self.legend_temp.clear()
-            self.legend_temp.addItem(ItemSample(item=None), f"{round(ev.Data / 1000, 1)}°C")
+        # if ev.Type == EventType.TEMP.bit_length() - 1:
+        #     self.legend_temp.clear()
+        #     self.legend_temp.addItem(ItemSample(item=None), f"{round(ev.Data / 1000, 1)}°C")
 
         return
 
@@ -299,6 +299,91 @@ class StreamViewer(pg.PlotWidget):
         except:
             pass
 
+
+class TempStreamViewer(pg.PlotWidget):
+    """ Виджет отображения сигнала температуры """
+
+    def __init__(self, left_label: str | None = None, units: str | None = None, *args, **kwargs):
+        kwargs['axisItems'] = {'bottom': FormatterTimeAxisItem(orientation="bottom")}
+        super().__init__(*args, **kwargs)
+
+        self.setBackground((64,64,64))
+        self.setEnabled(False)
+
+        white_pen = pg.mkPen(color='w')
+        font = QFont("Arial", 9)
+
+        self._timebase = 600
+
+        # отображение температуры с помощью графика рассеяния
+        self.temp_scatter = ScatterPlotItem(pen=pg.mkPen((255,255,0)), brush=pg.mkBrush('y'))
+        self.addItem(self.temp_scatter)
+
+        # отображение текущего значения температуры в легенде
+        self.legend_temp = LegendItem(labelTextSize="25pt", labelTextColor="white")
+        self.legend_temp.setParentItem(self.graphicsItem())
+        self.legend_temp.anchor(itemPos=(1, 0.5), parentPos=(1, 0.5))
+        empty_sample = ItemSample(item=None)
+        self.legend_temp.addItem(empty_sample, "--°C")
+
+        self.setLabel("left", left_label, units=units, color="white") # "°C",
+        self.setLabel("bottom", color="white") # "Время", units="s",
+        for ax in ["bottom", "left"]:
+            self.getAxis(ax).label.setFont(font)
+            self.getAxis(ax).setPen(white_pen)
+            self.getAxis(ax).setTickPen(white_pen)
+            self.getAxis(ax).setTextPen(white_pen)
+            self.getAxis(ax).setTickFont(font)
+
+        self.setYRange(20, 45, padding=0)
+        self.setXRange(0, self._timebase, padding=0)
+
+        self.lines = []
+
+    def set_temperature(self, t: float, value: float):
+        """ установка температуры в график """
+        line = self.plot([t, t], [0, value], pen=pg.mkPen("y", width=0.5))
+        self.temp_scatter.addPoints([{'pos': (t, value)}])
+
+        if self.legend_temp:
+            self.legend_temp.clear()
+            empty_sample = ItemSample(item=None)
+            self.legend_temp.addItem(empty_sample, f"{value}°C")
+
+        self.lines.append(line)
+
+        # регулировка отображения
+        if t < self._timebase:
+            self.setXRange(0, self._timebase, padding=0)
+        else:
+            self.setXRange(t - self._timebase, t, padding=0)
+        self.setYRange(20, 45, padding=0)
+
+    def set_timebase(self, value: float):
+        """ установка окна вывода графика """
+        self._timebase = value
+
+    def clear_plot(self):
+        """ очистка графика при перезапуске """
+        for line in self.lines:
+            self.removeItem(line)
+        self.temp_scatter.clear()
+        self.lines.clear()
+
+        self.legend_temp.clear()
+        # self.legend_temp.addItem(self.temp_scatter, f"--°C")
+        empty_sample = ItemSample(item=None)
+        self.legend_temp.addItem(empty_sample, f"--°C")
+
+        self.setYRange(20, 45, padding=0)
+        self.setXRange(0, self._timebase, padding=0)
+
+    # def disable_legend(self):
+    #     """Отключение и удаление легенды с графика"""
+    #     if self.legend_temp is not None:
+    #         self.legend_temp.clear()
+    #         self.removeItem(self.legend_temp)
+    #         self.legend_temp = None
 
 class FormatterTimeAxisItem(pg.AxisItem):
     """ формат mm:ss по оси x """

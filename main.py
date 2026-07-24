@@ -7,7 +7,7 @@ from bleak import BLEDevice
 from device.device import inRatDevice
 from device.enums import TypeSignal
 from scanner import BLEScannerWorker
-from stream_displays import StreamViewer
+from stream_displays import StreamViewer, TempStreamViewer
 from utils.check_bluetooth import check_bluetooth_status
 from storage import DataStorage
 from resources.main_window import Ui_MainWindow
@@ -32,6 +32,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.storage = DataStorage()
         self.display_sig = StreamViewer(TypeSignal.ECG.value)
         self.display_acc = StreamViewer(TypeSignal.ACC.value)
+        self.display_temp = TempStreamViewer(left_label="temp", units="°C")
         self.device.add_receiver_data(self.storage)
 
         # create scanner and run it
@@ -47,8 +48,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.verticalLayout.insertWidget(5, self.storage.control_pane)
         self.verticalLayoutDisplay.addWidget(self.display_sig)
         self.verticalLayoutDisplay.addWidget(self.display_acc)
+        self.verticalLayoutDisplay.addWidget(self.display_temp)
         self.enable_display_sig(False)
         self.enable_display_acc(False)
+        self.enable_display_temp(False)
 
         # connection
         self.pushButtonConnect.clicked.connect(self.on_connect_clicked)
@@ -59,6 +62,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.device.signal_enable_sig.connect(self.enable_display_sig)
         self.device.signal_enable_acc.connect(self.enable_display_acc)
+        self.device.signal_enable_temp.connect(self.enable_display_temp)
 
         # ui elements
         self._waiting_connection_dlg = WaitingDialog(self)
@@ -80,6 +84,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             self.device.remove_receiver_sig(self.display_sig)
             self.display_sig.setVisible(False)
+
+    def enable_display_temp(self, state: bool):
+        logger.debug("Активация окна отображения сигналов ЭКГ/ЭМГ")
+        if state:
+            self.device.add_receiver_temp(self.display_temp)
+            self.display_temp.setVisible(True)
+        else:
+            self.device.remove_receiver_temp()
+            self.display_temp.setVisible(False)
 
     def on_connect_clicked(self):
         """ обработка нажатия кнопки открытия устройства """

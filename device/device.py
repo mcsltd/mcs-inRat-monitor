@@ -14,6 +14,7 @@ from bleak import BLEDevice
 from device.constants import Pkt
 from device.enums import EnabledChannels, TypeSignal, EventType
 from device.inrat import inRat, FIRMWARE_ACC_EXG, FIRMWARE_V0
+from device.structures import Event
 from device.ui.config_dialog import DlgConfigDevice
 from device.ui.control_pane import FrmControlPane
 
@@ -53,6 +54,7 @@ class SignalDatablock:
         self.device_name: str | None = device_name
 
 
+
 class inRatDevice(QObject):
 
     signal_connected = Signal()
@@ -61,6 +63,7 @@ class inRatDevice(QObject):
 
     signal_enable_sig = Signal(bool)
     signal_enable_acc = Signal(bool)
+    signal_enable_temp = Signal(bool)
 
     """ класс для работы с inRat """
 
@@ -100,6 +103,8 @@ class inRatDevice(QObject):
         )
         self._receivers_acc = []
         self._acc_queue = asyncio.Queue()
+
+        self._receiver_temp = None
 
         # флаг выполнения рабочего потока
         self._running: bool = False
@@ -170,12 +175,25 @@ class inRatDevice(QObject):
             receiver.update_params(params=self._acc_datablock)
         else:
             logger.warning(f"Попытка дублировать {receiver} в приёмниках акселерометра")
-
     def remove_receiver_acc(self, receiver):
         """ удалить объект приёмника из коллекции акселерометра """
         if receiver in self._receivers_acc:
             self._receivers_acc.remove(receiver)
         receiver.stop()
+
+    def add_receiver_temp(self, receiver):
+        """ добавление приёмника событий температуры """
+        if self._receiver_temp:
+            logger.warning("Приёмник temp сигналов уже установлен!")
+            return
+        self._receiver_temp = receiver
+        logger.info("Добавлен приёмник событий temp")
+    def remove_receiver_temp(self):
+        """ добавление приёмника cобытий температуры """
+        if not self._receiver_temp:
+            logger.info("Приёмник событий температуры уже отсутствует")
+        self._receiver_temp = None
+        logger.info("Удален приёмник событий temp")
 
     def process_connect(self, device: BLEDevice):
         """ обработка соединения с inRat """
@@ -248,6 +266,7 @@ class inRatDevice(QObject):
 
         self.signal_enable_acc.emit(False)
         self.signal_enable_sig.emit(False)
+        self.signal_enable_temp.emit(False)
 
     def start(self):
         """ запуск inRat на получение данных """
@@ -284,6 +303,9 @@ class inRatDevice(QObject):
                 for receiver in self._receivers_data:
                     receiver.update_params(params_acc=self._acc_datablock, params_exg=self._exg_datablock)
                     receiver.start()
+
+                if self._receiver_temp:
+                    self._receiver_temp.clear_plot()
 
                 if not self._running:
                     self._running = True
@@ -325,11 +347,28 @@ class inRatDevice(QObject):
 
             if data:
 
-                for receiver in self._receivers_sig:
-                    receiver._transmit_data(copy.deepcopy(data))
+                try:
+                    for receiver in self._receivers_sig:
+                        receiver._transmit_data(copy.deepcopy(data))
+                except Exception as err:
+                    logger.error(f"Возникла ошибка передачи данных в receiver_sig: {err}")
 
-                for receiver in self._receivers_data:
-                    receiver._transmit_data(copy.deepcopy(data))
+                try:
+                    for receiver in self._receivers_data:
+                        receiver._transmit_data(copy.deepcopy(data))
+                except Exception as err:
+                    logger.error(f"Возникла ошибка передачи данных в receiver_data: {err}")
+
+                try:
+                    if self._exg_datablock and self._receiver_temp and data["type"]== "ev":
+                        if data["signal"].Type == EventType.TEMP.bit_length() - 1:
+                            ev_temp: Event = data["signal"]
+                            t = ev_temp.Counter * (1 / self._exg_datablock.sample_rate)
+                            temp = round(ev_temp.Data / 1000, 1)
+                            self._receiver_temp.set_temperature(t=t, value=temp)
+                except Exception as err:
+                    logger.error(f"Возникла ошибка передачи события температуры в receiver_temp: {err}")
+
 
             time.sleep(0.001)
 
@@ -367,6 +406,9 @@ class inRatDevice(QObject):
             receiver.stop()
         for receiver in self._receivers_data:
             receiver.stop()
+
+        # if self._receiver_temp:
+        #     self._receiver_temp.clear_plot()
 
         if self._work_sig:
             self._work_sig.join(1.5)
@@ -439,6 +481,10 @@ class inRatDevice(QObject):
             self.signal_enable_acc.emit(False)
             self._acc_datablock = None
 
+        if bool(self._inrat.enabled_events & EventType.TEMP):
+            self.signal_enable_temp.emit(True)
+        else:
+            self.signal_enable_temp.emit(False)
 
         # обновление параметров
         for receiver in self._receivers_sig:
