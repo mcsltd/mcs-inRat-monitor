@@ -5,6 +5,7 @@ from enum import IntEnum
 from functools import cached_property
 from uuid import UUID
 
+import numpy as np
 from bleak import BLEDevice, BleakClient
 
 from device.constants import Pkt
@@ -24,6 +25,7 @@ FIRMWARE_ACC_EXG = ("1.0.260610", "1.0.260617", "1.0.260619", "1.0.260624") # "1
 logger = logging.getLogger(__name__)
 
 class inRat:
+    MAX_VALUE_SAMPLE = np.iinfo(np.uint16).max
 
     UUID_CHARACTERISTIC_CONTROL = "7395ca15-5997-5a1b-a138-75a7a573b8e5"
     UUID_CHARACTERISTIC_EXG = "59573ef1-5389-575f-87d5-5f31fcdcba7b"
@@ -72,6 +74,10 @@ class inRat:
         self._enabled_events = EventType.NONE
         self._activity_threshold = 2
         self._enabled_channels = EnabledChannels.ECG
+
+        # последние значение счётчиков пакетов
+        self._lst_sample_exg = -1
+        self._lst_sample_acc = -1
 
     @property
     def mode(self):
@@ -292,27 +298,41 @@ class inRat:
     async def start_acquisition(
             self,
             # event_queue: asyncio.Queue| None = None,
-            signal_event_queue: asyncio.Queue| None = None,
-            acceleration_queue: asyncio.Queue| None = None
+            exg_event_queue: asyncio.Queue| None = None,
+            acc_queue: asyncio.Queue| None = None
     ) -> bool:
         """ запуск на получение данных """
         async def event_handler(sender, data: bytearray):
             event_size = ctypes.sizeof(Event)
             cnt = int(len(data) / event_size)
+
             for idx in range(cnt):
                 event = Event.from_buffer(data[idx * event_size: (idx + 1) * event_size])
-                await signal_event_queue.put({
+                await exg_event_queue.put({
                     "sample": int(event.Counter / Pkt.SamplesCountEcg),
                     "counter": event.Counter, "signal": event, "type": "ev"})
+
         async def exg_handler(sender, data):
-            smpl, signal = decode_exg(data, self._exg_resolution)
-            await signal_event_queue.put({"sample":smpl, "signal":signal, "type": "sig"}) # "counter" -> "samples"
+            smpl, exg = decode_exg(data, self._exg_resolution)
+
+            lost_exg = (smpl - self._lst_sample_exg) % (self.MAX_VALUE_SAMPLE + 1)
+            if lost_exg != 1:
+                logger.warning(f"Потеряны пакеты exg: {lost_exg}")
+            self._lst_sample_exg = smpl
+
+            await exg_event_queue.put({"sample":smpl, "signal":exg, "type": "sig"}) # "counter" -> "samples"
+
         async def acc_handler(sender, data):
             smpl, acc = decode_acc(data, enabled_channels=self._enabled_channels, resolution=self._acc_resolution)
-            await acceleration_queue.put({"sample":smpl, "signal":acc, "type": "acc"})  # "counter" -> "samples"
 
-        if signal_event_queue:
+            lost_acc = (smpl - self._lst_sample_acc) % (self.MAX_VALUE_SAMPLE + 1)
+            if lost_acc != 1:
+                logger.warning(f"Потеряны пакеты acc: {lost_acc}")
+            self._lst_sample_acc = smpl
 
+            await acc_queue.put({"sample":smpl, "signal":acc, "type": "acc"})  # "counter" -> "samples"
+
+        if exg_event_queue:
             if (
                     bool(self._enabled_events & EventType.ORIENTATION) or
                     bool(self._enabled_events & EventType.ACTIVITY) or
@@ -326,7 +346,7 @@ class inRat:
                 await self._client.start_notify(self.UUID_CHARACTERISTIC_EXG, exg_handler)
                 logger.info(f"{self.name}: подписка на сервисы UUID_CHARACTERISTIC_EXG")
 
-        if acceleration_queue and self._firmware in FIRMWARE_ACC_EXG:
+        if acc_queue and self._firmware in FIRMWARE_ACC_EXG:
             if (
                     bool(self._enabled_channels & EnabledChannels.ACC_X) and
                     bool(self._enabled_channels & EnabledChannels.ACC_Y) and
@@ -370,6 +390,9 @@ class inRat:
             logger.info(f"{self.name}: отписка от сервиса UUID_CHARACTERISTIC_EVENT")
         except Exception as exc:
             ...
+
+        self._lst_sample_exg = -1
+        self._lst_sample_acc = -1
 
     async def disconnect(self):
         """ закрытие соединения с устройством """
