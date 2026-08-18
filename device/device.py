@@ -283,8 +283,8 @@ class inRatDevice(QObject):
 
         future = asyncio.run_coroutine_threadsafe(
             self._inrat.start_acquisition(
-                signal_event_queue=self._sig_queue,
-                acceleration_queue=self._acc_queue
+                exg_event_queue=self._sig_queue,
+                acc_queue=self._acc_queue
             ), self._loop
         )
         future.add_done_callback(self.on_device_started)
