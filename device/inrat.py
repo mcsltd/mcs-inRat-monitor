@@ -76,7 +76,10 @@ class inRat:
         self._enabled_channels = EnabledChannels.ECG
 
         # последние значение счётчиков пакетов
+        self._lst_value_exg = np.ones((Pkt.ChannelsCountEcg, Pkt.SamplesCountEcg), dtype=np.float64)[:, 0]
         self._lst_sample_exg = -1
+
+        self._lst_value_acc = np.ones((Pkt.ChannelsCountAcc, Pkt.SamplesCountAcc), dtype=np.float64)[:, 0]
         self._lst_sample_acc = -1
 
     @property
@@ -314,12 +317,23 @@ class inRat:
 
         async def exg_handler(sender, data):
             smpl, exg = decode_exg(data, self._exg_resolution)
-
             lost_exg = (smpl - self._lst_sample_exg) % (self.MAX_VALUE_SAMPLE + 1)
             if lost_exg != 1:
                 logger.warning(f"Потеряны пакеты exg: {lost_exg}")
-            self._lst_sample_exg = smpl
+                exg = np.ones((Pkt.ChannelsCountEcg, Pkt.SamplesCountEcg), dtype=np.float64) * self._lst_value_exg[:, np.newaxis]
+                for idx_sample in range(self._lst_sample_exg + 1, smpl):
+                    await exg_event_queue.put({"sample": idx_sample, "signal": exg, "type": "sig"})  # "counter" -> "samples"
+                await exg_event_queue.put(
+                    {
+                        "sample": (self._lst_sample_exg + 1) * Pkt.SamplesCountEcg,
+                        "counter": (self._lst_sample_exg + 1) * Pkt.SamplesCountEcg,
+                        "signal": f"L {lost_exg}",
+                        "type": "ev"
+                    }
+                )
 
+            self._lst_value_exg = exg[:, 0]
+            self._lst_sample_exg = smpl
             await exg_event_queue.put({"sample":smpl, "signal":exg, "type": "sig"}) # "counter" -> "samples"
 
         async def acc_handler(sender, data):
@@ -328,8 +342,12 @@ class inRat:
             lost_acc = (smpl - self._lst_sample_acc) % (self.MAX_VALUE_SAMPLE + 1)
             if lost_acc != 1:
                 logger.warning(f"Потеряны пакеты acc: {lost_acc}")
-            self._lst_sample_acc = smpl
+                acc = np.ones((Pkt.ChannelsCountAcc, Pkt.SamplesCountAcc), dtype=np.float64) * self._lst_value_acc[:, np.newaxis]
+                for idx_sample in range(self._lst_sample_exg + 1, smpl):
+                    await acc_queue.put({"sample": idx_sample, "signal": acc, "type": "acc"})  # "counter" -> "samples"
 
+            self._lst_value_acc = acc[:, 0]
+            self._lst_sample_acc = smpl
             await acc_queue.put({"sample":smpl, "signal":acc, "type": "acc"})  # "counter" -> "samples"
 
         if exg_event_queue:

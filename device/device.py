@@ -77,6 +77,7 @@ class inRatDevice(QObject):
         self._receivers_data = []
 
         # ресурсы для обработки событий и биосигналов
+        self._last_exg_sample = -1
         self._work_sig: Thread | None = None
         self._exg_datablock = SignalDatablock(
             type_signal=TypeSignal.ECG, sample_rate=500,
@@ -91,6 +92,7 @@ class inRatDevice(QObject):
         self._sig_queue = asyncio.Queue()
 
         # ресурсы для обработки показаний акселерометра
+        self._last_acc_sample = -1
         self._work_acc: Thread | None = None
         self._acc_datablock = SignalDatablock(
             type_signal=TypeSignal.ACC, sample_rate=100,
@@ -309,7 +311,7 @@ class inRatDevice(QObject):
 
                 if not self._running:
                     self._running = True
-                    self._work_sig = Thread(target=self._worker_thread_sig)
+                    self._work_sig = Thread(target=self._worker_thread_exg)
                     self._work_acc = Thread(target=self._worker_thread_acc)
                     self._work_sig.start()
                     self._work_acc.start()
@@ -328,7 +330,7 @@ class inRatDevice(QObject):
         self._control_pane.state_acquisition()
         self._timer_check_conn.start()
 
-    def _worker_thread_sig(self):
+    def _worker_thread_exg(self):
         """ Рабочий поток получает данные из входной очереди биосигналов
             и помещает обработанные данные в выходную очередь
             переменная data, содержит:
@@ -425,6 +427,9 @@ class inRatDevice(QObject):
         """ обработка остановки устройства """
         self._control_pane.state_connection()
         self._timer_check_conn.stop()
+
+        self._last_exg_sample = -1
+
 
     def on_config_clicked(self):
         """ обработка нажатия окна конфигураций """

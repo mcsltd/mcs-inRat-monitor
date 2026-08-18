@@ -392,20 +392,26 @@ class DataStorage(QObject):
     def _process_input_ev_stream(self, data: dict):
         """ запись событий в потоке в edf файл"""
         event = data["signal"]
-        t = (event.Counter - self._exg_start_sample * self._exg_datablock.counter_per_sample) / self._exg_datablock.sample_rate
 
         ann = "None"
-        if event.Type == EventType.FREEFALL.bit_length() - 1:
+        if isinstance(event, str) and event.startswith("L"):
+            t = (data["counter"] - self._exg_start_sample * self._exg_datablock.counter_per_sample) / self._exg_datablock.sample_rate
+            ann = event
+        elif event.Type == EventType.FREEFALL.bit_length() - 1:
+            t = (event.Counter - self._exg_start_sample * self._exg_datablock.counter_per_sample) / self._exg_datablock.sample_rate
             ann = "F"
         elif event.Type == EventType.ACTIVITY.bit_length() - 1:
+            t = (event.Counter - self._exg_start_sample * self._exg_datablock.counter_per_sample) / self._exg_datablock.sample_rate
             ax = int(Const.AccResolution * event.Acceleration.X)
             ay = int(Const.AccResolution * event.Acceleration.Y)
             az = int(Const.AccResolution * event.Acceleration.Z)
             ann = f"A {ax} {ay} {az}"
         elif event.Type == EventType.ORIENTATION.bit_length() - 1:
+            t = (event.Counter - self._exg_start_sample * self._exg_datablock.counter_per_sample) / self._exg_datablock.sample_rate
             axis = get_orientation(event.Value)
             ann = f"O {axis}"
         elif event.Type == EventType.TEMP.bit_length() - 1:
+            t = (event.Counter - self._exg_start_sample * self._exg_datablock.counter_per_sample) / self._exg_datablock.sample_rate
             ann = f"T {round(event.Data / 1000, 1)}"
 
         self._exg_writer.writeAnnotation(description=ann, onset_in_seconds=t, duration_in_seconds=0)
