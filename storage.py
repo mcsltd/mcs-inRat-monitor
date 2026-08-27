@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 class DataStorage(QObject):
     """
-    Класс для сохранения сигналов с устройства в форматы EDF
+    Класс для сохранения сигналов/событий с inRat в EDF
     """
 
     def __init__(self, *args, **kwargs):
