@@ -1,4 +1,5 @@
 import copy
+import datetime
 import logging
 import queue
 import time
@@ -6,6 +7,7 @@ import numpy as np
 
 from threading import Thread
 from PySide6.QtCore import QObject
+from PySide6.QtWidgets import QFileDialog
 from pyedflib import EdfWriter
 
 from device.device import SignalDatablock
@@ -46,10 +48,24 @@ class Storage(QObject):
         self._control_pane = FrmOnlineControlRecording(self)
         self._control_pane.pushButtonStartRecording.clicked.connect(self._prepare_recording)
         self._control_pane.pushButtonStopRecording.clicked.connect(self._close_recording)
+        self._control_pane.pushButtonSelectSaveDir.clicked.connect(self._on_select_save_folder_clicked)
+
 
     @property
     def control_pane(self):
         return self._control_pane
+
+    def _on_select_save_folder_clicked(self):
+        """ выбор места сохранения для записей edf """
+        write_dir = QFileDialog.getExistingDirectory(
+            None,
+            "Выберите папку для сохранения записей",
+            self._write_dir,
+            QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks,
+        )
+
+        if write_dir:
+            self._write_dir = write_dir
 
     def start(self):
         """ запуск модуля """
@@ -234,16 +250,17 @@ class Storage(QObject):
 
     def save_signals_to_edf(self, acc: None | np.ndarray = None, exg: None | np.ndarray = None):
         """ сохранение сигналов в edf файл """
-        channels_info = []
+        channels_info, signals = [], []
         channel_template = dict.fromkeys(
             [
                 'label', 'dimension', 'sample_frequency', 'physical_max', 'physical_min', 'digital_max', 'digital_min'
             ], None
         )
         total_channels = 0
-        signals = []
+        filename = ""
 
         if self._acc_param:
+            filename += f"{self._acc_param.type_signal.value}_"
             total_channels += self._acc_param.number_channels
             for idx_ch in range(self._acc_param.number_channels):
                 info = channel_template.copy()
@@ -255,6 +272,7 @@ class Storage(QObject):
                 channels_info.append(info.copy())
                 signals.append(acc[idx_ch, :])
         if self._exg_param:
+            filename += f"{self._exg_param.type_signal.value}_"
             total_channels += self._exg_param.number_channels
             for idx_ch in range(self._exg_param.number_channels):
                 info = channel_template.copy()
@@ -265,10 +283,10 @@ class Storage(QObject):
                 info["sample_frequency"] = self._exg_param.sample_rate
                 channels_info.append(info.copy())
                 signals.append(exg[idx_ch, :])
-            # signals.append(exg)
 
         # file_name = self._write_dir + f"{self._filename}.edf"
-        file_name = "./data/test.edf"
+        now = datetime.datetime.now().strftime("%H_%M_%S")
+        file_name = f"{self._write_dir}/{filename}_{now}.edf"
         writer = EdfWriter(n_channels=total_channels, file_name=file_name)
 
         if self._device_name:
