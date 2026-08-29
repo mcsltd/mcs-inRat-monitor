@@ -9,7 +9,7 @@ from device.enums import TypeSignal
 from scanner import BLEScannerWorker
 from stream_displays import StreamViewer, TempStreamViewer, FrmControlXYRange
 from utils.check_bluetooth import check_bluetooth_status
-from storage import DataStorage
+from storage_v1 import Storage as DataStorage
 from resources.main_window import Ui_MainWindow
 from widget import WaitingDialog
 

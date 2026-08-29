@@ -6,6 +6,7 @@ import numpy as np
 
 from threading import Thread
 from PySide6.QtCore import QObject
+from pyedflib import EdfWriter
 
 from device.device import SignalDatablock
 from storage import FrmOnlineControlRecording
@@ -13,7 +14,7 @@ from storage import FrmOnlineControlRecording
 logger = logging.getLogger(__name__)
 
 class Storage(QObject):
-
+    """ класс для сохранения данных с устройства в EDF файл """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -28,6 +29,7 @@ class Storage(QObject):
         self._sec_buffer_size = 1200 # 20 minute
         self._format = "edf"
         self._device_name = None
+        self._object_name = None
         self._write_dir = None
         self._filename = None
         self._selected_dir = None
@@ -156,30 +158,33 @@ class Storage(QObject):
         """ метод закрытия записи и сохранения данных """
         logger.debug(f"{self.__class__}: закрытие записи")
         self._recording = False
+        acc_signal, exg_signal = None, None
 
         if self._acc_param:
             idx_finish = (self._acc_last_sample - self._acc_start_sample) * self._acc_param.counter_per_sample
-            length_in_sec = self._exg_buffer[:,:idx_finish].shape[1] / self._acc_param.sample_rate
+            length_acc_sec = self._acc_buffer[:,:idx_finish].shape[1] / self._acc_param.sample_rate
+            acc_signal = self._acc_buffer[:,:idx_finish]
+
             self._acc_buffer = np.zeros(
-                (
-                    self._acc_param.number_channels,
-                    self._acc_param.sample_rate * self._sec_buffer_size
-                ), dtype=np.float32
+                (self._acc_param.number_channels, self._acc_param.sample_rate * self._sec_buffer_size),
+                dtype=np.float32
             )
             self._acc_start_sample = None
-            logger.debug(f"Буффер acc очищен, было записано сигнала - {length_in_sec} сек.")
+            logger.debug(f"Буфер acc очищен, было записано сигнала - {length_acc_sec} сек.")
 
         if self._exg_param:
             idx_finish = (self._exg_last_sample - self._exg_start_sample) * self._exg_param.counter_per_sample
-            length_in_sec = self._exg_buffer[:, :idx_finish].shape[1] / self._exg_param.sample_rate
+            length_exg_sec = self._exg_buffer[:, :idx_finish].shape[1] / self._exg_param.sample_rate
+            exg_signal = self._exg_buffer[:,:idx_finish]
+
             self._exg_buffer = np.zeros(
-                (
-                    self._exg_param.number_channels,
-                    self._exg_param.sample_rate * self._sec_buffer_size),
+                (self._exg_param.number_channels, self._exg_param.sample_rate * self._sec_buffer_size),
                 dtype=np.float32
             )
             self._exg_start_sample = None
-            logger.debug(f"Буффер exg очищен, было записано сигнала - {length_in_sec} сек.")
+            logger.debug(f"Буфер exg очищен, было записано сигнала - {length_exg_sec} сек.")
+
+        self.save_signals_to_edf(acc=acc_signal, exg=exg_signal)
 
         self._control_pane.pushButtonStartRecording.setEnabled(True)
         self._control_pane.pushButtonStopRecording.setEnabled(False)
@@ -195,7 +200,7 @@ class Storage(QObject):
         self._control_pane.pushButtonSelectSaveDir.setEnabled(False)
 
     def __process_exg(self, data: dict):
-        """ сохранение сигнала exg в буффер """
+        """ сохранение сигнала exg в буфер """
         sig, sample = data["signal"], data["sample"]
         if self._exg_start_sample is None:
             self._exg_start_sample = sample
@@ -209,7 +214,7 @@ class Storage(QObject):
         self._exg_last_sample = sample
 
     def __process_acc(self, data: dict):
-        """ сохранение сигнала acc в буффер """
+        """ сохранение сигнала acc в буфер """
         acc, sample = data["signal"], data["sample"]
         if self._acc_start_sample is None:
             self._acc_start_sample = sample
@@ -226,3 +231,53 @@ class Storage(QObject):
         """ сохранение сигнала exg в буффер """
         # print(f"{data}")
         pass
+
+    def save_signals_to_edf(self, acc: None | np.ndarray = None, exg: None | np.ndarray = None):
+        """ сохранение сигналов в edf файл """
+        channels_info = []
+        channel_template = dict.fromkeys(
+            [
+                'label', 'dimension', 'sample_frequency', 'physical_max', 'physical_min', 'digital_max', 'digital_min'
+            ], None
+        )
+        total_channels = 0
+        signals = []
+
+        if self._acc_param:
+            total_channels += self._acc_param.number_channels
+            for idx_ch in range(self._acc_param.number_channels):
+                info = channel_template.copy()
+                info["digital_min"], info["digital_max"] = -32768, 32767
+                info["physical_min"], info["physical_max"] = acc[idx_ch,:].min(), acc[idx_ch,:].max()
+                info["label"] = self._acc_param.channel_names[idx_ch]
+                info["dimension"] = self._acc_param.units
+                info["sample_frequency"] = self._acc_param.sample_rate
+                channels_info.append(info.copy())
+                signals.append(acc[idx_ch, :])
+        if self._exg_param:
+            total_channels += self._exg_param.number_channels
+            for idx_ch in range(self._exg_param.number_channels):
+                info = channel_template.copy()
+                info["digital_min"], info["digital_max"] = -32768, 32767
+                info["physical_min"], info["physical_max"] = exg[idx_ch,:].min(), exg[idx_ch,:].max()
+                info["label"] = self._exg_param.channel_names[idx_ch]
+                info["dimension"] = self._exg_param.units
+                info["sample_frequency"] = self._exg_param.sample_rate
+                channels_info.append(info.copy())
+                signals.append(exg[idx_ch, :])
+            # signals.append(exg)
+
+        # file_name = self._write_dir + f"{self._filename}.edf"
+        file_name = "./data/test.edf"
+        writer = EdfWriter(n_channels=total_channels, file_name=file_name)
+
+        if self._device_name:
+            writer.setEquipment(self._device_name)
+        if self._object_name:
+            writer.setPatientName(self._object_name)
+        if self._recording_start_time:
+            writer.setStartdatetime(self._recording_start_time)
+        for idx_ch in range(total_channels):
+            writer.setSignalHeader(idx_ch, channels_info[idx_ch])
+        writer.writeSamples(signals)
+        writer.close()
