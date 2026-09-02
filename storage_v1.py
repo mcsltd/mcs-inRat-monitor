@@ -170,6 +170,19 @@ class Storage(QObject):
 
         self._control_pane.set_disable()
 
+    def _prepare_recording(self):
+        """ метод подготовки к записи """
+        logger.debug(f"{self.__class__}: открытие на запись")
+
+        if self._write_dir is None:
+            self._control_pane.pushButtonSelectSaveDir.click()
+
+        self._recording = True
+
+        self._control_pane.pushButtonStopRecording.setEnabled(True)
+        self._control_pane.pushButtonStartRecording.setEnabled(False)
+        self._control_pane.pushButtonSelectSaveDir.setEnabled(False)
+
     def _close_recording(self):
         """ метод закрытия записи и сохранения данных """
         logger.debug(f"{self.__class__}: закрытие записи")
@@ -200,20 +213,17 @@ class Storage(QObject):
             self._exg_start_sample = None
             logger.debug(f"Буфер exg очищен, было записано сигнала - {length_exg_sec} сек.")
 
+        if self._exg_param and self._acc_param:
+            record_dur = exg_signal.shape[1] / self._exg_param.sample_rate
+            lost = int(record_dur * self._acc_param.sample_rate - acc_signal.shape[1])
+            logger.debug(f"Сигнал acc отстал на {lost} отсчётов; {lost / self._acc_param.sample_rate} c.")
+            acc_signal = self.interpolate_missing_samples(acc_signal, lost)
+
         self.save_signals_to_edf(acc=acc_signal, exg=exg_signal)
 
         self._control_pane.pushButtonStartRecording.setEnabled(True)
         self._control_pane.pushButtonStopRecording.setEnabled(False)
         self._control_pane.pushButtonSelectSaveDir.setEnabled(True)
-
-    def _prepare_recording(self):
-        """ метод подготовки к записи """
-        logger.debug(f"{self.__class__}: открытие на запись")
-        self._recording = True
-
-        self._control_pane.pushButtonStopRecording.setEnabled(True)
-        self._control_pane.pushButtonStartRecording.setEnabled(False)
-        self._control_pane.pushButtonSelectSaveDir.setEnabled(False)
 
     def __process_exg(self, data: dict):
         """ сохранение сигнала exg в буфер """
@@ -299,3 +309,59 @@ class Storage(QObject):
             writer.setSignalHeader(idx_ch, channels_info[idx_ch])
         writer.writeSamples(signals)
         writer.close()
+
+    @staticmethod
+    def interpolate_missing_samples(signal: np.ndarray, lost_samples: int) -> np.ndarray:
+        """
+        Вставляет lost_samples отсчетов в сигнал, разделяя его на lost_samples частей.
+        Вставленные отсчёты - среднее от отсчётов слева и справа
+        """
+        logger.debug(f"Вставка в acc пропущенных отсчётов - {lost_samples}")
+
+        if lost_samples <= 0:
+            return signal.copy()
+
+        n_channels, length = signal.shape
+        part_size = length // lost_samples  # части на которые делится сигнал
+        remainder = length % lost_samples  # остаток
+        result_size = length + lost_samples
+        recovery_signal = np.zeros((n_channels, result_size), dtype=signal.dtype)
+
+        # позиции для вставки
+        # массив размеров частей
+        sizes = np.full(lost_samples, part_size, dtype=int)
+        sizes[:remainder] += 1
+
+        # вычисление cumulative суммы для позиций
+        cumsum = np.cumsum(sizes)
+        insert_positions = cumsum + np.arange(lost_samples) - 1
+
+        # маска для исходных позиций
+        mask = np.ones(result_size, dtype=bool)
+        mask[insert_positions] = False
+        # заполнение отсчётов
+        recovery_signal[:, mask] = signal
+        # расчёт индексов в исходном сигнале для вставок
+        signal_indices = insert_positions - np.arange(lost_samples) - 1
+        #  массив левых и правых индексов
+        left_idx = signal_indices - 1
+        right_idx = signal_indices
+        # корректировка границы
+        left_idx = np.clip(left_idx, 0, length - 1)
+        right_idx = np.clip(right_idx, 0, length - 1)
+        # первая вставка
+        first_mask = (signal_indices == 0)
+        # последняя вставка
+        last_mask = (signal_indices == length - 1)
+
+        # заполнение
+        for ch in range(n_channels):
+            # заполнение вставок средним соседних
+            recovery_signal[ch, insert_positions] = (signal[ch, left_idx] + signal[ch, right_idx]) / 2
+            # корректировка вставок
+            if np.any(first_mask):
+                recovery_signal[ch, insert_positions[first_mask]] = (signal[ch, 0] + signal[ch, 1]) / 2
+            # последняя вставка
+            if np.any(last_mask):
+                recovery_signal[ch, insert_positions[last_mask]] = (signal[ch, -2] + signal[ch, -1]) / 2
+        return recovery_signal
