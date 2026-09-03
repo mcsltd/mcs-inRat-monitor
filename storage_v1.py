@@ -187,12 +187,21 @@ class Storage(QObject):
         """ метод закрытия записи и сохранения данных """
         logger.debug(f"{self.__class__}: закрытие записи")
         self._recording = False
+
+        self.__process_signals_for_save()
+
+        self._control_pane.pushButtonStartRecording.setEnabled(True)
+        self._control_pane.pushButtonStopRecording.setEnabled(False)
+        self._control_pane.pushButtonSelectSaveDir.setEnabled(True)
+
+    def __process_signals_for_save(self, ):
+        """ обработка сигналов для сохранения в edf """
         acc_signal, exg_signal = None, None
 
         if self._acc_param:
             idx_finish = (self._acc_last_sample - self._acc_start_sample) * self._acc_param.counter_per_sample
-            length_acc_sec = self._acc_buffer[:,:idx_finish].shape[1] / self._acc_param.sample_rate
-            acc_signal = self._acc_buffer[:,:idx_finish]
+            length_acc_sec = self._acc_buffer[:, :idx_finish].shape[1] / self._acc_param.sample_rate
+            acc_signal = self._acc_buffer[:, :idx_finish]
 
             self._acc_buffer = np.zeros(
                 (self._acc_param.number_channels, self._acc_param.sample_rate * self._sec_buffer_size),
@@ -204,7 +213,7 @@ class Storage(QObject):
         if self._exg_param:
             idx_finish = (self._exg_last_sample - self._exg_start_sample) * self._exg_param.counter_per_sample
             length_exg_sec = self._exg_buffer[:, :idx_finish].shape[1] / self._exg_param.sample_rate
-            exg_signal = self._exg_buffer[:,:idx_finish]
+            exg_signal = self._exg_buffer[:, :idx_finish]
 
             self._exg_buffer = np.zeros(
                 (self._exg_param.number_channels, self._exg_param.sample_rate * self._sec_buffer_size),
@@ -213,17 +222,16 @@ class Storage(QObject):
             self._exg_start_sample = None
             logger.debug(f"Буфер exg очищен, было записано сигнала - {length_exg_sec} сек.")
 
+        # заполнение пропущенных отсчётов acc
         if self._exg_param and self._acc_param:
             record_dur = exg_signal.shape[1] / self._exg_param.sample_rate
             lost = int(record_dur * self._acc_param.sample_rate - acc_signal.shape[1])
             logger.debug(f"Сигнал acc отстал на {lost} отсчётов; {lost / self._acc_param.sample_rate} c.")
             acc_signal = self.interpolate_missing_samples(acc_signal, lost)
+        # todo заполнение acc по времени записи
 
         self.save_signals_to_edf(acc=acc_signal, exg=exg_signal)
 
-        self._control_pane.pushButtonStartRecording.setEnabled(True)
-        self._control_pane.pushButtonStopRecording.setEnabled(False)
-        self._control_pane.pushButtonSelectSaveDir.setEnabled(True)
 
     def __process_exg(self, data: dict):
         """ сохранение сигнала exg в буфер """
@@ -309,6 +317,11 @@ class Storage(QObject):
             writer.setSignalHeader(idx_ch, channels_info[idx_ch])
         writer.writeSamples(signals)
         writer.close()
+
+    def __switch_to_new_edf(self):
+        """ переключение записи на новый файл при заполнении одного из буферов"""
+        # self.__process_signals_for_save()
+        pass
 
     @staticmethod
     def interpolate_missing_samples(signal: np.ndarray, lost_samples: int) -> np.ndarray:
