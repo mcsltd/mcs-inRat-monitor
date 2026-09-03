@@ -10,7 +10,10 @@ from PySide6.QtCore import QObject
 from PySide6.QtWidgets import QFileDialog
 from pyedflib import EdfWriter
 
+from device.constants import Const
 from device.device import SignalDatablock
+from device.enums import EventType
+from device.utils import get_orientation
 from storage import FrmOnlineControlRecording
 
 logger = logging.getLogger(__name__)
@@ -43,6 +46,8 @@ class Storage(QObject):
         self._acc_param = None
         self._acc_buffer = None
         self._acc_start_sample = None
+        # event buffer
+        self._ev_buffer = []
 
         # ui panels
         self._control_pane = FrmOnlineControlRecording(self)
@@ -229,9 +234,9 @@ class Storage(QObject):
             logger.debug(f"Сигнал acc отстал на {lost} отсчётов; {lost / self._acc_param.sample_rate} c.")
             acc_signal = self.interpolate_missing_samples(acc_signal, lost)
         # todo заполнение acc по времени записи
-
-        self.save_signals_to_edf(acc=acc_signal, exg=exg_signal)
-
+        ev = self._ev_buffer.copy()
+        self.save_signals_to_edf(acc=acc_signal, exg=exg_signal, ev=ev)
+        self._ev_buffer = []
 
     def __process_exg(self, data: dict):
         """ сохранение сигнала exg в буфер """
@@ -262,11 +267,35 @@ class Storage(QObject):
         self._acc_last_sample = sample
 
     def __process_ev(self, data: dict):
-        """ сохранение сигнала exg в буффер """
-        # print(f"{data}")
-        pass
+        """ сохранение сигнала exg в буфер """
+        event = data["signal"]
+        t, ann = None, None
+        if event.Type == EventType.FREEFALL.bit_length() - 1:
+            t = (event.Counter - self._exg_start_sample * self._exg_param.counter_per_sample) / self._exg_param.sample_rate
+            ann = "F"
+        elif event.Type == EventType.ACTIVITY.bit_length() - 1:
+            t = (event.Counter - self._exg_start_sample * self._exg_param.counter_per_sample) / self._exg_param.sample_rate
+            ax = int(Const.AccResolution * event.Acceleration.X)
+            ay = int(Const.AccResolution * event.Acceleration.Y)
+            az = int(Const.AccResolution * event.Acceleration.Z)
+            ann = f"A {ax} {ay} {az}"
+        elif event.Type == EventType.ORIENTATION.bit_length() - 1:
+            t = (event.Counter - self._exg_start_sample * self._exg_param.counter_per_sample) / self._exg_param.sample_rate
+            axis = get_orientation(event.Value)
+            ann = f"O {axis}"
+        elif event.Type == EventType.TEMP.bit_length() - 1:
+            t = (event.Counter - self._exg_start_sample * self._exg_param.counter_per_sample) / self._exg_param.sample_rate
+            ann = f"T {round(event.Data / 1000, 1)}"
 
-    def save_signals_to_edf(self, acc: None | np.ndarray = None, exg: None | np.ndarray = None):
+        if t and ann:
+            self._ev_buffer.append((t, ann))
+
+    def save_signals_to_edf(
+            self,
+            acc: None | np.ndarray = None,
+            exg: None | np.ndarray = None,
+            ev: None | list[tuple] = None
+    ):
         """ сохранение сигналов в edf файл """
         channels_info, signals = [], []
         channel_template = dict.fromkeys(
@@ -316,6 +345,11 @@ class Storage(QObject):
         for idx_ch in range(total_channels):
             writer.setSignalHeader(idx_ch, channels_info[idx_ch])
         writer.writeSamples(signals)
+
+        if ev:
+            for t, ann in self._ev_buffer:
+                writer.writeAnnotation(onset_in_seconds=t, duration_in_seconds=0, description=ann)
+
         writer.close()
 
     def __switch_to_new_edf(self):
