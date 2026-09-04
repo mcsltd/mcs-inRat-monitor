@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'frm_online_control_recordingPnikfM.ui'
+## Form generated from reading UI file 'frm_online_control_recordingFLRMKd.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.0
 ##
@@ -119,6 +119,17 @@ class Ui_FrmOnlineControlRecording(object):
 
         self.verticalLayout.addLayout(self.horizontalLayout)
 
+        self.verticalLayout_2 = QVBoxLayout()
+        self.verticalLayout_2.setObjectName(u"verticalLayout_2")
+        self.pushButtonOpenArchive = QPushButton(self.groupBox)
+        self.pushButtonOpenArchive.setObjectName(u"pushButtonOpenArchive")
+        self.pushButtonOpenArchive.setEnabled(False)
+
+        self.verticalLayout_2.addWidget(self.pushButtonOpenArchive)
+
+
+        self.verticalLayout.addLayout(self.verticalLayout_2)
+
 
         self.gridLayout.addLayout(self.verticalLayout, 0, 0, 1, 1)
 
@@ -144,5 +155,6 @@ class Ui_FrmOnlineControlRecording(object):
         self.labelFileCounter.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"000", None))
         self.pushButtonStartRecording.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"\u041d\u0430\u0447\u0430\u0442\u044c \u0437\u0430\u043f\u0438\u0441\u044c", None))
         self.pushButtonStopRecording.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"\u041e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u0437\u0430\u043f\u0438\u0441\u044c", None))
+        self.pushButtonOpenArchive.setText(QCoreApplication.translate("FrmOnlineControlRecording", u"\u0417\u0430\u043f\u0438\u0441\u0438", None))
     # retranslateUi
 

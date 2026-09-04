@@ -3,6 +3,7 @@ import datetime
 import logging
 import os
 import queue
+import sys
 import time
 import numpy as np
 
@@ -19,6 +20,11 @@ from storage import FrmOnlineControlRecording
 
 logger = logging.getLogger(__name__)
 
+# todo
+# добавить восстановление acc из времени записи
+# добавить раздельное сохранение acc/exg
+# протестировать получение событий
+
 class Storage(QObject):
     """ класс для сохранения данных с устройства в EDF файл """
     def __init__(self, *args, **kwargs):
@@ -33,13 +39,11 @@ class Storage(QObject):
         # general recording params
         self._recording_start_time = None
         self._sec_buffer_size = 1200
-        # self._sec_buffer_size = 60  # for test
         self._format = "edf"
         self._device_name = None
         self._object_name = None
         self._write_dir = None
         self._filename = None
-        self._selected_dir = None
         self._cnt_file = 0
         # exg params recording
         self._exg_param = None
@@ -59,6 +63,8 @@ class Storage(QObject):
         self._control_pane.pushButtonStartRecording.clicked.connect(self._prepare_recording)
         self._control_pane.pushButtonStopRecording.clicked.connect(self._close_recording)
         self._control_pane.pushButtonSelectSaveDir.clicked.connect(self._on_select_save_folder_clicked)
+        self._control_pane.pushButtonOpenArchive.clicked.connect(self._on_archive_clicked)
+
 
     @property
     def control_pane(self):
@@ -76,7 +82,29 @@ class Storage(QObject):
         if write_dir is None:
             logger.info("Не выбрана директория сохранения edf файлов")
             return
-        self._write_dir = rf"{write_dir}"
+        self._write_dir = write_dir
+        if self._write_dir and self._device_name:
+            path_to_archive = rf"{write_dir}/{self._device_name}"
+            os.makedirs(path_to_archive, exist_ok=True)
+            self._control_pane.enable_archive(True)
+
+    def _on_archive_clicked(self):
+        """ метод для открытия папки с записями """
+        path_to_archive = rf"{self._write_dir}"
+        if self._device_name and os.path.exists(rf"{self._write_dir}/{self._device_name}"):
+            path_to_archive += rf"/{self._device_name}"
+
+        if not os.path.exists(path_to_archive):
+            logger.debug(f"Путь до записей не существует {path_to_archive}")
+            return
+
+        try:
+            if sys.platform == "win32":
+                os.startfile(path_to_archive)
+            else:
+                logger.debug(f"Не поддерживаемая версия платформы: {sys.platform}")
+        except Exception as err:
+            logger.debug(f"Ошибка открытия директории с записями: {err}")
 
     def start(self):
         """ запуск модуля """
@@ -178,12 +206,16 @@ class Storage(QObject):
         self._control_pane.set_file_count(self._cnt_file)
         self._control_pane.timebase = self._sec_buffer_size
 
+        if self._write_dir and self._device_name:
+            self._control_pane.enable_archive(True)
+
     def process_stop(self):
         """ метод очистки после остановки """
         if self._recording:
             self._close_recording()
 
         self._control_pane.set_disable()
+        self._control_pane.enable_archive(True)
 
     def _prepare_recording(self):
         """ метод подготовки к записи """
@@ -205,6 +237,8 @@ class Storage(QObject):
         self._recording = False
 
         self.__process_signals_for_save()
+        self._cnt_file += 1
+        self._control_pane.set_file_count(self._cnt_file)
 
         self._control_pane.pushButtonStartRecording.setEnabled(True)
         self._control_pane.pushButtonStopRecording.setEnabled(False)
@@ -348,7 +382,6 @@ class Storage(QObject):
                 channels_info.append(info.copy())
                 signals.append(exg[idx_ch, :])
 
-
         path_to_save = rf"{self._write_dir}\{self._device_name}"
         os.makedirs(path_to_save, exist_ok=True)
 
@@ -438,3 +471,17 @@ class Storage(QObject):
             if np.any(last_mask):
                 recovery_signal[ch, insert_positions[last_mask]] = (signal[ch, -2] + signal[ch, -1]) / 2
         return recovery_signal
+
+    def reset(self):
+        """ сброс атрибутов на случай переключения на другое устройство """
+        self._recording = False
+        self._running = False
+        self._recording_start_time = None
+        self._device_name = None
+        self._object_name = None
+        self._write_dir = None
+        self._filename = None
+        self._cnt_file = 0
+        self._control_pane.set_file_count(self._cnt_file)
+        self._control_pane.set_disable()
+        self._control_pane.enable_archive(False)

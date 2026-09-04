@@ -91,6 +91,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.device.signal_connected.connect(self.on_device_connected)
         self.device.signal_disconnected.connect(self.on_device_disconnected)
         self.device.signal_error.connect(self.show_message_error)
+        self.device.signal_disconnected.connect(self.storage.reset)
 
         self.device.signal_enable_sig.connect(self.enable_display_sig)
         self.device.signal_enable_acc.connect(self.enable_display_acc)
@@ -165,6 +166,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.pushButtonConnect.setVisible(True)
         self.comboBoxDevice.clear()
         self.comboBoxDevice.setEnabled(True)
+        self.pushButtonConnect.setEnabled(False)
 
     def set_combobox_items(self, devices: set[BLEDevice]):
         for device in devices:

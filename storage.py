@@ -444,7 +444,6 @@ class FrmOnlineControlRecording(QFrame, Ui_FrmOnlineControlRecording):
         self.startTimer(1000)
 
         self._timebase = 1200
-
         self.labelFileCounter.setText("000")
 
     @property
@@ -456,6 +455,9 @@ class FrmOnlineControlRecording(QFrame, Ui_FrmOnlineControlRecording):
 
     def set_file_count(self, value):
         self.labelFileCounter.setText(f"{value:03d}")
+
+    def enable_archive(self, state: bool = False):
+        self.pushButtonOpenArchive.setEnabled(state)
 
     def set_enable(self):
         self.pushButtonSelectSaveDir.setEnabled(True)
