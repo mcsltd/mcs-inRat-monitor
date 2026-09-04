@@ -5,7 +5,7 @@ import queue
 import time
 import numpy as np
 
-from threading import Thread
+from threading import Thread, Lock
 from PySide6.QtCore import QObject
 from PySide6.QtWidgets import QFileDialog
 from pyedflib import EdfWriter
@@ -31,13 +31,15 @@ class Storage(QObject):
 
         # general recording params
         self._recording_start_time = None
-        self._sec_buffer_size = 1200 # 20 minute
+        # self._sec_buffer_size = 1200 # 20 minute
+        self._sec_buffer_size = 60  # 20 minute
         self._format = "edf"
         self._device_name = None
         self._object_name = None
         self._write_dir = None
         self._filename = None
         self._selected_dir = None
+        self._cnt_file = 0
         # exg params recording
         self._exg_param = None
         self._exg_buffer = None
@@ -49,12 +51,13 @@ class Storage(QObject):
         # event buffer
         self._ev_buffer = []
 
+        self._thlock_save = Lock()
+
         # ui panels
         self._control_pane = FrmOnlineControlRecording(self)
         self._control_pane.pushButtonStartRecording.clicked.connect(self._prepare_recording)
         self._control_pane.pushButtonStopRecording.clicked.connect(self._close_recording)
         self._control_pane.pushButtonSelectSaveDir.clicked.connect(self._on_select_save_folder_clicked)
-
 
     @property
     def control_pane(self):
@@ -167,6 +170,8 @@ class Storage(QObject):
     def process_start(self):
         """ метод инициализации параметров перед стартом """
         self._control_pane.set_enable()
+        self._control_pane.set_file_count(self._cnt_file)
+        self._control_pane.timebase = self._sec_buffer_size
 
     def process_stop(self):
         """ метод очистки после остановки """
@@ -183,6 +188,7 @@ class Storage(QObject):
             self._control_pane.pushButtonSelectSaveDir.click()
 
         self._recording = True
+        self._recording_start_time = datetime.datetime.now()
 
         self._control_pane.pushButtonStopRecording.setEnabled(True)
         self._control_pane.pushButtonStartRecording.setEnabled(False)
@@ -201,6 +207,7 @@ class Storage(QObject):
 
     def __process_signals_for_save(self, ):
         """ обработка сигналов для сохранения в edf """
+        # todo - плохо написан - тут обработка + сохранение
         acc_signal, exg_signal = None, None
 
         if self._acc_param:
@@ -233,6 +240,7 @@ class Storage(QObject):
             lost = int(record_dur * self._acc_param.sample_rate - acc_signal.shape[1])
             logger.debug(f"Сигнал acc отстал на {lost} отсчётов; {lost / self._acc_param.sample_rate} c.")
             acc_signal = self.interpolate_missing_samples(acc_signal, lost)
+
         # todo заполнение acc по времени записи
         ev = self._ev_buffer.copy()
         self.save_signals_to_edf(acc=acc_signal, exg=exg_signal, ev=ev)
@@ -247,10 +255,12 @@ class Storage(QObject):
         idx_start = (sample - self._exg_start_sample) * self._exg_param.counter_per_sample
         idx_finish = (sample - self._exg_start_sample) * self._exg_param.counter_per_sample + self._exg_param.counter_per_sample
         if idx_finish >= self._exg_buffer.shape[1]:
-            self._close_recording()
-
-        self._exg_buffer[:, idx_start:idx_finish] = sig
-        self._exg_last_sample = sample
+            remain_cnt_exg = idx_finish - self._exg_buffer.shape[1]
+            self.__switch_to_new_edf()  # переключение на запись в новый edf файл
+            logger.debug(f"{self.__class__}: потеряно отсчётов exg при записи - {remain_cnt_exg}")
+        else:
+            self._exg_buffer[:, idx_start:idx_finish] = sig
+            self._exg_last_sample = sample
 
     def __process_acc(self, data: dict):
         """ сохранение сигнала acc в буфер """
@@ -261,10 +271,12 @@ class Storage(QObject):
         idx_start = (sample - self._acc_start_sample) * self._acc_param.counter_per_sample
         idx_finish = (sample - self._acc_start_sample) * self._acc_param.counter_per_sample + self._acc_param.counter_per_sample
         if idx_finish >= self._acc_buffer.shape[1]:
-            self._close_recording()
-
-        self._acc_buffer[:, idx_start:idx_finish] = acc
-        self._acc_last_sample = sample
+            remain_cnt_acc = idx_finish - self._acc_buffer.shape[1]
+            logger.debug(f"{self.__class__}: потеряно отсчётов acc при записи - {remain_cnt_acc}")
+            self.__switch_to_new_edf()  # переключение на запись в новый edf файл
+        else:
+            self._acc_buffer[:, idx_start:idx_finish] = acc
+            self._acc_last_sample = sample
 
     def __process_ev(self, data: dict):
         """ сохранение сигнала exg в буфер """
@@ -332,8 +344,9 @@ class Storage(QObject):
                 signals.append(exg[idx_ch, :])
 
         # file_name = self._write_dir + f"{self._filename}.edf"
-        now = datetime.datetime.now().strftime("%H_%M_%S")
-        file_name = f"{self._write_dir}/{filename}_{now}.edf"
+        # now = datetime.datetime.now().strftime("%H_%M_%S")
+        start_time = self._recording_start_time.strftime("%H_%M_%S")
+        file_name = f"{self._write_dir}/{filename}{start_time}_{self._cnt_file:03d}.edf"
         writer = EdfWriter(n_channels=total_channels, file_name=file_name)
 
         if self._device_name:
@@ -354,8 +367,14 @@ class Storage(QObject):
 
     def __switch_to_new_edf(self):
         """ переключение записи на новый файл при заполнении одного из буферов"""
-        # self.__process_signals_for_save()
-        pass
+        self._thlock_save.acquire()
+        self._close_recording()
+        self._prepare_recording()
+        self._thlock_save.release()
+
+        # увеличение счётчика записи
+        self._cnt_file += 1
+        self._control_pane.set_file_count(self._cnt_file)
 
     @staticmethod
     def interpolate_missing_samples(signal: np.ndarray, lost_samples: int) -> np.ndarray:
