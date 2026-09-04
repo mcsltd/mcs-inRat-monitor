@@ -9,7 +9,7 @@ from device.enums import TypeSignal
 from scanner import BLEScannerWorker
 from stream_displays import StreamViewer, TempStreamViewer, FrmControlXYRange
 from utils.check_bluetooth import check_bluetooth_status
-from storage import DataStorage
+from storage_v1 import Storage as DataStorage
 from resources.main_window import Ui_MainWindow
 from widget import WaitingDialog
 
@@ -35,9 +35,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.layout_control_pane_exg = QHBoxLayout()
         self.control_pane_sig = FrmControlXYRange(
             parent=self,
-            x_values=[("1 c", 1), ("5 c", 5), ("10 c", 10), ("30 c", 30), ("60 c", 60)],
-            y_values=[("±0.3 мВ", 0.3 * 1e-3), ("±0.5 мВ", 0.5 * 1e-3),
-                      ("±1 мВ", 1 * 1e-3), ("±1.5 мВ", 1.5 * 1e-3), ("±2 мВ", 2 * 1e-3)]
+            x_values=[("1 c", 1), ("5 c", 5), ("10 c", 10), ("30 c", 30), ("60 c", 60)], default_idx_x=2,
+            y_values=[("АРУ", None), ("±0.3 мВ", 0.3 * 1e-3), ("±0.5 мВ", 0.5 * 1e-3),
+                      ("±1 мВ", 1 * 1e-3), ("±1.5 мВ", 1.5 * 1e-3), ("±2 мВ", 2 * 1e-3)], default_idx_y=0,
         )
         self.display_sig = StreamViewer(TypeSignal.ECG.value)
         self.control_pane_sig.signal_x_changed.connect(self.display_sig.set_x_range)
@@ -52,7 +52,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.control_pane_acc = FrmControlXYRange(
             parent=self,
             x_values=[("1 c", 1), ("5 c", 5), ("10 c", 10), ("30 c", 30), ("60 c", 60)],
-            y_values=[("±1 G", 1), ("±2 G", 2.0), ("±4 G", 4.0), ("±8 G", 8.0), ("±16 G", 16.0)]
+            default_idx_x=2,
+            y_values=[("АРУ", None), ("±1 G", 1), ("±2 G", 2.0), ("±4 G", 4.0), ("±8 G", 8.0), ("±16 G", 16.0)],
+            default_idx_y=0,
         )
         self.display_acc = StreamViewer(TypeSignal.ACC.value)
         self.control_pane_acc.signal_x_changed.connect(self.display_acc.set_x_range)
@@ -89,6 +91,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.device.signal_connected.connect(self.on_device_connected)
         self.device.signal_disconnected.connect(self.on_device_disconnected)
         self.device.signal_error.connect(self.show_message_error)
+        self.device.signal_disconnected.connect(self.storage.reset)
 
         self.device.signal_enable_sig.connect(self.enable_display_sig)
         self.device.signal_enable_acc.connect(self.enable_display_acc)
@@ -163,6 +166,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.pushButtonConnect.setVisible(True)
         self.comboBoxDevice.clear()
         self.comboBoxDevice.setEnabled(True)
+        self.pushButtonConnect.setEnabled(False)
 
     def set_combobox_items(self, devices: set[BLEDevice]):
         for device in devices:

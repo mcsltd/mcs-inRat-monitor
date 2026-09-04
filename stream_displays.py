@@ -28,8 +28,8 @@ class FrmControlXYRange(QFrame, Ui_FrmControlXYRange):
 
     def __init__(
             self,
-            x_values: list[tuple] | None = None,
-            y_values: list[tuple] | None = None,
+            x_values: list[tuple] | None = None, default_idx_x: int | None = None,
+            y_values: list[tuple] | None = None, default_idx_y: int | None = None,
             *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
@@ -38,15 +38,20 @@ class FrmControlXYRange(QFrame, Ui_FrmControlXYRange):
 
         if x_values:
             self._set_x_values(x_values)
+            if default_idx_x:
+                self.comboBoxXRange.setCurrentIndex(default_idx_x)
             self.comboBoxXRange.currentIndexChanged.connect(self._get_current_x_value)
         if y_values:
             self._set_y_values(y_values)
+            if default_idx_y:
+                self.comboBoxYRange.setCurrentIndex(default_idx_y)
+            self.comboBoxYRange.setCurrentIndex(default_idx_y)
             self.comboBoxYRange.currentIndexChanged.connect(self._get_current_y_value)
 
     def _set_y_values(self, values: list[tuple]):
         for v, d in values:
             self.comboBoxYRange.addItem(v, d)
-        self.comboBoxYRange.setCurrentIndex(2)
+        # self.comboBoxYRange.setCurrentIndex(2)
         self.comboBoxYRange.setEnabled(True)
 
     def _get_current_y_value(self, index):
@@ -56,7 +61,7 @@ class FrmControlXYRange(QFrame, Ui_FrmControlXYRange):
     def _set_x_values(self, values: list[tuple]):
         for v, d in values:
             self.comboBoxXRange.addItem(v, d)
-        self.comboBoxXRange.setCurrentIndex(2)
+        # self.comboBoxXRange.setCurrentIndex(2)
         self.comboBoxXRange.setEnabled(True)
 
     def _get_current_x_value(self, index):
@@ -133,8 +138,14 @@ class StreamViewer(pg.PlotWidget):
             return
         self._timebase = value
 
-    def set_y_range(self, value: float):
+    def set_y_range(self, value: float | None):
         """ установка ограничения выводимого сигнала """
+        if value is None:
+            self._y_min, self._y_min = None, None
+            self.enableAutoRange(axis='y', enable=True)
+            logger.info("Установлено АРУ")
+            return
+
         if value < 0:
             logger.warning("Значение не может быть меньше 0")
             return
@@ -370,7 +381,6 @@ class StreamViewer(pg.PlotWidget):
             self._input_queue.put(data, False)
         except:
             pass
-
 
 class TempStreamViewer(pg.PlotWidget):
     """ Виджет отображения сигнала температуры """

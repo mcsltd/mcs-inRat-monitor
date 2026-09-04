@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 class DataStorage(QObject):
     """
-    Класс для сохранения сигналов с устройства в форматы EDF
+    Класс для сохранения сигналов/событий с inRat в EDF
     """
 
     def __init__(self, *args, **kwargs):
@@ -443,10 +443,21 @@ class FrmOnlineControlRecording(QFrame, Ui_FrmOnlineControlRecording):
         self._timer = 0
         self.startTimer(1000)
 
+        self._timebase = 1200
         self.labelFileCounter.setText("000")
+
+    @property
+    def timebase(self):
+        return self._timebase
+    @timebase.setter
+    def timebase(self, value: int):
+        self._timebase = value
 
     def set_file_count(self, value):
         self.labelFileCounter.setText(f"{value:03d}")
+
+    def enable_archive(self, state: bool = False):
+        self.pushButtonOpenArchive.setEnabled(state)
 
     def set_enable(self):
         self.pushButtonSelectSaveDir.setEnabled(True)
@@ -463,4 +474,4 @@ class FrmOnlineControlRecording(QFrame, Ui_FrmOnlineControlRecording):
             self._timer += 1
         else:
             self._timer = 0
-        self.labelRecordingTime.setText(to_str_hhmmss(self._timer))
+        self.labelRecordingTime.setText(f"{to_str_hhmmss(self._timer)}")
