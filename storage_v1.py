@@ -1,6 +1,7 @@
 import copy
 import datetime
 import logging
+import os
 import queue
 import time
 import numpy as np
@@ -31,8 +32,8 @@ class Storage(QObject):
 
         # general recording params
         self._recording_start_time = None
-        # self._sec_buffer_size = 1200 # 20 minute
-        self._sec_buffer_size = 60  # 20 minute
+        self._sec_buffer_size = 1200
+        # self._sec_buffer_size = 60  # for test
         self._format = "edf"
         self._device_name = None
         self._object_name = None
@@ -72,8 +73,10 @@ class Storage(QObject):
             QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks,
         )
 
-        if write_dir:
-            self._write_dir = write_dir
+        if write_dir is None:
+            logger.info("Не выбрана директория сохранения edf файлов")
+            return
+        self._write_dir = rf"{write_dir}"
 
     def start(self):
         """ запуск модуля """
@@ -149,6 +152,7 @@ class Storage(QObject):
         logger.debug(f"{self.__class__}: установка параметров записи")
         if params_acc:
             self._acc_param = copy.copy(params_acc)
+            self._device_name = self._acc_param.device_name
             self._acc_start_sample = None
             self._acc_buffer = np.zeros(
                 (
@@ -159,7 +163,8 @@ class Storage(QObject):
 
         if params_exg:
             self._exg_param = copy.copy(params_exg)
-            self._acc_start_sample = None
+            self._device_name = self._exg_param.device_name
+            self._exg_start_sample = None
             self._exg_buffer = np.zeros(
                 (
                     self._exg_param.number_channels,
@@ -207,7 +212,7 @@ class Storage(QObject):
 
     def __process_signals_for_save(self, ):
         """ обработка сигналов для сохранения в edf """
-        # todo - плохо написан - тут обработка + сохранение
+        # todo отделить обработку от сохранения
         acc_signal, exg_signal = None, None
 
         if self._acc_param:
@@ -343,10 +348,12 @@ class Storage(QObject):
                 channels_info.append(info.copy())
                 signals.append(exg[idx_ch, :])
 
-        # file_name = self._write_dir + f"{self._filename}.edf"
-        # now = datetime.datetime.now().strftime("%H_%M_%S")
+
+        path_to_save = rf"{self._write_dir}\{self._device_name}"
+        os.makedirs(path_to_save, exist_ok=True)
+
         start_time = self._recording_start_time.strftime("%H_%M_%S")
-        file_name = f"{self._write_dir}/{filename}{start_time}_{self._cnt_file:03d}.edf"
+        file_name = f"{path_to_save}/{filename}{start_time}_{self._cnt_file:03d}.edf"
         writer = EdfWriter(n_channels=total_channels, file_name=file_name)
 
         if self._device_name:
