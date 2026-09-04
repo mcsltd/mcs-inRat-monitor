@@ -8,7 +8,7 @@ import time
 import numpy as np
 
 from threading import Thread, Lock
-from PySide6.QtCore import QObject
+from PySide6.QtCore import QObject, QSettings
 from PySide6.QtWidgets import QFileDialog
 from pyedflib import EdfWriter
 
@@ -27,10 +27,11 @@ logger = logging.getLogger(__name__)
 
 class Storage(QObject):
     """ класс для сохранения данных с устройства в EDF файл """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, settings: QSettings | None = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self._input_queue = queue.Queue()
+        self._thlock_save = Lock()
 
         self._recording = False
         self._running = False
@@ -43,7 +44,6 @@ class Storage(QObject):
         self._device_name = None
         self._object_name = None
         self._write_dir = None
-        self._filename = None
         self._cnt_file = 0
         # exg params recording
         self._exg_param = None
@@ -56,8 +56,6 @@ class Storage(QObject):
         # event buffer
         self._ev_buffer = []
 
-        self._thlock_save = Lock()
-
         # ui panels
         self._control_pane = FrmOnlineControlRecording(self)
         self._control_pane.pushButtonStartRecording.clicked.connect(self._prepare_recording)
@@ -65,6 +63,39 @@ class Storage(QObject):
         self._control_pane.pushButtonSelectSaveDir.clicked.connect(self._on_select_save_folder_clicked)
         self._control_pane.pushButtonOpenArchive.clicked.connect(self._on_archive_clicked)
 
+        self._settings = settings
+        if self._settings:
+            self.load_settings()
+
+    def load_settings(self):
+        """ загрузка сохраненных настроек """
+        try:
+            self._settings.beginGroup("storage")
+            self._write_dir = self._settings.value("write_dir", None, type=str)
+            if self._write_dir and not os.path.exists(self._write_dir):
+                logger.warning(f"Сохраненный путь не существует: {self._write_dir}")
+                self._write_dir = None
+            elif self._write_dir:
+                logger.info(f"Загружен путь к папке: {self._write_dir}")
+                self._control_pane.enable_archive(True)
+            else:
+                logger.info(f"Ключ 'write_dir' не найден в настройках")
+            self._settings.endGroup()
+        except Exception as err:
+            logger.warning(f"Возникла ошибка загрузки настроек: {err}")
+            self._write_dir = None
+
+    def save_settings(self):
+        """ сохранение настроек """
+        if self._write_dir is None:
+            logger.info(f"Путь до выбранного места сохранения отсутствует - {self._write_dir}")
+            return
+        try:
+            self._settings.beginGroup("storage")
+            self._settings.setValue("write_dir", self._write_dir)
+            self._settings.endGroup()
+        except Exception as err:
+            logger.warning(f"Возникла ошибка сохранения настроек: {err}")
 
     @property
     def control_pane(self):
@@ -479,8 +510,6 @@ class Storage(QObject):
         self._recording_start_time = None
         self._device_name = None
         self._object_name = None
-        self._write_dir = None
-        self._filename = None
         self._cnt_file = 0
         self._control_pane.set_file_count(self._cnt_file)
         self._control_pane.set_disable()

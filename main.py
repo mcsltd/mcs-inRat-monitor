@@ -1,6 +1,7 @@
 import logging
 
 from PySide6 import QtAsyncio
+from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QComboBox, QHBoxLayout
 from bleak import BLEDevice
 
@@ -9,9 +10,14 @@ from device.enums import TypeSignal
 from scanner import BLEScannerWorker
 from stream_displays import StreamViewer, TempStreamViewer, FrmControlXYRange
 from utils.check_bluetooth import check_bluetooth_status
-from storage_v1 import Storage as DataStorage
+from storage_v1 import Storage
 from resources.main_window import Ui_MainWindow
 from widget import WaitingDialog
+
+# constants
+COMPANY_NAME = "Medical Computer Systems Ltd"
+
+__version__ = "1.2.4"
 
 logger = logging.getLogger(__name__)
 
@@ -22,14 +28,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
+        # settings
+        self.settings = QSettings("MCS.ltd", "inRat monitor")
+
         # hide
         self.pushButtonDisconnect.hide()
         self.qt_loop = qt_loop
 
         # main classes
-        self.device = inRatDevice(qt_loop)
+        self.device = inRatDevice(qt_loop,)
         self.scanner = BLEScannerWorker()
-        self.storage = DataStorage()
+        self.storage = Storage(self.settings)
 
         # отображение сигнала exg
         self.layout_control_pane_exg = QHBoxLayout()
@@ -182,6 +191,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.scanner.stop()
         if self.device.is_running():
             self.device.stop()
+
+        # save basic settings
+        self.storage.save_settings()
 
 if __name__ == "__main__":
     app = QApplication([])
