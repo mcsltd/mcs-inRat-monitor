@@ -8,7 +8,7 @@ import pyqtgraph as pg
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QFrame
-from pyqtgraph import mkPen, ScatterPlotItem, LegendItem, ItemSample
+from pyqtgraph import mkPen, ScatterPlotItem, LegendItem, ItemSample, LabelItem
 
 from device.device import SignalDatablock
 from device.enums import TypeSignal, EventType
@@ -115,10 +115,6 @@ class StreamViewer(pg.PlotWidget):
         self.legend_ev = LegendItem(colCount=3, labelTextColor="white", labelTextSize="9pt")
         self.legend_ev.setParentItem(self.getPlotItem())
         self.legend_ev.anchor(itemPos=(0, 1), parentPos=(0, 1), offset=(35, -35))
-
-        self.legend_temp = LegendItem(labelTextColor="white", labelTextSize="18pt")
-        self.legend_temp.setParentItem(self.getPlotItem())
-        self.legend_temp.anchor(offset=(-120, 0), itemPos=(0,0), parentPos=(1, 0))
 
         self.setLabel("left", left_label, color="white")
         self.setLabel("bottom", color="white") # "mm:ss",
@@ -385,28 +381,25 @@ class StreamViewer(pg.PlotWidget):
 class TempStreamViewer(pg.PlotWidget):
     """ класс для отображения событий температуры """
 
+    signal_set_value = Signal(float)
+
     def __init__(self, left_label: str | None = None, units: str | None = None, *args, **kwargs):
         kwargs['axisItems'] = {'bottom': FormatterTimeAxisItem(orientation="bottom")}
         super().__init__(*args, **kwargs)
-
         self.setBackground((64,64,64))
         self.setEnabled(False)
 
         white_pen = pg.mkPen(color='w')
         font = QFont("Arial", 9)
-
         self._timebase = 600
 
         # отображение температуры с помощью графика рассеяния
         self.temp_scatter = ScatterPlotItem(pen=pg.mkPen((255,255,0)), brush=pg.mkBrush('y'))
         self.addItem(self.temp_scatter)
 
-        # отображение текущего значения температуры в легенде
-        self.legend_temp = LegendItem(labelTextSize="25pt", labelTextColor="white")
-        self.legend_temp.setParentItem(self.graphicsItem())
-        self.legend_temp.anchor(itemPos=(1, 0.5), parentPos=(1, 0.5))
-        empty_sample = ItemSample(item=None)
-        self.legend_temp.addItem(empty_sample, "--°C")
+        self.label_temp = pg.LabelItem(text="--°C", size="25pt", color="white")
+        self.label_temp.setParentItem(self.graphicsItem())  # на сцену поверх графика
+        self.label_temp.anchor(itemPos=(1, 0), parentPos=(1, 0), offset=(-10, 10))
 
         self.setLabel("left", left_label, units=units, color="white") # "°C",
         self.setLabel("bottom", color="white") # "Время", units="s",
@@ -421,16 +414,13 @@ class TempStreamViewer(pg.PlotWidget):
         self.setXRange(0, self._timebase, padding=0)
 
         self.lines = []
+        self.signal_set_value.connect(self.on_value_obtained)
 
     def set_temperature(self, t: float, value: float):
         """ установка температуры в график """
         line = self.plot([t, t], [0, value], pen=pg.mkPen("y", width=0.5))
         self.temp_scatter.addPoints([{'pos': (t, value)}])
-
-        if self.legend_temp:
-            self.legend_temp.clear()
-            empty_sample = ItemSample(item=None)
-            self.legend_temp.addItem(empty_sample, f"{value}°C")
+        self.signal_set_value.emit(value)
 
         self.lines.append(line)
 
@@ -452,20 +442,16 @@ class TempStreamViewer(pg.PlotWidget):
         self.temp_scatter.clear()
         self.lines.clear()
 
-        self.legend_temp.clear()
-        # self.legend_temp.addItem(self.temp_scatter, f"--°C")
-        empty_sample = ItemSample(item=None)
-        self.legend_temp.addItem(empty_sample, f"--°C")
+        if self.label_temp:
+            self.label_temp.setText("--°C")
 
         self.setYRange(20, 45, padding=0)
         self.setXRange(0, self._timebase, padding=0)
 
-    # def disable_legend(self):
-    #     """Отключение и удаление легенды с графика"""
-    #     if self.legend_temp is not None:
-    #         self.legend_temp.clear()
-    #         self.removeItem(self.legend_temp)
-    #         self.legend_temp = None
+    def on_value_obtained(self, value: float):
+        """ установка значения в Label """
+        if self.label_temp:
+            self.label_temp.setText(f"{value:.1f}°C")
 
 class FormatterTimeAxisItem(pg.AxisItem):
     """ формат mm:ss по оси x """
