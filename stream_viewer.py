@@ -14,8 +14,6 @@ from device.device import SignalDatablock
 from device.enums import TypeSignal, EventType
 from resources.frm_control_xy_range import Ui_FrmControlXYRange
 
-# ToDo: переписать на единый класс (?)
-# ToDo: сделать адаптацию под выбранные настройки устройства
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +68,8 @@ class FrmControlXYRange(QFrame, Ui_FrmControlXYRange):
 
 
 class StreamViewer(pg.PlotWidget):
+
+    """ класс для отображения сигналов """
 
     def __init__(
             self,
@@ -383,7 +383,7 @@ class StreamViewer(pg.PlotWidget):
             pass
 
 class TempStreamViewer(pg.PlotWidget):
-    """ Виджет отображения сигнала температуры """
+    """ класс для отображения событий температуры """
 
     def __init__(self, left_label: str | None = None, units: str | None = None, *args, **kwargs):
         kwargs['axisItems'] = {'bottom': FormatterTimeAxisItem(orientation="bottom")}
