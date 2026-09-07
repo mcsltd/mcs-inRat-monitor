@@ -323,14 +323,6 @@ class inRat:
                 exg = np.ones((Pkt.ChannelsCountEcg, Pkt.SamplesCountEcg), dtype=np.float64) * self._lst_value_exg[:, np.newaxis]
                 for idx_sample in range(self._lst_sample_exg + 1, smpl):
                     await exg_event_queue.put({"sample": idx_sample, "signal": exg, "type": "sig"})  # "counter" -> "samples"
-                await exg_event_queue.put(
-                    {
-                        "sample": (self._lst_sample_exg + 1) * Pkt.SamplesCountEcg,
-                        "counter": (self._lst_sample_exg + 1) * Pkt.SamplesCountEcg,
-                        "signal": f"L {lost_exg}",
-                        "type": "ev"
-                    }
-                )
 
             self._lst_value_exg = exg[:, 0]
             self._lst_sample_exg = smpl

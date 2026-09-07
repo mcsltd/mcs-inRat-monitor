@@ -8,7 +8,7 @@ from bleak import BLEDevice
 from device.device import inRatDevice
 from device.enums import TypeSignal
 from scanner import BLEScannerWorker
-from stream_displays import StreamViewer, TempStreamViewer, FrmControlXYRange
+from stream_viewer import StreamViewer, TempStreamViewer, FrmControlXYRange
 from utils.check_bluetooth import check_bluetooth_status
 from storage.v1.storage import Storage
 from resources.main_window import Ui_MainWindow
