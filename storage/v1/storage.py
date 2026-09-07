@@ -16,7 +16,7 @@ from device.constants import Const
 from device.device import SignalDatablock
 from device.enums import EventType
 from device.utils import get_orientation
-from storage import FrmOnlineControlRecording
+from storage.ui import FrmOnlineControlRecording
 
 logger = logging.getLogger(__name__)
 
