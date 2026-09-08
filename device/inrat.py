@@ -247,11 +247,12 @@ class inRat:
         data = rawdata.decode()
         return data
 
-    async def _get_device_status(self):
-        """ получение состояния устройства """
+    async def get_status(self) -> Status:
+        """ получение структуры статуса устройства """
         rawdata = await self._client.read_gatt_char(self.UUID_CHARACTERISTIC_STATUS)
         status = Status.from_buffer(rawdata)
         self._activated = status.Activated
+        return status
 
     def _get_settings(self) -> Settings:
         settings = Settings(
@@ -279,7 +280,7 @@ class inRat:
             await asyncio.wait_for(self._client.connect(), timeout=wait)
             await self._get_device_info()
             # set_default_setting_from_firmware(self)
-            await self._get_device_status()
+            await self.get_status()
             logger.info(f"{self.name}: открыто соединение")
         except Exception as err:
             logger.error(f"{self.name}: во время соединения возникла ошибка - {err}")

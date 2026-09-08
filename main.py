@@ -1,4 +1,5 @@
 import logging
+import sys
 
 from PySide6 import QtAsyncio
 from PySide6.QtCore import QSettings
@@ -13,6 +14,7 @@ from utils.check_bluetooth import check_bluetooth_status
 from storage.v1.storage import Storage
 from resources.main_window import Ui_MainWindow
 from widget import WaitingDialog
+
 
 # constants
 COMPANY_NAME = "Medical Computer Systems Ltd"
@@ -157,6 +159,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.pushButtonConnect.hide()
         self.pushButtonDisconnect.setVisible(True)
         self.pushButtonDisconnect.setEnabled(True)
+        self.horizontalLayoutStatusBar.addWidget(self.device.battery_pane)
 
     def on_disconnect_clicked(self):
         """ обработка нажатия кнопки отсоединения от устройства """
@@ -176,6 +179,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.comboBoxDevice.clear()
         self.comboBoxDevice.setEnabled(True)
         self.pushButtonConnect.setEnabled(False)
+        self.horizontalLayoutStatusBar.removeWidget(self.device.battery_pane)
+
 
     def set_combobox_items(self, devices: set[BLEDevice]):
         for device in devices:
@@ -198,6 +203,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 if __name__ == "__main__":
     app = QApplication([])
     loop = QtAsyncio.QAsyncioEventLoop(application=app)
+
+    from config import BLE_KEY
+    if BLE_KEY is None:
+        msg_box = QMessageBox()
+        msg_box.setIcon(QMessageBox.Icon.Critical)
+        msg_box.setWindowTitle("Ошибка подключения")
+        msg_box.setText("Отсутствует ключ для подключения к устройствам")
+        msg_box.setInformativeText(
+            "Ключ BLE_KEY не обнаружен в системных переменных.\n"
+            "Пожалуйста, переустановите приложение, используя установщик."
+        )
+        msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
+        msg_box.exec()
+
+        app.quit()
+        sys.exit(1)
 
     try:
         check_bluetooth_status()
