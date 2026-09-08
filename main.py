@@ -18,7 +18,7 @@ from widget import WaitingDialog
 
 # constants
 COMPANY_NAME = "Medical Computer Systems Ltd"
-
+APP_NAME = "inRat monitor"
 __version__ = "1.2.4"
 
 logger = logging.getLogger(__name__)
@@ -29,6 +29,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, qt_loop: QtAsyncio.QAsyncioEventLoop, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
+        self.setWindowTitle(f"{APP_NAME} v{__version__}")
 
         # settings
         self.settings = QSettings("MCS.ltd", "inRat monitor")
