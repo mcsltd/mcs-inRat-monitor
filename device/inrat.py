@@ -78,10 +78,15 @@ class inRat:
         # последние значение счётчиков пакетов
         self._lst_value_exg = np.ones((Pkt.ChannelsCountEcg, Pkt.SamplesCountEcg), dtype=np.float64)[:, 0]
         self._lst_sample_exg = -1
+        self._sample_exg_offset = 0
+
         self._lst_value_acc = np.ones((Pkt.ChannelsCountAcc, Pkt.SamplesCountAcc), dtype=np.float64)[:, 0]
         self._lst_sample_acc = -1
+        self._sample_acc_offset = 0
+
         self._counter_ev_offset = 0
         self._lst_counter_ev = -1
+
 
     @property
     def mode(self):
@@ -328,43 +333,41 @@ class inRat:
             smpl, exg = decode_exg(data, self._exg_resolution)
 
             # проверка на переполнение счётчика
-            if smpl == inRat.MAX_VALUE_SAMPLE:
+            corrected_sample = smpl + self._sample_exg_offset
+            if corrected_sample < self._lst_sample_exg:
                 logger.debug(f"Счётчик exg переполнен: {smpl}")
+                self._sample_exg_offset += inRat.MAX_VALUE_SAMPLE + 1
 
-            lost_exg = (smpl - self._lst_sample_exg) % (self.MAX_VALUE_SAMPLE + 1)
-            if lost_exg != 1:
+            lost_exg = (corrected_sample - self._lst_sample_exg)
+            if lost_exg > 1:
                 logger.warning(f"Потеряны пакеты exg: {lost_exg}")
                 exg = np.ones((Pkt.ChannelsCountEcg, Pkt.SamplesCountEcg), dtype=np.float64) * self._lst_value_exg[:, np.newaxis]
-                for idx_sample in range(self._lst_sample_exg + 1, smpl):
-                    await exg_event_queue.put(
-                        {
-                            "sample": idx_sample,
-                            "signal": exg,
-                            "type": "sig"
-                        }
-                    )  # "counter" -> "samples"
+                for idx_sample in range(self._lst_sample_exg + 1, corrected_sample):
+                    await exg_event_queue.put({"sample": idx_sample, "signal": exg, "type": "sig"})  # "counter" -> "samples"
 
             self._lst_value_exg = exg[:, 0]
-            self._lst_sample_exg = smpl
-            await exg_event_queue.put({"sample":smpl, "signal":exg, "type": "sig"}) # "counter" -> "samples"
+            self._lst_sample_exg = corrected_sample
+            await exg_event_queue.put({"sample":corrected_sample, "signal":exg, "type": "sig"}) # "counter" -> "samples"
 
         async def acc_handler(sender, data):
             smpl, acc = decode_acc(data, enabled_channels=self._enabled_channels, resolution=self._acc_resolution)
 
             # проверка на переполнение счётчика
-            if smpl == inRat.MAX_VALUE_SAMPLE:
+            corrected_sample = smpl + self._sample_acc_offset
+            if corrected_sample < self._lst_sample_acc:
                 logger.debug(f"Счётчик acc переполнен: {smpl}")
+                self._sample_acc_offset += inRat.MAX_VALUE_SAMPLE + 1
 
-            lost_acc = (smpl - self._lst_sample_acc) % (self.MAX_VALUE_SAMPLE + 1)
-            if lost_acc != 1:
+            lost_acc = (corrected_sample - self._lst_sample_acc)
+            if lost_acc > 1:
                 logger.warning(f"Потеряны пакеты acc: {lost_acc}")
                 acc = np.ones((Pkt.ChannelsCountAcc, Pkt.SamplesCountAcc), dtype=np.float64) * self._lst_value_acc[:, np.newaxis]
-                for idx_sample in range(self._lst_sample_exg + 1, smpl):
+                for idx_sample in range(self._lst_sample_acc + 1, corrected_sample):
                     await acc_queue.put({"sample": idx_sample, "signal": acc, "type": "acc"})  # "counter" -> "samples"
 
             self._lst_value_acc = acc[:, 0]
-            self._lst_sample_acc = smpl
-            await acc_queue.put({"sample":smpl, "signal":acc, "type": "acc"})  # "counter" -> "samples"
+            self._lst_sample_acc = corrected_sample
+            await acc_queue.put({"sample":corrected_sample, "signal":acc, "type": "acc"})  # "counter" -> "samples"
 
         if exg_event_queue:
             if (
@@ -426,9 +429,14 @@ class inRat:
             ...
 
         self._lst_sample_exg = -1
+        self._sample_exg_offset = 0
+
         self._lst_sample_acc = -1
-        self._counter_ev_offset = 0
+        self._sample_acc_offset = 0
+
         self._lst_counter_ev = 0
+        self._counter_ev_offset = 0
+
 
     async def disconnect(self):
         """ закрытие соединения с устройством """
