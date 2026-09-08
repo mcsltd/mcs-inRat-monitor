@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'main_windowwQjAQl.ui'
+## Form generated from reading UI file 'main_windowJqmCGn.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.9.0
+## Created by: Qt User Interface Compiler version 6.11.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -77,6 +77,34 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.addItem(self.verticalSpacer)
 
+        self.line = QFrame(self.centralwidget)
+        self.line.setObjectName(u"line")
+        self.line.setFrameShape(QFrame.Shape.HLine)
+        self.line.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.verticalLayout.addWidget(self.line)
+
+        self.horizontalLayoutStatusBar = QHBoxLayout()
+        self.horizontalLayoutStatusBar.setObjectName(u"horizontalLayoutStatusBar")
+        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayoutStatusBar.addItem(self.horizontalSpacer_2)
+
+        self.labelPass = QLabel(self.centralwidget)
+        self.labelPass.setObjectName(u"labelPass")
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.labelPass.sizePolicy().hasHeightForWidth())
+        self.labelPass.setSizePolicy(sizePolicy)
+        self.labelPass.setMinimumSize(QSize(20, 30))
+        self.labelPass.setMaximumSize(QSize(16777215, 50))
+
+        self.horizontalLayoutStatusBar.addWidget(self.labelPass)
+
+
+        self.verticalLayout.addLayout(self.horizontalLayoutStatusBar)
+
 
         self.gridLayout.addLayout(self.verticalLayout, 0, 1, 1, 1)
 
@@ -108,5 +136,6 @@ class Ui_MainWindow(object):
         self.labelDevice.setText(QCoreApplication.translate("MainWindow", u"\u0423\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u043e:", None))
         self.pushButtonConnect.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0442\u043a\u0440\u044b\u0442\u044c", None))
         self.pushButtonDisconnect.setText(QCoreApplication.translate("MainWindow", u"\u0417\u0430\u043a\u0440\u044b\u0442\u044c", None))
+        self.labelPass.setText("")
     # retranslateUi
 

@@ -8,18 +8,64 @@ from threading import Thread
 
 import numpy as np
 from PySide6.QtCore import QObject, Signal, Qt, QTimer
-from PySide6.QtWidgets import QMessageBox
+from PySide6.QtWidgets import QMessageBox, QFrame
 from bleak import BLEDevice
 
 from device.constants import Pkt
 from device.enums import EnabledChannels, TypeSignal, EventType
 from device.inrat import inRat, FIRMWARE_ACC_EXG, FIRMWARE_V0
-from device.structures import Event
+from device.structures import Event, Usage
 from device.ui.config_dialog import DlgConfigDevice
 from device.ui.control_pane import FrmControlPane
 
+# ui
+from resources.frm_battery_level import Ui_FrmBattery
+
 logger = logging.getLogger(__name__)
 
+class BatteryWidget(QFrame, Ui_FrmBattery):
+    """ Виджет для отображения уровня заряда батареи."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setupUi(self)
+
+        self.progressBarBatteryLevel.setStyleSheet("""
+            QProgressBar {
+                background-color: #e0e0e0;
+                border: 1px solid #888;
+                border-radius: 2px;
+            }
+            QProgressBar::chunk {
+                background-color: #4CAF50;
+                border-radius: 2px;
+                background-image: none;
+                border: none;
+                margin: 1px;
+            }
+        """)
+
+    def set_level(self, level: int):
+        """Установка уровня батареи (0-100)."""
+        level = max(0, min(100, level))
+        self.progressBarBatteryLevel.setValue(level)
+        self.labelBatteryLevel.setText(f"{level}%")
+
+        if level <= 5:
+            self.progressBarBatteryLevel.setStyleSheet("""
+                QProgressBar {
+                    background-color: #e0e0e0;
+                    border: 1px solid #888;
+                    border-radius: 2px;
+                }
+                QProgressBar::chunk {
+                    background-color: #F44336;
+                    border-radius: 2px;
+                    background-image: none;
+                    border: none;
+                    margin: 1px;
+                }
+            """)
 
 class SignalDatablock:
     """
@@ -52,7 +98,6 @@ class SignalDatablock:
         self.type_events: list = list()
 
         self.device_name: str | None = device_name
-
 
 
 class inRatDevice(QObject):
@@ -111,12 +156,15 @@ class inRatDevice(QObject):
         # флаг выполнения рабочего потока
         self._running: bool = False
 
-        # фрейм для управления устройством
+        # ui
         self._control_pane = FrmControlPane()
         self._control_pane.pushButtonStart.clicked.connect(self.start)
         self._control_pane.pushButtonStop.clicked.connect(self.stop)
         self._control_pane.pushButtonConfig.clicked.connect(self.on_config_clicked)
         self._control_pane.checkBoxActivated.checkStateChanged.connect(self.on_state_activate_changed)
+
+        self.battery_timer = 0
+        self._battery_pane = BatteryWidget()
 
         self._timer_check_conn = QTimer()
         self._timer_check_conn.setInterval(1000)
@@ -135,8 +183,11 @@ class inRatDevice(QObject):
         return self._running
 
     @property
-    def control_pane(self):
+    def control_pane(self) -> FrmControlPane | None:
         return self._control_pane
+    @property
+    def battery_pane(self) -> BatteryWidget | None:
+        return self._battery_pane
 
     def add_receiver_data(self, receiver):
         """ добавление объекта-приёмник всех данных  """
@@ -210,6 +261,10 @@ class inRatDevice(QObject):
             ...
 
         if self._inrat.is_connected:
+            # get and set battery level
+            future = asyncio.run_coroutine_threadsafe(self._inrat.get_status(), self._loop)
+            future.add_done_callback(self._on_status_received)
+
             self._control_pane.state_connection()
             self.signal_connected.emit()
 
@@ -327,6 +382,7 @@ class inRatDevice(QObject):
 
     def process_start(self):
         """ обработка запуска устройства """
+        self.battery_timer = 0
         self._control_pane.state_acquisition()
         self._timer_check_conn.start()
 
@@ -371,6 +427,10 @@ class inRatDevice(QObject):
                 except Exception as err:
                     logger.error(f"Возникла ошибка передачи события температуры в receiver_temp: {err}")
 
+            try:
+                self.process_output()
+            except Exception as err:
+                logger.error(f"inRatDevice: {err=}")
 
             time.sleep(0.001)
 
@@ -392,6 +452,11 @@ class inRatDevice(QObject):
 
                 for receiver in self._receivers_data:
                     receiver._transmit_data(copy.deepcopy(acc))
+
+            try:
+                self.process_output()
+            except Exception as err:
+                logger.error(f"inRatDevice: {err=}")
 
             time.sleep(0.001)
 
@@ -429,7 +494,6 @@ class inRatDevice(QObject):
         self._timer_check_conn.stop()
 
         self._last_exg_sample = -1
-
 
     def on_config_clicked(self):
         """ обработка нажатия окна конфигураций """
@@ -506,3 +570,38 @@ class inRatDevice(QObject):
         else:
             state = False
         _ = asyncio.run_coroutine_threadsafe(self._inrat.activate(state), self._loop)
+
+    def process_output(self):
+        """ проверка соединения с inRat и получение данных """
+        t = time.time()
+
+        # получение данных о inRat каждые 10 секунд
+        if self._battery_pane and t - self.battery_timer > 10.0:
+            future = asyncio.run_coroutine_threadsafe(self._inrat.get_status(), self._loop)
+            future.add_done_callback(self._on_status_received)
+            self.battery_timer = time.time()
+
+    def _on_status_received(self, future: Future):
+        """ метод для обработки результата выполнения корутины получения данных от inRat """
+        try:
+            status = future.result()
+            usage = status.Usage
+            level = self.__get_battery_level(usage)
+            logger.debug(f"{self.__class__}: t_adv={usage.AdvertisingSeconds}; t_con={usage.ConnectionSeconds}; t_data={usage.DataSendSeconds};")
+            self._battery_pane.set_level(level)
+        except Exception as err:
+            logger.error(f"{self.__class__}: ошибка получения свойства Status - {err} %")
+
+    @staticmethod
+    def __get_battery_level(usage: Usage) -> int:
+        """ расчёт уровня батареи в процентах """
+        q_mas = 504_000 # 140mAh
+        i_adv, i_con, i_data = 0.023, 0.06, 0.6
+        t_adv, t_con, t_data = usage.AdvertisingSeconds, usage.ConnectionSeconds, usage.DataSendSeconds
+        level = int((q_mas - (i_adv * t_adv + i_con * t_con + i_data * t_data)) / q_mas * 100)
+        logger.debug(f"inRatDevice: уровень батареи - {level}")
+        if level < 5:
+            return 5
+        return level
+
+
