@@ -350,23 +350,23 @@ class Storage(QObject):
 
     def __process_ev(self, data: dict):
         """ сохранение сигнала exg в буфер """
-        event = data["signal"]
+        exg_count, event= data["counter"], data["signal"]
         t, ann = None, None
         if event.Type == EventType.FREEFALL.bit_length() - 1:
-            t = (event.Counter - self._exg_start_sample * self._exg_param.counter_per_sample) / self._exg_param.sample_rate
+            t = (exg_count - self._exg_start_sample * self._exg_param.counter_per_sample) / self._exg_param.sample_rate
             ann = "F"
         elif event.Type == EventType.ACTIVITY.bit_length() - 1:
-            t = (event.Counter - self._exg_start_sample * self._exg_param.counter_per_sample) / self._exg_param.sample_rate
+            t = (exg_count - self._exg_start_sample * self._exg_param.counter_per_sample) / self._exg_param.sample_rate
             ax = int(Const.AccResolution * event.Acceleration.X)
             ay = int(Const.AccResolution * event.Acceleration.Y)
             az = int(Const.AccResolution * event.Acceleration.Z)
             ann = f"A {ax} {ay} {az}"
         elif event.Type == EventType.ORIENTATION.bit_length() - 1:
-            t = (event.Counter - self._exg_start_sample * self._exg_param.counter_per_sample) / self._exg_param.sample_rate
+            t = (exg_count - self._exg_start_sample * self._exg_param.counter_per_sample) / self._exg_param.sample_rate
             axis = get_orientation(event.Value)
             ann = f"O {axis}"
         elif event.Type == EventType.TEMP.bit_length() - 1:
-            t = (event.Counter - self._exg_start_sample * self._exg_param.counter_per_sample) / self._exg_param.sample_rate
+            t = (exg_count - self._exg_start_sample * self._exg_param.counter_per_sample) / self._exg_param.sample_rate
             ann = f"T {round(event.Data / 1000, 1)}"
 
         if t and ann:

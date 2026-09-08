@@ -78,9 +78,10 @@ class inRat:
         # последние значение счётчиков пакетов
         self._lst_value_exg = np.ones((Pkt.ChannelsCountEcg, Pkt.SamplesCountEcg), dtype=np.float64)[:, 0]
         self._lst_sample_exg = -1
-
         self._lst_value_acc = np.ones((Pkt.ChannelsCountAcc, Pkt.SamplesCountAcc), dtype=np.float64)[:, 0]
         self._lst_sample_acc = -1
+        self._counter_ev_offset = 0
+        self._lst_counter_ev = -1
 
     @property
     def mode(self):
@@ -312,18 +313,36 @@ class inRat:
 
             for idx in range(cnt):
                 event = Event.from_buffer(data[idx * event_size: (idx + 1) * event_size])
+                if event.Counter < self._lst_counter_ev: # отслеживание переполнения счётчика
+                    self._counter_ev_offset += inRat.MAX_VALUE_SAMPLE
+                corrected_counter = event.Counter + self._counter_ev_offset
+                self._lst_counter_ev = corrected_counter
                 await exg_event_queue.put({
-                    "sample": int(event.Counter / Pkt.SamplesCountEcg),
-                    "counter": event.Counter, "signal": event, "type": "ev"})
+                    "sample": int(corrected_counter / Pkt.SamplesCountEcg),
+                    "counter": corrected_counter,
+                    "signal": event,
+                    "type": "ev"
+                })
 
         async def exg_handler(sender, data):
             smpl, exg = decode_exg(data, self._exg_resolution)
+
+            # проверка на переполнение счётчика
+            if smpl == inRat.MAX_VALUE_SAMPLE:
+                logger.debug(f"Счётчик exg переполнен: {smpl}")
+
             lost_exg = (smpl - self._lst_sample_exg) % (self.MAX_VALUE_SAMPLE + 1)
             if lost_exg != 1:
                 logger.warning(f"Потеряны пакеты exg: {lost_exg}")
                 exg = np.ones((Pkt.ChannelsCountEcg, Pkt.SamplesCountEcg), dtype=np.float64) * self._lst_value_exg[:, np.newaxis]
                 for idx_sample in range(self._lst_sample_exg + 1, smpl):
-                    await exg_event_queue.put({"sample": idx_sample, "signal": exg, "type": "sig"})  # "counter" -> "samples"
+                    await exg_event_queue.put(
+                        {
+                            "sample": idx_sample,
+                            "signal": exg,
+                            "type": "sig"
+                        }
+                    )  # "counter" -> "samples"
 
             self._lst_value_exg = exg[:, 0]
             self._lst_sample_exg = smpl
@@ -331,6 +350,10 @@ class inRat:
 
         async def acc_handler(sender, data):
             smpl, acc = decode_acc(data, enabled_channels=self._enabled_channels, resolution=self._acc_resolution)
+
+            # проверка на переполнение счётчика
+            if smpl == inRat.MAX_VALUE_SAMPLE:
+                logger.debug(f"Счётчик acc переполнен: {smpl}")
 
             lost_acc = (smpl - self._lst_sample_acc) % (self.MAX_VALUE_SAMPLE + 1)
             if lost_acc != 1:
@@ -404,6 +427,8 @@ class inRat:
 
         self._lst_sample_exg = -1
         self._lst_sample_acc = -1
+        self._counter_ev_offset = 0
+        self._lst_counter_ev = 0
 
     async def disconnect(self):
         """ закрытие соединения с устройством """

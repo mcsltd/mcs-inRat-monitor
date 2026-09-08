@@ -218,12 +218,6 @@ class StreamViewer(pg.PlotWidget):
         # добавление графиков рассеяния для отображения событий
         for type_event in self._sig_datablock.type_events:
 
-            # if type_event == "temp":
-            #     empty_sample = ItemSample(item=None)
-            #     self.legend_temp.clear()
-            #     self.legend_temp.addItem(empty_sample, "--°C")
-            #     continue
-
             symbol, brush, event_name = None, None, None
             if type_event == "activity":
                 event_name = "Активность(A)"
@@ -245,8 +239,8 @@ class StreamViewer(pg.PlotWidget):
 
     def set_event_point(self, data: dict):
         """ добавление на график точек событий """
-        ev = data["signal"]
-        t = ev.Counter / self._sig_datablock.sample_rate
+        exg_counter, ev = data["counter"], data["signal"]
+        t = exg_counter / self._sig_datablock.sample_rate
 
         y_pos = 0
         if self._y_min:
@@ -258,9 +252,6 @@ class StreamViewer(pg.PlotWidget):
             self.point_scatters["orientation"].append({"pos": (t, y_pos)})
         if ev.Type == EventType.ACTIVITY.bit_length() - 1 and "activity" in self.scatters:
             self.point_scatters["activity"].append({"pos": (t, y_pos)})
-        # if ev.Type == EventType.TEMP.bit_length() - 1:
-        #     self.legend_temp.clear()
-        #     self.legend_temp.addItem(ItemSample(item=None), f"{round(ev.Data / 1000, 1)}°C")
 
         return
 
