@@ -97,6 +97,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.enable_display_acc(False)
         self.enable_display_temp(False)
 
+        self.horizontalLayoutStatusBar.addWidget(self.device.battery_pane)
+        self.device.battery_pane.setVisible(False)
+
         # connection
         self.pushButtonConnect.clicked.connect(self.on_connect_clicked)
         self.pushButtonDisconnect.clicked.connect(self.on_disconnect_clicked)
@@ -160,7 +163,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.pushButtonConnect.hide()
         self.pushButtonDisconnect.setVisible(True)
         self.pushButtonDisconnect.setEnabled(True)
-        self.horizontalLayoutStatusBar.addWidget(self.device.battery_pane)
+        self.device.battery_pane.setVisible(True)
+
 
     def on_disconnect_clicked(self):
         """ обработка нажатия кнопки отсоединения от устройства """
@@ -180,7 +184,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.comboBoxDevice.clear()
         self.comboBoxDevice.setEnabled(True)
         self.pushButtonConnect.setEnabled(False)
-        self.horizontalLayoutStatusBar.removeWidget(self.device.battery_pane)
+
+        self.device.battery_pane.setVisible(False)
 
 
     def set_combobox_items(self, devices: set[BLEDevice]):
