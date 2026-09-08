@@ -318,9 +318,11 @@ class inRat:
 
             for idx in range(cnt):
                 event = Event.from_buffer(data[idx * event_size: (idx + 1) * event_size])
-                if event.Counter < self._lst_counter_ev: # отслеживание переполнения счётчика
-                    self._counter_ev_offset += inRat.MAX_VALUE_SAMPLE
+
                 corrected_counter = event.Counter + self._counter_ev_offset
+                if corrected_counter < self._lst_counter_ev: # отслеживание переполнения счётчика
+                    self._counter_ev_offset += inRat.MAX_VALUE_SAMPLE + 1
+                    corrected_counter += inRat.MAX_VALUE_SAMPLE + 1
                 self._lst_counter_ev = corrected_counter
                 await exg_event_queue.put({
                     "sample": int(corrected_counter / Pkt.SamplesCountEcg),
@@ -335,8 +337,9 @@ class inRat:
             # проверка на переполнение счётчика
             corrected_sample = smpl + self._sample_exg_offset
             if corrected_sample < self._lst_sample_exg:
-                logger.debug(f"Счётчик exg переполнен: {smpl}")
+                logger.debug(f"Счётчик exg переполнен: {inRat.MAX_VALUE_SAMPLE}")
                 self._sample_exg_offset += inRat.MAX_VALUE_SAMPLE + 1
+                corrected_sample += inRat.MAX_VALUE_SAMPLE + 1
 
             lost_exg = (corrected_sample - self._lst_sample_exg)
             if lost_exg > 1:
@@ -355,8 +358,9 @@ class inRat:
             # проверка на переполнение счётчика
             corrected_sample = smpl + self._sample_acc_offset
             if corrected_sample < self._lst_sample_acc:
-                logger.debug(f"Счётчик acc переполнен: {smpl}")
+                logger.debug(f"Счётчик acc переполнен: {inRat.MAX_VALUE_SAMPLE}")
                 self._sample_acc_offset += inRat.MAX_VALUE_SAMPLE + 1
+                corrected_sample += inRat.MAX_VALUE_SAMPLE + 1
 
             lost_acc = (corrected_sample - self._lst_sample_acc)
             if lost_acc > 1:
