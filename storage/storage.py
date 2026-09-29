@@ -16,7 +16,7 @@ from device.constants import Const
 from device.device import SignalDatablock
 from device.enums import EventType
 from device.utils import get_orientation
-from storage.ui import FrmOnlineControlRecording
+from storage.ui.frm_control_storage import FrmControlStorage
 
 logger = logging.getLogger(__name__)
 
@@ -57,11 +57,11 @@ class Storage(QObject):
         self._ev_buffer = []
 
         # ui panels
-        self._control_pane = FrmOnlineControlRecording(self)
-        self._control_pane.pushButtonStartRecording.clicked.connect(self._prepare_recording)
-        self._control_pane.pushButtonStopRecording.clicked.connect(self._close_recording)
-        self._control_pane.pushButtonSelectSaveDir.clicked.connect(self._on_select_save_folder_clicked)
-        self._control_pane.pushButtonOpenArchive.clicked.connect(self._on_archive_clicked)
+        self._control_pane = FrmControlStorage()
+        # self._control_pane.pushButtonStartRecording.clicked.connect(self._prepare_recording)
+        # self._control_pane.pushButtonStopRecording.clicked.connect(self._close_recording)
+        # self._control_pane.pushButtonSelectSaveDir.clicked.connect(self._on_select_save_folder_clicked)
+        # self._control_pane.pushButtonOpenArchive.clicked.connect(self._on_archive_clicked)
 
         self._settings = settings
         if self._settings:
@@ -77,7 +77,7 @@ class Storage(QObject):
                 self._write_dir = None
             elif self._write_dir:
                 logger.info(f"Загружен путь к папке: {self._write_dir}")
-                self._control_pane.enable_archive(True)
+                # self._control_pane.enable_archive(True)
             else:
                 logger.info(f"Ключ 'write_dir' не найден в настройках")
             self._settings.endGroup()
@@ -233,34 +233,35 @@ class Storage(QObject):
 
     def process_start(self):
         """ метод инициализации параметров перед стартом """
-        self._control_pane.set_enable()
-        self._control_pane.set_file_count(self._cnt_file)
-        self._control_pane.timebase = self._sec_buffer_size
+        # self._control_pane.set_enable()
+        # self._control_pane.set_file_count(self._cnt_file)
+        # self._control_pane.timebase = self._sec_buffer_size
 
         if self._write_dir and self._device_name:
-            self._control_pane.enable_archive(True)
+            # self._control_pane.enable_archive(True)
+            pass
 
     def process_stop(self):
         """ метод очистки после остановки """
         if self._recording:
             self._close_recording()
 
-        self._control_pane.set_disable()
-        self._control_pane.enable_archive(True)
+        # self._control_pane.set_disable()
+        # self._control_pane.enable_archive(True)
 
     def _prepare_recording(self):
         """ метод подготовки к записи """
         logger.debug(f"{self.__class__}: открытие на запись")
 
         if self._write_dir is None:
-            self._control_pane.pushButtonSelectSaveDir.click()
-
+            # self._control_pane.pushButtonSelectSaveDir.click()
+            pass
         self._recording = True
         self._recording_start_time = datetime.datetime.now()
 
-        self._control_pane.pushButtonStopRecording.setEnabled(True)
-        self._control_pane.pushButtonStartRecording.setEnabled(False)
-        self._control_pane.pushButtonSelectSaveDir.setEnabled(False)
+        # self._control_pane.pushButtonStopRecording.setEnabled(True)
+        # self._control_pane.pushButtonStartRecording.setEnabled(False)
+        # self._control_pane.pushButtonSelectSaveDir.setEnabled(False)
 
     def _close_recording(self):
         """ метод закрытия записи и сохранения данных """
@@ -269,11 +270,11 @@ class Storage(QObject):
 
         self.__process_signals_for_save()
         self._cnt_file += 1
-        self._control_pane.set_file_count(self._cnt_file)
-
-        self._control_pane.pushButtonStartRecording.setEnabled(True)
-        self._control_pane.pushButtonStopRecording.setEnabled(False)
-        self._control_pane.pushButtonSelectSaveDir.setEnabled(True)
+        # self._control_pane.set_file_count(self._cnt_file)
+        #
+        # self._control_pane.pushButtonStartRecording.setEnabled(True)
+        # self._control_pane.pushButtonStopRecording.setEnabled(False)
+        # self._control_pane.pushButtonSelectSaveDir.setEnabled(True)
 
     def __process_signals_for_save(self, ):
         """ обработка сигналов для сохранения в edf """
@@ -445,7 +446,7 @@ class Storage(QObject):
 
         # увеличение счётчика записи
         self._cnt_file += 1
-        self._control_pane.set_file_count(self._cnt_file)
+        # self._control_pane.set_file_count(self._cnt_file)
 
     @staticmethod
     def interpolate_missing_samples(signal: np.ndarray, lost_samples: int) -> np.ndarray:
@@ -511,6 +512,6 @@ class Storage(QObject):
         self._device_name = None
         self._object_name = None
         self._cnt_file = 0
-        self._control_pane.set_file_count(self._cnt_file)
-        self._control_pane.set_disable()
-        self._control_pane.enable_archive(False)
+        # self._control_pane.set_file_count(self._cnt_file)
+        # self._control_pane.set_disable()
+        # self._control_pane.enable_archive(False)

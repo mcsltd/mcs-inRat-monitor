@@ -3,16 +3,16 @@ import sys
 
 from PySide6 import QtAsyncio
 from PySide6.QtCore import QSettings
-from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QComboBox, QHBoxLayout
+from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QHBoxLayout, QFrame
 from bleak import BLEDevice
 
 from device.device import inRatDevice
 from device.enums import TypeSignal
-from scanner import BLEScannerWorker
-from stream_viewer import StreamViewer, TempStreamViewer, FrmControlXYRange
+from ble_scanner.scanner import BleScanner
+from stream_viewer.stream_viewer import StreamViewer, TempStreamViewer, FrmControlXYRange
 from utils.check_bluetooth import check_bluetooth_status
-from storage.v1.storage import Storage
-from resources.main_window import Ui_MainWindow
+from storage.storage import Storage
+from resources.main_window_v1 import Ui_MainWindow
 from widget import WaitingDialog
 
 
@@ -35,12 +35,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.settings = QSettings("MCS.ltd", "inRat monitor")
 
         # hide
-        self.pushButtonDisconnect.hide()
+        # self.pushButtonDisconnect.hide()
         self.qt_loop = qt_loop
 
         # main classes
         self.device = inRatDevice(qt_loop,)
-        self.scanner = BLEScannerWorker()
+        self.scanner = BleScanner()
         self.storage = Storage(self.settings)
 
         # отображение сигнала exg
@@ -56,8 +56,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.control_pane_sig.signal_y_changed.connect(self.display_sig.set_y_range)
         self.layout_control_pane_exg.addStretch()
         self.layout_control_pane_exg.addWidget(self.control_pane_sig)
-        self.verticalLayoutDisplay.addLayout(self.layout_control_pane_exg)
-        self.verticalLayoutDisplay.addWidget(self.display_sig)
+        # self.verticalLayoutDisplay.addLayout(self.layout_control_pane_exg)
+        # self.verticalLayoutDisplay.addWidget(self.display_sig)
 
         # отображение сигнала акселерометра
         self.layout_control_pane_acc = QHBoxLayout()
@@ -73,36 +73,36 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.control_pane_acc.signal_y_changed.connect(self.display_acc.set_y_range)
         self.layout_control_pane_acc.addStretch()
         self.layout_control_pane_acc.addWidget(self.control_pane_acc)
-        self.verticalLayoutDisplay.addLayout(self.layout_control_pane_acc)
-        self.verticalLayoutDisplay.addWidget(self.display_acc)
+        # self.verticalLayoutDisplay.addLayout(self.layout_control_pane_acc)
+        # self.verticalLayoutDisplay.addWidget(self.display_acc)
 
         # отображение сигнала температуры
         self.display_temp = TempStreamViewer(left_label="temp", units="°C")
         self.device.add_receiver_data(self.storage)
-        self.verticalLayoutDisplay.addWidget(self.display_temp)
+        # self.verticalLayoutDisplay.addWidget(self.display_temp)
 
         # create scanner and run it
         self.scanner.run(self.qt_loop)
         self.scanner.signal_found.connect(self.set_combobox_items)
-        self.pushButtonConnect.setEnabled(False)
+        # self.pushButtonConnect.setEnabled(False)
 
         # setup combobox
-        self.comboBoxDevice.setDuplicatesEnabled(False)
-        self.comboBoxDevice.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+        # self.comboBoxDevice.setDuplicatesEnabled(False)
+        # self.comboBoxDevice.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
 
-        self.verticalLayout.insertWidget(4, self.device.control_pane)
-        self.verticalLayout.insertWidget(5, self.storage.control_pane)
+        # self.verticalLayout.insertWidget(4, self.device.control_pane)
+        # self.verticalLayout.insertWidget(5, self.storage.control_pane)
 
         self.enable_display_sig(False)
         self.enable_display_acc(False)
         self.enable_display_temp(False)
 
-        self.horizontalLayoutStatusBar.addWidget(self.device.battery_pane)
+        # self.horizontalLayoutStatusBar.addWidget(self.device.battery_pane)
         self.device.battery_pane.setVisible(False)
 
         # connection
-        self.pushButtonConnect.clicked.connect(self.on_connect_clicked)
-        self.pushButtonDisconnect.clicked.connect(self.on_disconnect_clicked)
+        # self.pushButtonConnect.clicked.connect(self.on_connect_clicked)
+        # self.pushButtonDisconnect.clicked.connect(self.on_disconnect_clicked)
         self.device.signal_connected.connect(self.on_device_connected)
         self.device.signal_disconnected.connect(self.on_device_disconnected)
         self.device.signal_error.connect(self.show_message_error)
@@ -114,6 +114,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # ui elements
         self._waiting_connection_dlg = WaitingDialog(self)
+
+        # fill control panel
+        v_line = QFrame()
+        v_line.setFrameShape(QFrame.Shape.VLine)
+        v_line.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.horizontalLayoutControlPane.insertWidget(0, self.scanner.control_pane)
+        self.horizontalLayoutControlPane.insertWidget(1, self.device.control_pane)
+        self.horizontalLayoutControlPane.insertWidget(2, self.storage.control_pane)
+
 
     def enable_display_acc(self, state: bool):
         logger.debug("Активация окна отображения сигналов ЭКГ/ЭМГ")
@@ -151,18 +161,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._waiting_connection_dlg.show()
         self.scanner.stop()
 
-        device = self.comboBoxDevice.currentData()
-        self.device.process_connect(device)
+        # device = self.comboBoxDevice.currentData()
+        # self.device.process_connect(device)
 
-        self.comboBoxDevice.setDisabled(True)
-        self.pushButtonConnect.setDisabled(True)
+        # self.comboBoxDevice.setDisabled(True)
+        # self.pushButtonConnect.setDisabled(True)
 
     def on_device_connected(self):
         """ обработка случая подключения устройства """
         self._waiting_connection_dlg.close()
-        self.pushButtonConnect.hide()
-        self.pushButtonDisconnect.setVisible(True)
-        self.pushButtonDisconnect.setEnabled(True)
+        # self.pushButtonConnect.hide()
+        # self.pushButtonDisconnect.setVisible(True)
+        # self.pushButtonDisconnect.setEnabled(True)
         self.device.battery_pane.setVisible(True)
 
 
@@ -179,21 +189,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.scanner.run(self.qt_loop)
 
         self._waiting_connection_dlg.close()
-        self.pushButtonDisconnect.hide()
-        self.pushButtonConnect.setVisible(True)
-        self.comboBoxDevice.clear()
-        self.comboBoxDevice.setEnabled(True)
-        self.pushButtonConnect.setEnabled(False)
+        # self.pushButtonDisconnect.hide()
+        # self.pushButtonConnect.setVisible(True)
+        # self.comboBoxDevice.clear()
+        # self.comboBoxDevice.setEnabled(True)
+        # self.pushButtonConnect.setEnabled(False)
 
         self.device.battery_pane.setVisible(False)
 
 
     def set_combobox_items(self, devices: set[BLEDevice]):
-        for device in devices:
-            if self.comboBoxDevice.findText(device.name) == -1:
-                self.comboBoxDevice.addItem(device.name, userData=device)
-        if self.comboBoxDevice.count() != 0:
-            self.pushButtonConnect.setEnabled(True)
+        # for device in devices:
+        #     if self.comboBoxDevice.findText(device.name) == -1:
+        #         self.comboBoxDevice.addItem(device.name, userData=device)
+        # if self.comboBoxDevice.count() != 0:
+        #     self.pushButtonConnect.setEnabled(True)
+        pass
 
     def show_message_error(self, msg: str):
         QMessageBox.critical(self,"Ошибка", msg, QMessageBox.StandardButton.Ok)

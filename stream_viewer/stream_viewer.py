@@ -8,11 +8,11 @@ import pyqtgraph as pg
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QFrame
-from pyqtgraph import mkPen, ScatterPlotItem, LegendItem, ItemSample, LabelItem
+from pyqtgraph import mkPen, ScatterPlotItem, LegendItem
 
 from device.device import SignalDatablock
 from device.enums import TypeSignal, EventType
-from resources.frm_control_xy_range import Ui_FrmControlXYRange
+from stream_viewer.frm_control_xy_range import Ui_FrmControlXYRange
 
 
 logger = logging.getLogger(__name__)

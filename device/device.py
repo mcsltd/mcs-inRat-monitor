@@ -19,7 +19,7 @@ from device.ui.config_dialog import DlgConfigDevice
 from device.ui.control_pane import FrmControlPane
 
 # ui
-from resources.frm_battery_level import Ui_FrmBattery
+from device.res.frm_battery_level import Ui_FrmBattery
 
 logger = logging.getLogger(__name__)
 
@@ -158,10 +158,10 @@ class inRatDevice(QObject):
 
         # ui
         self._control_pane = FrmControlPane()
-        self._control_pane.pushButtonStart.clicked.connect(self.start)
-        self._control_pane.pushButtonStop.clicked.connect(self.stop)
-        self._control_pane.pushButtonConfig.clicked.connect(self.on_config_clicked)
-        self._control_pane.checkBoxActivated.checkStateChanged.connect(self.on_state_activate_changed)
+        # self._control_pane.pushButtonStart.clicked.connect(self.start)
+        # self._control_pane.pushButtonStop.clicked.connect(self.stop)
+        # self._control_pane.pushButtonConfig.clicked.connect(self.on_config_clicked)
+        # self._control_pane.checkBoxActivated.checkStateChanged.connect(self.on_state_activate_changed)
 
         self.battery_timer = 0
         self._battery_pane = BatteryWidget()
@@ -265,12 +265,12 @@ class inRatDevice(QObject):
             future = asyncio.run_coroutine_threadsafe(self._inrat.get_status(), self._loop)
             future.add_done_callback(self._on_status_received)
 
-            self._control_pane.state_connection()
+            # self._control_pane.state_connection()
             self.signal_connected.emit()
 
             if self._inrat.is_activated:
-                self._control_pane.checkBoxActivated.setChecked(True)
-
+                # self._control_pane.checkBoxActivated.setChecked(True)
+                pass
             if self._acc_datablock:
                 self._acc_datablock.device_name = self._inrat.name
             if self._exg_datablock:
@@ -298,7 +298,7 @@ class inRatDevice(QObject):
                 self.signal_enable_sig.emit(True)
 
         else:
-            self._control_pane.state_disconnect()
+            # self._control_pane.state_disconnect()
             self.signal_disconnected.emit()
             msg = (f"Не удалось соединиться с {self._inrat.name}!\n"
                    f"Повторите попытку")
@@ -319,7 +319,8 @@ class inRatDevice(QObject):
         self.signal_disconnected.emit()
 
         if not self._inrat.is_connected:
-            self._control_pane.state_disconnect()
+            # self._control_pane.state_disconnect()
+            pass
 
         self.signal_enable_acc.emit(False)
         self.signal_enable_sig.emit(False)
@@ -383,7 +384,7 @@ class inRatDevice(QObject):
     def process_start(self):
         """ обработка запуска устройства """
         self.battery_timer = 0
-        self._control_pane.state_acquisition()
+        # self._control_pane.state_acquisition()
         self._timer_check_conn.start()
 
     def _worker_thread_exg(self):
@@ -490,7 +491,7 @@ class inRatDevice(QObject):
 
     def process_stop(self):
         """ обработка остановки устройства """
-        self._control_pane.state_connection()
+        # self._control_pane.state_connection()
         self._timer_check_conn.stop()
 
         self._last_exg_sample = -1

@@ -5,10 +5,11 @@ from PySide6.QtCore import QObject, Signal
 from PySide6 import QtAsyncio
 from bleak import BLEDevice, BleakScanner
 
+from ble_scanner.ui.frm_control_scanner import FrmControlScannerPane
 from utils.scanner import NAME_TEMPLATE
 
 
-class BLEScannerWorker(QObject):
+class BleScanner(QObject):
     signal_found = Signal(set)
 
     def __init__(self):
@@ -17,6 +18,13 @@ class BLEScannerWorker(QObject):
         self._sec_scan_time = 2
         self.event_stop_scan = asyncio.Event()
         self._running: bool = False
+
+        self._control_pane = FrmControlScannerPane()
+        # todo connect signal with slot
+
+    @property
+    def control_pane(self):
+        return self._control_pane
 
     def is_running(self) -> bool:
         return self._running
