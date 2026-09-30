@@ -1,26 +1,46 @@
 import asyncio
 import time
+from asyncio import AbstractEventLoop
 
 from PySide6.QtCore import QObject, Signal
 from PySide6 import QtAsyncio
 from bleak import BLEDevice, BleakScanner
 
+from ble_scanner.ui.dlg_ble_scan import DlgBleScan
 from ble_scanner.ui.frm_control_scanner import FrmControlScannerPane
 from utils.scanner import NAME_TEMPLATE
 
 
 class BleScanner(QObject):
-    signal_found = Signal(set)
+    signal_found = Signal(object)
+    signal_connect = Signal(object)
 
-    def __init__(self):
+    def __init__(self, loop: AbstractEventLoop):
         super().__init__()
+        self._loop = loop
+
         self.timer = None
         self._sec_scan_time = 2
         self.event_stop_scan = asyncio.Event()
         self._running: bool = False
 
         self._control_pane = FrmControlScannerPane()
+        self._control_pane.pushButtonStart.clicked.connect(self.on_start_clicked)
         # todo connect signal with slot
+
+    def on_start_clicked(self):
+        """ обработка кнопки поиска и подключения к inRat """
+        self.run()
+
+        dlg_scan = DlgBleScan()
+        self.signal_found.connect(dlg_scan.set_device)
+        dlg_scan.signal_select.connect(self.on_open_clicked)
+        dlg_scan.exec()
+
+    def on_open_clicked(self, device):
+        """ обработка кнопки открытия устройства """
+        self.stop()
+        self.signal_connect.emit(device)
 
     @property
     def control_pane(self):
@@ -30,7 +50,6 @@ class BleScanner(QObject):
         return self._running
 
     async def _scanning(self):
-        ble_devices: set[BLEDevice] = set()
 
         async with BleakScanner() as scanner:
             async for device, advertisement in scanner.advertisement_data():
@@ -42,17 +61,13 @@ class BleScanner(QObject):
                         device.name is not None and
                         device.name.startswith(NAME_TEMPLATE)
                 ):
-                    ble_devices.add(device)
+                    self.signal_found.emit(device)
 
-                if time.time() - self.timer > self._sec_scan_time:
-                    self.timer = time.time()
-                    self.signal_found.emit(ble_devices)
-
-    def run(self, qt_loop: QtAsyncio.QAsyncioEventLoop):
+    def run(self):
         self.timer = 0
         self.event_stop_scan.clear()
         self._running = True
-        asyncio.run_coroutine_threadsafe(self._scanning(), qt_loop)
+        asyncio.run_coroutine_threadsafe(self._scanning(), self._loop)
 
     def stop(self):
         self.event_stop_scan.set()

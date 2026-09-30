@@ -40,7 +40,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # main classes
         self.device = inRatDevice(qt_loop,)
-        self.scanner = BleScanner()
+        self.scanner = BleScanner(qt_loop)
         self.storage = Storage(self.settings)
 
         # отображение сигнала exg
@@ -82,8 +82,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # self.verticalLayoutDisplay.addWidget(self.display_temp)
 
         # create scanner and run it
-        self.scanner.run(self.qt_loop)
-        self.scanner.signal_found.connect(self.set_combobox_items)
+        # self.scanner.run(self.qt_loop)
+        # self.scanner.signal_found.connect(self.set_combobox_items)
         # self.pushButtonConnect.setEnabled(False)
 
         # setup combobox
@@ -112,14 +112,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.device.signal_enable_acc.connect(self.enable_display_acc)
         self.device.signal_enable_temp.connect(self.enable_display_temp)
 
+        self.scanner.signal_connect.connect(self.device.process_connect)
+
         # ui elements
         self._waiting_connection_dlg = WaitingDialog(self)
 
-        # fill control panel
-        v_line = QFrame()
-        v_line.setFrameShape(QFrame.Shape.VLine)
-        v_line.setFrameShadow(QFrame.Shadow.Sunken)
-
+        self.actionExit.triggered.connect(self.close)
         self.horizontalLayoutControlPane.insertWidget(0, self.scanner.control_pane)
         self.horizontalLayoutControlPane.insertWidget(1, self.device.control_pane)
         self.horizontalLayoutControlPane.insertWidget(2, self.storage.control_pane)
