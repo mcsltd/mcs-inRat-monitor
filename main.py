@@ -10,6 +10,7 @@ from device.device import inRatDevice
 from device.enums import TypeSignal
 from ble_scanner.scanner import BleScanner
 from stream_viewer.stream_viewer import StreamViewer, TempStreamViewer, FrmControlXYRange
+from ui.dlg_config import DlgConfig
 from utils.check_bluetooth import check_bluetooth_status
 from storage.storage import Storage
 from resources.main_window_v1 import Ui_MainWindow
@@ -102,6 +103,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.scanner.signal_connect.connect(self.device.process_connect)
 
+        self.pushButtonConfig.clicked.connect(self.on_config_clicked)
+
         # ui elements
         self._waiting_connection_dlg = WaitingDialog(self)
 
@@ -171,26 +174,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def on_device_disconnected(self):
         """ обработка случая если устройство отсоединено """
-        if not self.scanner.is_running():
-            # self.scanner.run(self./)
-            pass
         self._waiting_connection_dlg.close()
-        # self.pushButtonDisconnect.hide()
-        # self.pushButtonConnect.setVisible(True)
-        # self.comboBoxDevice.clear()
-        # self.comboBoxDevice.setEnabled(True)
-        # self.pushButtonConnect.setEnabled(False)
-
         self.device.battery_pane.setVisible(False)
-
-
-    def set_combobox_items(self, devices: set[BLEDevice]):
-        # for device in devices:
-        #     if self.comboBoxDevice.findText(device.name) == -1:
-        #         self.comboBoxDevice.addItem(device.name, userData=device)
-        # if self.comboBoxDevice.count() != 0:
-        #     self.pushButtonConnect.setEnabled(True)
-        pass
 
     def show_message_error(self, msg: str):
         QMessageBox.critical(self,"Ошибка", msg, QMessageBox.StandardButton.Ok)
@@ -202,6 +187,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # save basic settings
         self.storage.save_settings()
+
+    def on_config_clicked(self):
+        """ открытие окна настроек """
+        dlg = DlgConfig()
+        dlg.exec()
 
 if __name__ == "__main__":
     app = QApplication([])
