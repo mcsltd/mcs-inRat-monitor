@@ -158,10 +158,8 @@ class inRatDevice(QObject):
 
         # ui
         self._control_pane = FrmControlPane()
-        # self._control_pane.pushButtonStart.clicked.connect(self.start)
-        # self._control_pane.pushButtonStop.clicked.connect(self.stop)
-        # self._control_pane.pushButtonConfig.clicked.connect(self.on_config_clicked)
-        # self._control_pane.checkBoxActivated.checkStateChanged.connect(self.on_state_activate_changed)
+        self._control_pane.pushButtonStart.clicked.connect(self.start)
+        self._control_pane.pushButtonStop.clicked.connect(self.stop)
 
         self.battery_timer = 0
         self._battery_pane = BatteryWidget()
@@ -253,6 +251,7 @@ class inRatDevice(QObject):
         self._inrat = inRat(ble_device=device)
         future = asyncio.run_coroutine_threadsafe(self._inrat.connect(), self._loop)
         future.add_done_callback(self.on_device_connected)
+
     def on_device_connected(self, future: Future):
         """ обработка результата соединения с устройством """
         try:
@@ -265,11 +264,10 @@ class inRatDevice(QObject):
             future = asyncio.run_coroutine_threadsafe(self._inrat.get_status(), self._loop)
             future.add_done_callback(self._on_status_received)
 
-            # self._control_pane.state_connection()
+            self._control_pane.set_enabled(True)
             self.signal_connected.emit()
 
             if self._inrat.is_activated:
-                # self._control_pane.checkBoxActivated.setChecked(True)
                 pass
             if self._acc_datablock:
                 self._acc_datablock.device_name = self._inrat.name
@@ -319,7 +317,7 @@ class inRatDevice(QObject):
         self.signal_disconnected.emit()
 
         if not self._inrat.is_connected:
-            # self._control_pane.state_disconnect()
+            self._control_pane.set_enabled(False)
             pass
 
         self.signal_enable_acc.emit(False)
@@ -384,7 +382,7 @@ class inRatDevice(QObject):
     def process_start(self):
         """ обработка запуска устройства """
         self.battery_timer = 0
-        # self._control_pane.state_acquisition()
+        self._control_pane.set_start()
         self._timer_check_conn.start()
 
     def _worker_thread_exg(self):
@@ -491,7 +489,7 @@ class inRatDevice(QObject):
 
     def process_stop(self):
         """ обработка остановки устройства """
-        # self._control_pane.state_connection()
+        self._control_pane.set_pause()
         self._timer_check_conn.stop()
 
         self._last_exg_sample = -1

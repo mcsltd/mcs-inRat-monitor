@@ -37,3 +37,7 @@ class DlgBleScan(QDialog, Ui_DlgBleScan):
         """ обработка кнопки подключения устройства """
         self._founded_device.clear()
         self.listWidgetFoundDevice.clear()
+
+    def closeEvent(self, arg__1, /):
+        """ обработка закрытия окна """
+        self.signal_select.emit(None)

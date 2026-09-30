@@ -39,7 +39,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.qt_loop = qt_loop
 
         # main classes
-        self.device = inRatDevice(qt_loop,)
+        self.device = inRatDevice(qt_loop)
         self.scanner = BleScanner(qt_loop)
         self.storage = Storage(self.settings)
 
@@ -56,8 +56,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.control_pane_sig.signal_y_changed.connect(self.display_sig.set_y_range)
         self.layout_control_pane_exg.addStretch()
         self.layout_control_pane_exg.addWidget(self.control_pane_sig)
-        # self.verticalLayoutDisplay.addLayout(self.layout_control_pane_exg)
-        # self.verticalLayoutDisplay.addWidget(self.display_sig)
+        self.verticalLayoutDisplay.addLayout(self.layout_control_pane_exg)
+        self.verticalLayoutDisplay.addWidget(self.display_sig)
 
         # отображение сигнала акселерометра
         self.layout_control_pane_acc = QHBoxLayout()
@@ -73,31 +73,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.control_pane_acc.signal_y_changed.connect(self.display_acc.set_y_range)
         self.layout_control_pane_acc.addStretch()
         self.layout_control_pane_acc.addWidget(self.control_pane_acc)
-        # self.verticalLayoutDisplay.addLayout(self.layout_control_pane_acc)
-        # self.verticalLayoutDisplay.addWidget(self.display_acc)
+        self.verticalLayoutDisplay.addLayout(self.layout_control_pane_acc)
+        self.verticalLayoutDisplay.addWidget(self.display_acc)
 
         # отображение сигнала температуры
         self.display_temp = TempStreamViewer(left_label="temp", units="°C")
         self.device.add_receiver_data(self.storage)
-        # self.verticalLayoutDisplay.addWidget(self.display_temp)
-
-        # create scanner and run it
-        # self.scanner.run(self.qt_loop)
-        # self.scanner.signal_found.connect(self.set_combobox_items)
-        # self.pushButtonConnect.setEnabled(False)
-
-        # setup combobox
-        # self.comboBoxDevice.setDuplicatesEnabled(False)
-        # self.comboBoxDevice.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
-
-        # self.verticalLayout.insertWidget(4, self.device.control_pane)
-        # self.verticalLayout.insertWidget(5, self.storage.control_pane)
+        self.verticalLayoutDisplay.addWidget(self.display_temp)
 
         self.enable_display_sig(False)
         self.enable_display_acc(False)
         self.enable_display_temp(False)
 
-        # self.horizontalLayoutStatusBar.addWidget(self.device.battery_pane)
+        self.horizontalLayoutStatusBar.addWidget(self.device.battery_pane)
         self.device.battery_pane.setVisible(False)
 
         # connection
@@ -184,8 +172,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def on_device_disconnected(self):
         """ обработка случая если устройство отсоединено """
         if not self.scanner.is_running():
-            self.scanner.run(self.qt_loop)
-
+            # self.scanner.run(self./)
+            pass
         self._waiting_connection_dlg.close()
         # self.pushButtonDisconnect.hide()
         # self.pushButtonConnect.setVisible(True)

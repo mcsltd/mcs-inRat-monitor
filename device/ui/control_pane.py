@@ -9,6 +9,22 @@ class FrmControlPane(QFrame, Ui_FrmControlDevice):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
+    def set_enabled(self, enable: bool):
+        if enable:
+            self.pushButtonStart.setEnabled(True)
+            self.pushButtonStop.setEnabled(False)
+        else:
+            self.pushButtonStart.setEnabled(False)
+            self.pushButtonStop.setEnabled(False)
+
+    def set_pause(self):
+        self.pushButtonStart.setEnabled(True)
+        self.pushButtonStop.setEnabled(False)
+
+    def set_start(self):
+        self.pushButtonStart.setEnabled(False)
+        self.pushButtonStop.setEnabled(True)
+
     # def state_acquisition(self):
     #     self.pushButtonStart.setEnabled(False)
     #     self.pushButtonStop.setEnabled(True)

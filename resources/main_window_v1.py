@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'main_window_v1nDACAd.ui'
+## Form generated from reading UI file 'main_window_v1xaCTEj.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.11.2
 ##
@@ -26,7 +26,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(994, 596)
+        MainWindow.resize(990, 588)
         icon = QIcon()
         icon.addFile(u":/images/icon.ico", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         MainWindow.setWindowIcon(icon)
@@ -39,12 +39,14 @@ class Ui_MainWindow(object):
         self.verticalLayout = QVBoxLayout()
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.horizontalLayoutControlPane = QHBoxLayout()
+        self.horizontalLayoutControlPane.setSpacing(2)
         self.horizontalLayoutControlPane.setObjectName(u"horizontalLayoutControlPane")
         self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayoutControlPane.addItem(self.horizontalSpacer)
 
         self.verticalLayout_2 = QVBoxLayout()
+        self.verticalLayout_2.setSpacing(2)
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
         self.pushButtonConfig = QPushButton(self.centralwidget)
         self.pushButtonConfig.setObjectName(u"pushButtonConfig")
@@ -82,6 +84,22 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.addLayout(self.horizontalLayoutControlPane)
 
+        self.line_2 = QFrame(self.centralwidget)
+        self.line_2.setObjectName(u"line_2")
+        self.line_2.setFrameShape(QFrame.Shape.HLine)
+        self.line_2.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.verticalLayout.addWidget(self.line_2)
+
+        self.verticalLayoutDisplay = QVBoxLayout()
+        self.verticalLayoutDisplay.setObjectName(u"verticalLayoutDisplay")
+
+        self.verticalLayout.addLayout(self.verticalLayoutDisplay)
+
+        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.verticalLayout.addItem(self.verticalSpacer)
+
         self.line = QFrame(self.centralwidget)
         self.line.setObjectName(u"line")
         self.line.setFrameShape(QFrame.Shape.HLine)
@@ -89,9 +107,14 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.addWidget(self.line)
 
-        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.horizontalLayoutStatusBar = QHBoxLayout()
+        self.horizontalLayoutStatusBar.setObjectName(u"horizontalLayoutStatusBar")
+        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
-        self.verticalLayout.addItem(self.verticalSpacer)
+        self.horizontalLayoutStatusBar.addItem(self.horizontalSpacer_2)
+
+
+        self.verticalLayout.addLayout(self.horizontalLayoutStatusBar)
 
 
         self.gridLayout.addLayout(self.verticalLayout, 0, 0, 1, 1)
@@ -99,7 +122,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 994, 22))
+        self.menubar.setGeometry(QRect(0, 0, 990, 22))
         self.menu = QMenu(self.menubar)
         self.menu.setObjectName(u"menu")
         MainWindow.setMenuBar(self.menubar)

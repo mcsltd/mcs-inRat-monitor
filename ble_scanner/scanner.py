@@ -3,8 +3,7 @@ import time
 from asyncio import AbstractEventLoop
 
 from PySide6.QtCore import QObject, Signal
-from PySide6 import QtAsyncio
-from bleak import BLEDevice, BleakScanner
+from bleak import BleakScanner
 
 from ble_scanner.ui.dlg_ble_scan import DlgBleScan
 from ble_scanner.ui.frm_control_scanner import FrmControlScannerPane
@@ -40,6 +39,8 @@ class BleScanner(QObject):
     def on_open_clicked(self, device):
         """ обработка кнопки открытия устройства """
         self.stop()
+        if not device:
+            return
         self.signal_connect.emit(device)
 
     @property

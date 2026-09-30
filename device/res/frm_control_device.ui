@@ -19,7 +19,7 @@
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout">
        <item>
-        <widget class="QPushButton" name="pushButtonStop">
+        <widget class="QPushButton" name="pushButtonStart">
          <property name="enabled">
           <bool>false</bool>
          </property>
@@ -57,7 +57,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="pushButtonStart">
+        <widget class="QPushButton" name="pushButtonStop">
          <property name="enabled">
           <bool>false</bool>
          </property>

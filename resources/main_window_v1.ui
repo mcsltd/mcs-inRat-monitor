@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>994</width>
-    <height>596</height>
+    <width>990</width>
+    <height>588</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -23,6 +23,9 @@
      <layout class="QVBoxLayout" name="verticalLayout">
       <item>
        <layout class="QHBoxLayout" name="horizontalLayoutControlPane">
+        <property name="spacing">
+         <number>2</number>
+        </property>
         <item>
          <spacer name="horizontalSpacer">
           <property name="orientation">
@@ -38,6 +41,9 @@
         </item>
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_2">
+          <property name="spacing">
+           <number>2</number>
+          </property>
           <item>
            <widget class="QPushButton" name="pushButtonConfig">
             <property name="sizePolicy">
@@ -105,11 +111,14 @@
        </layout>
       </item>
       <item>
-       <widget class="Line" name="line">
+       <widget class="Line" name="line_2">
         <property name="orientation">
          <enum>Qt::Orientation::Horizontal</enum>
         </property>
        </widget>
+      </item>
+      <item>
+       <layout class="QVBoxLayout" name="verticalLayoutDisplay"/>
       </item>
       <item>
        <spacer name="verticalSpacer">
@@ -124,6 +133,30 @@
         </property>
        </spacer>
       </item>
+      <item>
+       <widget class="Line" name="line">
+        <property name="orientation">
+         <enum>Qt::Orientation::Horizontal</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayoutStatusBar">
+        <item>
+         <spacer name="horizontalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Orientation::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
      </layout>
     </item>
    </layout>
@@ -133,7 +166,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>994</width>
+     <width>990</width>
      <height>22</height>
     </rect>
    </property>

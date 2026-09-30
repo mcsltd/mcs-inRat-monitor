@@ -58,10 +58,8 @@ class Storage(QObject):
 
         # ui panels
         self._control_pane = FrmControlStorage()
-        # self._control_pane.pushButtonStartRecording.clicked.connect(self._prepare_recording)
-        # self._control_pane.pushButtonStopRecording.clicked.connect(self._close_recording)
-        # self._control_pane.pushButtonSelectSaveDir.clicked.connect(self._on_select_save_folder_clicked)
-        # self._control_pane.pushButtonOpenArchive.clicked.connect(self._on_archive_clicked)
+        self._control_pane.pushButtonStart.clicked.connect(self._prepare_recording)
+        self._control_pane.pushButtonStop.clicked.connect(self._close_recording)
 
         self._settings = settings
         if self._settings:
@@ -117,7 +115,6 @@ class Storage(QObject):
         if self._write_dir and self._device_name:
             path_to_archive = rf"{write_dir}/{self._device_name}"
             os.makedirs(path_to_archive, exist_ok=True)
-            self._control_pane.enable_archive(True)
 
     def _on_archive_clicked(self):
         """ метод для открытия папки с записями """
@@ -233,12 +230,10 @@ class Storage(QObject):
 
     def process_start(self):
         """ метод инициализации параметров перед стартом """
-        # self._control_pane.set_enable()
-        # self._control_pane.set_file_count(self._cnt_file)
-        # self._control_pane.timebase = self._sec_buffer_size
+        self._control_pane.set_start()
 
         if self._write_dir and self._device_name:
-            # self._control_pane.enable_archive(True)
+            self._control_pane.set_enabled(True)
             pass
 
     def process_stop(self):
@@ -246,8 +241,7 @@ class Storage(QObject):
         if self._recording:
             self._close_recording()
 
-        # self._control_pane.set_disable()
-        # self._control_pane.enable_archive(True)
+        self._control_pane.set_enabled(False)
 
     def _prepare_recording(self):
         """ метод подготовки к записи """
@@ -259,9 +253,7 @@ class Storage(QObject):
         self._recording = True
         self._recording_start_time = datetime.datetime.now()
 
-        # self._control_pane.pushButtonStopRecording.setEnabled(True)
-        # self._control_pane.pushButtonStartRecording.setEnabled(False)
-        # self._control_pane.pushButtonSelectSaveDir.setEnabled(False)
+        self._control_pane.set_start()
 
     def _close_recording(self):
         """ метод закрытия записи и сохранения данных """
@@ -270,11 +262,8 @@ class Storage(QObject):
 
         self.__process_signals_for_save()
         self._cnt_file += 1
-        # self._control_pane.set_file_count(self._cnt_file)
-        #
-        # self._control_pane.pushButtonStartRecording.setEnabled(True)
-        # self._control_pane.pushButtonStopRecording.setEnabled(False)
-        # self._control_pane.pushButtonSelectSaveDir.setEnabled(True)
+
+        self._control_pane.set_pause()
 
     def __process_signals_for_save(self, ):
         """ обработка сигналов для сохранения в edf """

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'frm_control_recordingXcUxLy.ui'
+## Form generated from reading UI file 'frm_control_recordingDQViKb.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.11.2
 ##
@@ -29,26 +29,26 @@ class Ui_frmControlRecording(object):
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
-        self.pushButtonStartRecord = QPushButton(frmControlRecording)
-        self.pushButtonStartRecord.setObjectName(u"pushButtonStartRecord")
-        self.pushButtonStartRecord.setEnabled(False)
+        self.pushButtonStart = QPushButton(frmControlRecording)
+        self.pushButtonStart.setObjectName(u"pushButtonStart")
+        self.pushButtonStart.setEnabled(False)
         sizePolicy = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButtonStartRecord.sizePolicy().hasHeightForWidth())
-        self.pushButtonStartRecord.setSizePolicy(sizePolicy)
-        self.pushButtonStartRecord.setMaximumSize(QSize(75, 75))
+        sizePolicy.setHeightForWidth(self.pushButtonStart.sizePolicy().hasHeightForWidth())
+        self.pushButtonStart.setSizePolicy(sizePolicy)
+        self.pushButtonStart.setMaximumSize(QSize(75, 75))
 
-        self.horizontalLayout.addWidget(self.pushButtonStartRecord)
+        self.horizontalLayout.addWidget(self.pushButtonStart)
 
-        self.pushButtonStopRecord = QPushButton(frmControlRecording)
-        self.pushButtonStopRecord.setObjectName(u"pushButtonStopRecord")
-        self.pushButtonStopRecord.setEnabled(False)
-        sizePolicy.setHeightForWidth(self.pushButtonStopRecord.sizePolicy().hasHeightForWidth())
-        self.pushButtonStopRecord.setSizePolicy(sizePolicy)
-        self.pushButtonStopRecord.setMaximumSize(QSize(75, 75))
+        self.pushButtonStop = QPushButton(frmControlRecording)
+        self.pushButtonStop.setObjectName(u"pushButtonStop")
+        self.pushButtonStop.setEnabled(False)
+        sizePolicy.setHeightForWidth(self.pushButtonStop.sizePolicy().hasHeightForWidth())
+        self.pushButtonStop.setSizePolicy(sizePolicy)
+        self.pushButtonStop.setMaximumSize(QSize(75, 75))
 
-        self.horizontalLayout.addWidget(self.pushButtonStopRecord)
+        self.horizontalLayout.addWidget(self.pushButtonStop)
 
 
         self.verticalLayout.addLayout(self.horizontalLayout)
@@ -71,9 +71,9 @@ class Ui_frmControlRecording(object):
 
     def retranslateUi(self, frmControlRecording):
         frmControlRecording.setWindowTitle(QCoreApplication.translate("frmControlRecording", u"Frame", None))
-        self.pushButtonStartRecord.setText(QCoreApplication.translate("frmControlRecording", u"\u041d\u0430\u0447\u0430\u0442\u044c \n"
+        self.pushButtonStart.setText(QCoreApplication.translate("frmControlRecording", u"\u041d\u0430\u0447\u0430\u0442\u044c \n"
 "\u0437\u0430\u043f\u0438\u0441\u044c", None))
-        self.pushButtonStopRecord.setText(QCoreApplication.translate("frmControlRecording", u"\u041e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \n"
+        self.pushButtonStop.setText(QCoreApplication.translate("frmControlRecording", u"\u041e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \n"
 "\u0437\u0430\u043f\u0438\u0441\u044c", None))
         self.label.setText(QCoreApplication.translate("frmControlRecording", u"\u0417\u0430\u043f\u0438\u0441\u044c", None))
     # retranslateUi
