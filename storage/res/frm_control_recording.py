@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'frm_control_recordinghOMBQe.ui'
+## Form generated from reading UI file 'frm_control_recordingXcUxLy.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.11.2
 ##
@@ -31,6 +31,7 @@ class Ui_frmControlRecording(object):
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.pushButtonStartRecord = QPushButton(frmControlRecording)
         self.pushButtonStartRecord.setObjectName(u"pushButtonStartRecord")
+        self.pushButtonStartRecord.setEnabled(False)
         sizePolicy = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -42,6 +43,7 @@ class Ui_frmControlRecording(object):
 
         self.pushButtonStopRecord = QPushButton(frmControlRecording)
         self.pushButtonStopRecord.setObjectName(u"pushButtonStopRecord")
+        self.pushButtonStopRecord.setEnabled(False)
         sizePolicy.setHeightForWidth(self.pushButtonStopRecord.sizePolicy().hasHeightForWidth())
         self.pushButtonStopRecord.setSizePolicy(sizePolicy)
         self.pushButtonStopRecord.setMaximumSize(QSize(75, 75))

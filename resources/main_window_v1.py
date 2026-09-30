@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'main_window_v1gSgIZZ.ui'
+## Form generated from reading UI file 'main_window_v1nDACAd.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.11.2
 ##
@@ -55,6 +55,14 @@ class Ui_MainWindow(object):
         self.pushButtonConfig.setSizePolicy(sizePolicy)
         self.pushButtonConfig.setMinimumSize(QSize(75, 75))
         self.pushButtonConfig.setMaximumSize(QSize(75, 75))
+        self.pushButtonConfig.setStyleSheet(u"QPushButton {\n"
+"    background-color: transparent;\n"
+"    border: none;\n"
+"}")
+        icon1 = QIcon()
+        icon1.addFile(u":/images/settings.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.pushButtonConfig.setIcon(icon1)
+        self.pushButtonConfig.setIconSize(QSize(50, 50))
 
         self.verticalLayout_2.addWidget(self.pushButtonConfig)
 
@@ -107,7 +115,7 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"inRat monitor", None))
         self.actionExit.setText(QCoreApplication.translate("MainWindow", u"\u0412\u044b\u0439\u0442\u0438", None))
-        self.pushButtonConfig.setText(QCoreApplication.translate("MainWindow", u"\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438", None))
+        self.pushButtonConfig.setText("")
         self.labelConfigDesc.setText(QCoreApplication.translate("MainWindow", u"\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438", None))
         self.menu.setTitle(QCoreApplication.translate("MainWindow", u"\u0424\u0430\u0439\u043b", None))
     # retranslateUi

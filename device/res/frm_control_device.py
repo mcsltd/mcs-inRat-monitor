@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'frm_control_deviceeRZISP.ui'
+## Form generated from reading UI file 'frm_control_devicepXnaJR.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.11.2
 ##
@@ -17,12 +17,13 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QFrame, QHBoxLayout, QLabel,
     QPushButton, QSizePolicy, QVBoxLayout, QWidget)
+import resources.resources_rc
 
 class Ui_FrmControlDevice(object):
     def setupUi(self, FrmControlDevice):
         if not FrmControlDevice.objectName():
             FrmControlDevice.setObjectName(u"FrmControlDevice")
-        FrmControlDevice.resize(194, 128)
+        FrmControlDevice.resize(198, 136)
         self.verticalLayout_2 = QVBoxLayout(FrmControlDevice)
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
         self.verticalLayout = QVBoxLayout()
@@ -31,20 +32,38 @@ class Ui_FrmControlDevice(object):
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.pushButtonStop = QPushButton(FrmControlDevice)
         self.pushButtonStop.setObjectName(u"pushButtonStop")
+        self.pushButtonStop.setEnabled(False)
         sizePolicy = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.pushButtonStop.sizePolicy().hasHeightForWidth())
         self.pushButtonStop.setSizePolicy(sizePolicy)
         self.pushButtonStop.setMaximumSize(QSize(75, 75))
+        self.pushButtonStop.setStyleSheet(u"QPushButton {\n"
+"    background-color: transparent;\n"
+"    border: none;\n"
+"}")
+        icon = QIcon()
+        icon.addFile(u":/images/start.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.pushButtonStop.setIcon(icon)
+        self.pushButtonStop.setIconSize(QSize(50, 50))
 
         self.horizontalLayout.addWidget(self.pushButtonStop)
 
         self.pushButtonStart = QPushButton(FrmControlDevice)
         self.pushButtonStart.setObjectName(u"pushButtonStart")
+        self.pushButtonStart.setEnabled(False)
         sizePolicy.setHeightForWidth(self.pushButtonStart.sizePolicy().hasHeightForWidth())
         self.pushButtonStart.setSizePolicy(sizePolicy)
         self.pushButtonStart.setMinimumSize(QSize(75, 75))
+        self.pushButtonStart.setStyleSheet(u"QPushButton {\n"
+"    background-color: transparent;\n"
+"    border: none;\n"
+"}")
+        icon1 = QIcon()
+        icon1.addFile(u":/images/stop.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.pushButtonStart.setIcon(icon1)
+        self.pushButtonStart.setIconSize(QSize(50, 50))
 
         self.horizontalLayout.addWidget(self.pushButtonStart)
 
@@ -77,8 +96,8 @@ class Ui_FrmControlDevice(object):
 
     def retranslateUi(self, FrmControlDevice):
         FrmControlDevice.setWindowTitle(QCoreApplication.translate("FrmControlDevice", u"Frame", None))
-        self.pushButtonStop.setText(QCoreApplication.translate("FrmControlDevice", u"\u0421\u0442\u0430\u0440\u0442", None))
-        self.pushButtonStart.setText(QCoreApplication.translate("FrmControlDevice", u"\u0421\u0442\u043e\u043f", None))
+        self.pushButtonStop.setText("")
+        self.pushButtonStart.setText("")
         self.labelManage.setText(QCoreApplication.translate("FrmControlDevice", u"\u0423\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435", None))
     # retranslateUi
 
