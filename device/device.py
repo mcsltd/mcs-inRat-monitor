@@ -16,7 +16,8 @@ from device.enums import EnabledChannels, TypeSignal, EventType
 from device.inrat import inRat, FIRMWARE_ACC_EXG, FIRMWARE_V0
 from device.structures import Event, Usage
 from device.ui.config_dialog import DlgConfigDevice
-from device.ui.control_pane import FrmControlPane
+from device.ui.config_pane import FrmConfigDevicePane
+from device.ui.control_pane import FrmControlDevicePane
 
 # ui
 from device.res.frm_battery_level import Ui_FrmBattery
@@ -156,10 +157,13 @@ class inRatDevice(QObject):
         # флаг выполнения рабочего потока
         self._running: bool = False
 
-        # ui
-        self._control_pane = FrmControlPane()
+        # ui control
+        self._control_pane = FrmControlDevicePane()
         self._control_pane.pushButtonStart.clicked.connect(self.start)
         self._control_pane.pushButtonStop.clicked.connect(self.stop)
+
+        # ui config
+        self._config_pane = FrmConfigDevicePane()
 
         self.battery_timer = 0
         self._battery_pane = BatteryWidget()
@@ -181,8 +185,11 @@ class inRatDevice(QObject):
         return self._running
 
     @property
-    def control_pane(self) -> FrmControlPane | None:
+    def control_pane(self) -> FrmControlDevicePane | None:
         return self._control_pane
+    @property
+    def config_pane(self) -> FrmConfigDevicePane | None:
+        return self._config_pane
     @property
     def battery_pane(self) -> BatteryWidget | None:
         return self._battery_pane

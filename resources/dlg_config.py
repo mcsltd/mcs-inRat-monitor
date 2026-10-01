@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'dlg_configMMmnCN.ui'
+## Form generated from reading UI file 'dlg_configtWohmi.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.11.2
 ##
@@ -30,26 +30,9 @@ class Ui_DlgConfig(object):
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.tabWidget = QTabWidget(DlgConfig)
         self.tabWidget.setObjectName(u"tabWidget")
-        self.tabDevice = QWidget()
-        self.tabDevice.setObjectName(u"tabDevice")
-        self.gridLayout_2 = QGridLayout(self.tabDevice)
-        self.gridLayout_2.setObjectName(u"gridLayout_2")
-        self.verticalLayout_2 = QVBoxLayout()
-        self.verticalLayout_2.setObjectName(u"verticalLayout_2")
-
-        self.gridLayout_2.addLayout(self.verticalLayout_2, 0, 0, 1, 1)
-
-        self.tabWidget.addTab(self.tabDevice, "")
-        self.tabStorage = QWidget()
-        self.tabStorage.setObjectName(u"tabStorage")
-        self.gridLayout_3 = QGridLayout(self.tabStorage)
-        self.gridLayout_3.setObjectName(u"gridLayout_3")
-        self.verticalLayout_3 = QVBoxLayout()
-        self.verticalLayout_3.setObjectName(u"verticalLayout_3")
-
-        self.gridLayout_3.addLayout(self.verticalLayout_3, 0, 0, 1, 1)
-
-        self.tabWidget.addTab(self.tabStorage, "")
+        self.tab1 = QWidget()
+        self.tab1.setObjectName(u"tab1")
+        self.tabWidget.addTab(self.tab1, "")
 
         self.verticalLayout.addWidget(self.tabWidget)
 
@@ -78,7 +61,7 @@ class Ui_DlgConfig(object):
 
         self.retranslateUi(DlgConfig)
 
-        self.tabWidget.setCurrentIndex(1)
+        self.tabWidget.setCurrentIndex(0)
 
 
         QMetaObject.connectSlotsByName(DlgConfig)
@@ -86,8 +69,7 @@ class Ui_DlgConfig(object):
 
     def retranslateUi(self, DlgConfig):
         DlgConfig.setWindowTitle(QCoreApplication.translate("DlgConfig", u"\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabDevice), QCoreApplication.translate("DlgConfig", u"inRat", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabStorage), QCoreApplication.translate("DlgConfig", u"\u0417\u0430\u043f\u0438\u0441\u044c", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab1), QCoreApplication.translate("DlgConfig", u"\u0421\u0442\u0440\u0430\u043d\u0438\u0446\u0430", None))
         self.pushButtonCancel.setText(QCoreApplication.translate("DlgConfig", u"\u041e\u043a", None))
         self.pushButtonOk.setText(QCoreApplication.translate("DlgConfig", u"\u041e\u0442\u043c\u0435\u043d\u0438\u0442\u044c", None))
     # retranslateUi

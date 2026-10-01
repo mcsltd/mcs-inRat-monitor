@@ -4,7 +4,7 @@ from device.res.frm_control_device import Ui_FrmControlDevice
 from device.res.frm_online_control_device import Ui_FrmOnlineControlDevice
 
 
-class FrmControlPane(QFrame, Ui_FrmControlDevice):
+class FrmControlDevicePane(QFrame, Ui_FrmControlDevice):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)

@@ -19,27 +19,12 @@
      <item>
       <widget class="QTabWidget" name="tabWidget">
        <property name="currentIndex">
-        <number>1</number>
+        <number>0</number>
        </property>
-       <widget class="QWidget" name="tabDevice">
+       <widget class="QWidget" name="tab1">
         <attribute name="title">
-         <string>inRat</string>
+         <string>Страница</string>
         </attribute>
-        <layout class="QGridLayout" name="gridLayout_2">
-         <item row="0" column="0">
-          <layout class="QVBoxLayout" name="verticalLayout_2"/>
-         </item>
-        </layout>
-       </widget>
-       <widget class="QWidget" name="tabStorage">
-        <attribute name="title">
-         <string>Запись</string>
-        </attribute>
-        <layout class="QGridLayout" name="gridLayout_3">
-         <item row="0" column="0">
-          <layout class="QVBoxLayout" name="verticalLayout_3"/>
-         </item>
-        </layout>
        </widget>
       </widget>
      </item>

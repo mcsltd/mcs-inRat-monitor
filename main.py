@@ -90,8 +90,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.device.battery_pane.setVisible(False)
 
         # connection
-        # self.pushButtonConnect.clicked.connect(self.on_connect_clicked)
-        # self.pushButtonDisconnect.clicked.connect(self.on_disconnect_clicked)
         self.device.signal_connected.connect(self.on_device_connected)
         self.device.signal_disconnected.connect(self.on_device_disconnected)
         self.device.signal_error.connect(self.show_message_error)
@@ -102,7 +100,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.device.signal_enable_temp.connect(self.enable_display_temp)
 
         self.scanner.signal_connect.connect(self.device.process_connect)
-
         self.pushButtonConfig.clicked.connect(self.on_config_clicked)
 
         # ui elements
@@ -191,6 +188,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def on_config_clicked(self):
         """ открытие окна настроек """
         dlg = DlgConfig()
+        pane = self.device.config_pane
+        dlg.add_pane(pane)
         dlg.exec()
 
 if __name__ == "__main__":
