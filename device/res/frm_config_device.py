@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'frm_config_deviceqGEIrB.ui'
+## Form generated from reading UI file 'frm_config_deviceDAFXku.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.11.2
 ##
@@ -56,30 +56,30 @@ class Ui_FrmConfigDevicePane(object):
 
         self.formLayout.setWidget(0, QFormLayout.ItemRole.LabelRole, self.labelExg)
 
-        self.comboBox = QComboBox(self.groupBoxExg)
-        self.comboBox.setObjectName(u"comboBox")
+        self.comboBoxExg = QComboBox(self.groupBoxExg)
+        self.comboBoxExg.setObjectName(u"comboBoxExg")
 
-        self.formLayout.setWidget(0, QFormLayout.ItemRole.FieldRole, self.comboBox)
+        self.formLayout.setWidget(0, QFormLayout.ItemRole.FieldRole, self.comboBoxExg)
 
         self.labelHpf = QLabel(self.groupBoxExg)
         self.labelHpf.setObjectName(u"labelHpf")
 
         self.formLayout.setWidget(1, QFormLayout.ItemRole.LabelRole, self.labelHpf)
 
-        self.comboBox_2 = QComboBox(self.groupBoxExg)
-        self.comboBox_2.setObjectName(u"comboBox_2")
+        self.comboBoxHpf = QComboBox(self.groupBoxExg)
+        self.comboBoxHpf.setObjectName(u"comboBoxHpf")
 
-        self.formLayout.setWidget(1, QFormLayout.ItemRole.FieldRole, self.comboBox_2)
+        self.formLayout.setWidget(1, QFormLayout.ItemRole.FieldRole, self.comboBoxHpf)
 
         self.labelGain = QLabel(self.groupBoxExg)
         self.labelGain.setObjectName(u"labelGain")
 
         self.formLayout.setWidget(2, QFormLayout.ItemRole.LabelRole, self.labelGain)
 
-        self.comboBox_3 = QComboBox(self.groupBoxExg)
-        self.comboBox_3.setObjectName(u"comboBox_3")
+        self.comboBoxGain = QComboBox(self.groupBoxExg)
+        self.comboBoxGain.setObjectName(u"comboBoxGain")
 
-        self.formLayout.setWidget(2, QFormLayout.ItemRole.FieldRole, self.comboBox_3)
+        self.formLayout.setWidget(2, QFormLayout.ItemRole.FieldRole, self.comboBoxGain)
 
 
         self.gridLayout_2.addLayout(self.formLayout, 1, 0, 1, 1)
