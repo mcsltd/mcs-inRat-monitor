@@ -123,9 +123,9 @@ class inRatDevice(QObject):
             activated=False,
             signals=[
                 ExgConfig(type_signal="ecg", sample_rate=1000, hpf=0.83, gain=1),
-                AccConfig(type_signal="acc", sample_rate=100, scale=1)
+                AccConfig(type_signal="acc", sample_rate=100, scale=2)
             ],
-            events=EventsConfig(type_events=["T", "A", "O", "F"], threshold=2)
+            events=EventsConfig(type_events=["T",], threshold=2)
         )
 
         # очередь для передачи всех данных с устройства

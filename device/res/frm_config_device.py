@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'frm_config_deviceQNNXDD.ui'
+## Form generated from reading UI file 'frm_config_deviceVQciqT.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.11.2
 ##
@@ -66,20 +66,20 @@ class Ui_FrmConfigDevicePane(object):
 
         self.formLayout.setWidget(1, QFormLayout.ItemRole.LabelRole, self.labelHpf)
 
-        self.comboBoxHpf = QComboBox(self.groupBoxExg)
-        self.comboBoxHpf.setObjectName(u"comboBoxHpf")
+        self.comboBoxExgHpf = QComboBox(self.groupBoxExg)
+        self.comboBoxExgHpf.setObjectName(u"comboBoxExgHpf")
 
-        self.formLayout.setWidget(1, QFormLayout.ItemRole.FieldRole, self.comboBoxHpf)
+        self.formLayout.setWidget(1, QFormLayout.ItemRole.FieldRole, self.comboBoxExgHpf)
 
         self.labelGain = QLabel(self.groupBoxExg)
         self.labelGain.setObjectName(u"labelGain")
 
         self.formLayout.setWidget(2, QFormLayout.ItemRole.LabelRole, self.labelGain)
 
-        self.comboBoxGain = QComboBox(self.groupBoxExg)
-        self.comboBoxGain.setObjectName(u"comboBoxGain")
+        self.comboBoxExgGain = QComboBox(self.groupBoxExg)
+        self.comboBoxExgGain.setObjectName(u"comboBoxExgGain")
 
-        self.formLayout.setWidget(2, QFormLayout.ItemRole.FieldRole, self.comboBoxGain)
+        self.formLayout.setWidget(2, QFormLayout.ItemRole.FieldRole, self.comboBoxExgGain)
 
 
         self.gridLayout_2.addLayout(self.formLayout, 1, 0, 1, 1)
@@ -103,15 +103,15 @@ class Ui_FrmConfigDevicePane(object):
 
         self.formLayoutAcc.setWidget(0, QFormLayout.ItemRole.FieldRole, self.comboBoxAcc)
 
-        self.labelScale = QLabel(self.groupBoxAcc)
-        self.labelScale.setObjectName(u"labelScale")
+        self.labelAccScale = QLabel(self.groupBoxAcc)
+        self.labelAccScale.setObjectName(u"labelAccScale")
 
-        self.formLayoutAcc.setWidget(1, QFormLayout.ItemRole.LabelRole, self.labelScale)
+        self.formLayoutAcc.setWidget(1, QFormLayout.ItemRole.LabelRole, self.labelAccScale)
 
-        self.comboBoxScaleAcc = QComboBox(self.groupBoxAcc)
-        self.comboBoxScaleAcc.setObjectName(u"comboBoxScaleAcc")
+        self.comboBoxAccScale = QComboBox(self.groupBoxAcc)
+        self.comboBoxAccScale.setObjectName(u"comboBoxAccScale")
 
-        self.formLayoutAcc.setWidget(1, QFormLayout.ItemRole.FieldRole, self.comboBoxScaleAcc)
+        self.formLayoutAcc.setWidget(1, QFormLayout.ItemRole.FieldRole, self.comboBoxAccScale)
 
 
         self.verticalLayout_3.addLayout(self.formLayoutAcc)
@@ -160,10 +160,10 @@ class Ui_FrmConfigDevicePane(object):
 
         self.gridLayoutEv.addItem(self.horizontalSpacer, 0, 2, 1, 1)
 
-        self.labelSens = QLabel(self.groupBoxEv)
-        self.labelSens.setObjectName(u"labelSens")
+        self.labelAcEvThreshold = QLabel(self.groupBoxEv)
+        self.labelAcEvThreshold.setObjectName(u"labelAcEvThreshold")
 
-        self.gridLayoutEv.addWidget(self.labelSens, 3, 0, 1, 1)
+        self.gridLayoutEv.addWidget(self.labelAcEvThreshold, 3, 0, 1, 1)
 
         self.labelInfoOrientation = QLabel(self.groupBoxEv)
         self.labelInfoOrientation.setObjectName(u"labelInfoOrientation")
@@ -195,10 +195,10 @@ class Ui_FrmConfigDevicePane(object):
 
         self.gridLayoutEv.addWidget(self.labelInfoSens, 3, 1, 1, 1)
 
-        self.comboBoxEvSens = QComboBox(self.groupBoxEv)
-        self.comboBoxEvSens.setObjectName(u"comboBoxEvSens")
+        self.comboBoxAcEvThreshold = QComboBox(self.groupBoxEv)
+        self.comboBoxAcEvThreshold.setObjectName(u"comboBoxAcEvThreshold")
 
-        self.gridLayoutEv.addWidget(self.comboBoxEvSens, 3, 2, 1, 1)
+        self.gridLayoutEv.addWidget(self.comboBoxAcEvThreshold, 3, 2, 1, 1)
 
 
         self.gridLayout_4.addLayout(self.gridLayoutEv, 0, 0, 1, 1)
@@ -229,13 +229,13 @@ class Ui_FrmConfigDevicePane(object):
         self.labelGain.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u0423\u0441\u0438\u043b\u0435\u043d\u0438\u0435", None))
         self.groupBoxAcc.setTitle(QCoreApplication.translate("FrmConfigDevicePane", u"\u0410\u043a\u0441\u0435\u043b\u0435\u0440\u043e\u043c\u0435\u0442\u0440", None))
         self.labelAcc.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u0410\u043a\u0441\u0435\u043b\u0435\u0440\u043e\u043c\u0435\u0442\u0440", None))
-        self.labelScale.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u0414\u0438\u0430\u043f\u0430\u0437\u043e\u043d", None))
+        self.labelAccScale.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u0414\u0438\u0430\u043f\u0430\u0437\u043e\u043d", None))
         self.groupBoxTemp.setTitle(QCoreApplication.translate("FrmConfigDevicePane", u"\u0421\u043e\u0431\u044b\u0442\u0438\u044f \u0442\u0435\u043c\u043f\u0435\u0440\u0430\u0442\u0443\u0440\u044b", None))
         self.labelInfoTemp.setText(QCoreApplication.translate("FrmConfigDevicePane", u"?", None))
         self.checkBoxTemp.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u0422\u0435\u043c\u043f\u0435\u0440\u0430\u0442\u0443\u0440\u0430 (\u0422)", None))
         self.groupBoxEv.setTitle(QCoreApplication.translate("FrmConfigDevicePane", u"\u0421\u043e\u0431\u044b\u0442\u0438\u044f \u0444\u0438\u0437\u0438\u0447\u0435\u0441\u043a\u043e\u0439 \u0430\u043a\u0442\u0438\u0432\u043d\u043e\u0441\u0442\u0438", None))
         self.checkBoxActivity.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u0410\u043a\u0442\u0438\u0432\u043d\u043e\u0441\u0442\u044c (\u0410)", None))
-        self.labelSens.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u0427\u0443\u0441\u0442\u0432\u0438\u0442\u0435\u043b\u044c\u043d\u043e\u0441\u0442\u044c ", None))
+        self.labelAcEvThreshold.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u0427\u0443\u0432\u0441\u0442\u0432\u0438\u0442\u0435\u043b\u044c\u043d\u043e\u0441\u0442\u044c \u0434\u0435\u0442\u0435\u043a\u0446\u0438\u0438 ", None))
         self.labelInfoOrientation.setText(QCoreApplication.translate("FrmConfigDevicePane", u"?", None))
         self.checkBoxOrientation.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u041e\u0440\u0438\u0435\u043d\u0442\u0430\u0446\u0438\u044f (\u041e)", None))
         self.labelInfoActivity.setText(QCoreApplication.translate("FrmConfigDevicePane", u"?", None))
