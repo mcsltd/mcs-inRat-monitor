@@ -24,6 +24,7 @@ class FrmConfigDevicePane(QFrame, Ui_FrmConfigDevicePane):
         self.set_default()
 
         self.comboBoxAcc.currentIndexChanged.connect(self.on_acc_switched)
+        self.comboBoxExg.currentIndexChanged.connect(self.on_exg_switched)
 
     def set_default(self):
         """ установка настроек по умолчанию """
@@ -57,15 +58,27 @@ class FrmConfigDevicePane(QFrame, Ui_FrmConfigDevicePane):
             for key in events.keys():
                 if key in self._config.events.type_events:
                     events[key].setChecked(True)
-            # self.comboBoxEvSens.findData(data=self._config.events.sensitivity)
+            self.comboBoxAcEvThreshold.findData(data=self._config.events.thre)
 
     def on_acc_switched(self, idx):
         """ обработка переключения сигналов акселерометра """
         value = self.comboBoxAcc.currentData()
-        if value:
-            self.groupBoxEv.setEnabled(False)
-        else:
+        if value is None:
             self.groupBoxEv.setEnabled(True)
+            self.comboBoxAcEvThreshold.setEnabled(True)
+        else:
+            self.groupBoxEv.setEnabled(False)
+            self.comboBoxAcEvThreshold.setEnabled(False)
+
+    def on_exg_switched(self, idx):
+        """ обработка переключения сигналов exg """
+        value = self.comboBoxExg.currentData()
+        if value is None:
+            self.comboBoxExgGain.setEnabled(False)
+            self.comboBoxExgHpf.setEnabled(False)
+        else:
+            self.comboBoxExgGain.setEnabled(True)
+            self.comboBoxExgHpf.setEnabled(True)
 
     def _setup_combobox_acc(self):
         # настройка акселерометра
@@ -120,3 +133,7 @@ class FrmConfigDevicePane(QFrame, Ui_FrmConfigDevicePane):
             if data == value:
                 return idx
         return 0
+
+    def save(self):
+        """ сохранение настроек """
+        pass

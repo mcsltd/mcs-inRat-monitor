@@ -11,6 +11,9 @@ class DlgConfig(QDialog, Ui_DlgConfig):
         self.setupUi(self)
         self.panes = []
 
+        self.pushButtonOk.clicked.connect(self.on_ok_clicked)
+        self.pushButtonCancel.clicked.connect(self.on_cancel_clicked)
+
     def add_pane(self, pane: QFrame):
         """ добавление панелей для настройки модулей приложения """
         if not pane:
@@ -29,3 +32,12 @@ class DlgConfig(QDialog, Ui_DlgConfig):
         gridlayout.addWidget(pane)
         self.panes.append(pane)
         self.tabWidget.setTabText(self.tabWidget.indexOf(tab), pane.windowTitle())
+
+    def on_ok_clicked(self):
+        """ обработка нажатия кнопки сохранить """
+        for pane in self.panes:
+            pane.save()
+
+    def on_cancel_clicked(self):
+        """ обработка нажатия кнопки отменить """
+        self.close()

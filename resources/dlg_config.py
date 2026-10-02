@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'dlg_configtWohmi.ui'
+## Form generated from reading UI file 'dlg_configHELFlr.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.11.2
 ##
@@ -42,15 +42,15 @@ class Ui_DlgConfig(object):
 
         self.horizontalLayout.addItem(self.horizontalSpacer)
 
-        self.pushButtonCancel = QPushButton(DlgConfig)
-        self.pushButtonCancel.setObjectName(u"pushButtonCancel")
-
-        self.horizontalLayout.addWidget(self.pushButtonCancel)
-
         self.pushButtonOk = QPushButton(DlgConfig)
         self.pushButtonOk.setObjectName(u"pushButtonOk")
 
         self.horizontalLayout.addWidget(self.pushButtonOk)
+
+        self.pushButtonCancel = QPushButton(DlgConfig)
+        self.pushButtonCancel.setObjectName(u"pushButtonCancel")
+
+        self.horizontalLayout.addWidget(self.pushButtonCancel)
 
 
         self.verticalLayout.addLayout(self.horizontalLayout)
@@ -70,7 +70,7 @@ class Ui_DlgConfig(object):
     def retranslateUi(self, DlgConfig):
         DlgConfig.setWindowTitle(QCoreApplication.translate("DlgConfig", u"\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab1), QCoreApplication.translate("DlgConfig", u"\u0421\u0442\u0440\u0430\u043d\u0438\u0446\u0430", None))
-        self.pushButtonCancel.setText(QCoreApplication.translate("DlgConfig", u"\u041e\u043a", None))
-        self.pushButtonOk.setText(QCoreApplication.translate("DlgConfig", u"\u041e\u0442\u043c\u0435\u043d\u0438\u0442\u044c", None))
+        self.pushButtonOk.setText(QCoreApplication.translate("DlgConfig", u"\u041e\u043a", None))
+        self.pushButtonCancel.setText(QCoreApplication.translate("DlgConfig", u"\u041e\u0442\u043c\u0435\u043d\u0438\u0442\u044c", None))
     # retranslateUi
 

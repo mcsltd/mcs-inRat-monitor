@@ -147,20 +147,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._waiting_connection_dlg.show()
         self.scanner.stop()
 
-        # device = self.comboBoxDevice.currentData()
-        # self.device.process_connect(device)
-
-        # self.comboBoxDevice.setDisabled(True)
-        # self.pushButtonConnect.setDisabled(True)
-
     def on_device_connected(self):
         """ обработка случая подключения устройства """
         self._waiting_connection_dlg.close()
-        # self.pushButtonConnect.hide()
-        # self.pushButtonDisconnect.setVisible(True)
-        # self.pushButtonDisconnect.setEnabled(True)
         self.device.battery_pane.setVisible(True)
-
 
     def on_disconnect_clicked(self):
         """ обработка нажатия кнопки отсоединения от устройства """
@@ -190,7 +180,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         dlg = DlgConfig()
         pane = self.device.config_pane
         dlg.add_pane(pane)
-        dlg.exec()
+        # todo - wtf !?
+        try:
+            dlg.exec()
+        finally:
+            pane.setParent(None)
+
 
 if __name__ == "__main__":
     app = QApplication([])
