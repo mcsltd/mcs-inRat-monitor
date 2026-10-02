@@ -4,6 +4,7 @@ import logging
 import time
 from asyncio import AbstractEventLoop
 from concurrent.futures import Future
+from dataclasses import dataclass, field
 from threading import Thread
 
 import numpy as np
@@ -14,6 +15,7 @@ from bleak import BLEDevice
 from device.constants import Pkt
 from device.enums import EnabledChannels, TypeSignal, EventType
 from device.inrat import inRat, FIRMWARE_ACC_EXG, FIRMWARE_V0
+from device.models import DeviceProperty, DeviceConfig, ExgConfig, EventsConfig, AccConfig
 from device.structures import Event, Usage
 from device.ui.config_dialog import DlgConfigDevice
 from device.ui.config_pane import FrmConfigDevicePane
@@ -100,8 +102,8 @@ class SignalDatablock:
 
         self.device_name: str | None = device_name
 
-
 class inRatDevice(QObject):
+    """ класс для работы с inRat """
 
     signal_connected = Signal()
     signal_disconnected = Signal()
@@ -111,47 +113,39 @@ class inRatDevice(QObject):
     signal_enable_acc = Signal(bool)
     signal_enable_temp = Signal(bool)
 
-    """ класс для работы с inRat """
-
     def __init__(self, loop: asyncio.AbstractEventLoop | None = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self._loop: AbstractEventLoop = loop
         self._inrat: inRat | None = None
+        self._property: DeviceProperty | None = None
+        self._config: DeviceConfig | None = DeviceConfig(
+            activated=False,
+            signals=[
+                ExgConfig(type_signal="ecg", sample_rate=1000, hpf=0.83, gain=1),
+                AccConfig(type_signal="acc", sample_rate=100, scale=1)
+            ],
+            events=EventsConfig(type_events=["T", "A", "O", "F"], threshold=2)
+        )
 
         # очередь для передачи всех данных с устройства
         self._receivers_data = []
 
-        # ресурсы для обработки событий и биосигналов
-        self._last_exg_sample = -1
         self._work_sig: Thread | None = None
-        self._exg_datablock = SignalDatablock(
-            type_signal=TypeSignal.ECG, sample_rate=500,
-            counter_per_sample=Pkt.SamplesCountEcg,
-            number_channels=Pkt.ChannelsCountEcg,
-            channel_names=["ecg"],
-            units="uV",
-            physical_max=6000, physical_min=-6000
-        )
+        self._exg_datablock = SignalDatablock(type_signal=TypeSignal.ECG, sample_rate=500,
+            counter_per_sample=Pkt.SamplesCountEcg, number_channels=Pkt.ChannelsCountEcg,
+            channel_names=["ecg"], units="uV", physical_max=6000, physical_min=-6000)
         self._receivers_sig = []
-        # self._event_queue = asyncio.Queue()
         self._sig_queue = asyncio.Queue()
 
-        # ресурсы для обработки показаний акселерометра
-        self._last_acc_sample = -1
         self._work_acc: Thread | None = None
         self._acc_datablock = SignalDatablock(
-            type_signal=TypeSignal.ACC, sample_rate=100,
-            counter_per_sample=Pkt.SamplesCountAcc,
-            number_channels=Pkt.ChannelsCountAcc,
-            channel_names=["acc_x", "acc_y", "acc_z"],
-            units="G",
-            physical_max=16.0,
-            physical_min=-16.0
+            type_signal=TypeSignal.ACC, sample_rate=100, counter_per_sample=Pkt.SamplesCountAcc,
+            number_channels=Pkt.ChannelsCountAcc, channel_names=["acc_x", "acc_y", "acc_z"],
+            units="G", physical_max=16.0, physical_min=-16.0
         )
         self._receivers_acc = []
         self._acc_queue = asyncio.Queue()
-
         self._receiver_temp = None
 
         # флаг выполнения рабочего потока
@@ -163,7 +157,7 @@ class inRatDevice(QObject):
         self._control_pane.pushButtonStop.clicked.connect(self.stop)
 
         # ui config
-        self._config_pane = FrmConfigDevicePane()
+        self._config_pane = None
 
         self.battery_timer = 0
         self._battery_pane = BatteryWidget()
@@ -274,36 +268,26 @@ class inRatDevice(QObject):
             self._control_pane.set_enabled(True)
             self.signal_connected.emit()
 
-            if self._inrat.is_activated:
-                pass
+            self._config.activated = self._inrat.is_activated
             if self._acc_datablock:
                 self._acc_datablock.device_name = self._inrat.name
             if self._exg_datablock:
                 self._exg_datablock.device_name = self._inrat.name
 
-            # настройка параметров inrat под версию firmware по умолчанию
-            if self._inrat.firmware == FIRMWARE_V0:
-                self._inrat.enabled_channels = EnabledChannels.ECG
-                self._inrat.sample_rate = 500
-                self._inrat.activity_threshold = 2
+            if self._inrat.firmware not in FIRMWARE_ACC_EXG:
+                title = "Новая версия прошивки"
+                msg = f"Обнаружена новая версия прошивки {self._inrat.firmware}!"
+                QMessageBox.warning(None, title, msg, QMessageBox.StandardButton.Ok)
 
-                self.signal_enable_sig.emit(True)
+            self._inrat.enabled_channels = EnabledChannels.ECG | EnabledChannels.ACC_X | EnabledChannels.ACC_Z | EnabledChannels.ACC_Y
+            self._inrat.sample_rate = 500
+            self._inrat.activity_threshold = 2
 
-            else:
-                if self._inrat.firmware not in FIRMWARE_ACC_EXG:
-                    title = "Новая версия прошивки"
-                    msg = f"Обнаружена новая версия прошивки {self._inrat.firmware}!"
-                    QMessageBox.warning(None, title, msg, QMessageBox.StandardButton.Ok)
+            self.signal_enable_acc.emit(True)
+            self.signal_enable_sig.emit(True)
 
-                self._inrat.enabled_channels = EnabledChannels.ECG | EnabledChannels.ACC_X | EnabledChannels.ACC_Z | EnabledChannels.ACC_Y
-                self._inrat.sample_rate = 500
-                self._inrat.activity_threshold = 2
-
-                self.signal_enable_acc.emit(True)
-                self.signal_enable_sig.emit(True)
-
+            self._config_pane = FrmConfigDevicePane(self._config)
         else:
-            # self._control_pane.state_disconnect()
             self.signal_disconnected.emit()
             msg = (f"Не удалось соединиться с {self._inrat.name}!\n"
                    f"Повторите попытку")

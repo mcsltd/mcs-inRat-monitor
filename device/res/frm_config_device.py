@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'frm_config_deviceDAFXku.ui'
+## Form generated from reading UI file 'frm_config_deviceQNNXDD.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.11.2
 ##
@@ -125,15 +125,19 @@ class Ui_FrmConfigDevicePane(object):
         self.gridLayout_5.setObjectName(u"gridLayout_5")
         self.gridLayoutTemp = QGridLayout()
         self.gridLayoutTemp.setObjectName(u"gridLayoutTemp")
-        self.labelTemp = QLabel(self.groupBoxTemp)
-        self.labelTemp.setObjectName(u"labelTemp")
+        self.labelInfoTemp = QLabel(self.groupBoxTemp)
+        self.labelInfoTemp.setObjectName(u"labelInfoTemp")
 
-        self.gridLayoutTemp.addWidget(self.labelTemp, 0, 0, 1, 1)
+        self.gridLayoutTemp.addWidget(self.labelInfoTemp, 0, 1, 1, 1)
 
-        self.comboBoxTemp = QComboBox(self.groupBoxTemp)
-        self.comboBoxTemp.setObjectName(u"comboBoxTemp")
+        self.checkBoxTemp = QCheckBox(self.groupBoxTemp)
+        self.checkBoxTemp.setObjectName(u"checkBoxTemp")
 
-        self.gridLayoutTemp.addWidget(self.comboBoxTemp, 0, 1, 1, 1)
+        self.gridLayoutTemp.addWidget(self.checkBoxTemp, 0, 0, 1, 1)
+
+        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.gridLayoutTemp.addItem(self.horizontalSpacer_2, 0, 2, 1, 1)
 
 
         self.gridLayout_5.addLayout(self.gridLayoutTemp, 0, 0, 1, 1)
@@ -227,7 +231,8 @@ class Ui_FrmConfigDevicePane(object):
         self.labelAcc.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u0410\u043a\u0441\u0435\u043b\u0435\u0440\u043e\u043c\u0435\u0442\u0440", None))
         self.labelScale.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u0414\u0438\u0430\u043f\u0430\u0437\u043e\u043d", None))
         self.groupBoxTemp.setTitle(QCoreApplication.translate("FrmConfigDevicePane", u"\u0421\u043e\u0431\u044b\u0442\u0438\u044f \u0442\u0435\u043c\u043f\u0435\u0440\u0430\u0442\u0443\u0440\u044b", None))
-        self.labelTemp.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u0422\u0435\u043c\u043f\u0435\u0440\u0430\u0442\u0443\u0440\u0430", None))
+        self.labelInfoTemp.setText(QCoreApplication.translate("FrmConfigDevicePane", u"?", None))
+        self.checkBoxTemp.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u0422\u0435\u043c\u043f\u0435\u0440\u0430\u0442\u0443\u0440\u0430 (\u0422)", None))
         self.groupBoxEv.setTitle(QCoreApplication.translate("FrmConfigDevicePane", u"\u0421\u043e\u0431\u044b\u0442\u0438\u044f \u0444\u0438\u0437\u0438\u0447\u0435\u0441\u043a\u043e\u0439 \u0430\u043a\u0442\u0438\u0432\u043d\u043e\u0441\u0442\u0438", None))
         self.checkBoxActivity.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u0410\u043a\u0442\u0438\u0432\u043d\u043e\u0441\u0442\u044c (\u0410)", None))
         self.labelSens.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u0427\u0443\u0441\u0442\u0432\u0438\u0442\u0435\u043b\u044c\u043d\u043e\u0441\u0442\u044c ", None))
