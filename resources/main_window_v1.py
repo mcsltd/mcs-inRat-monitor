@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'main_window_v1yzAanR.ui'
+## Form generated from reading UI file 'main_window_v1qPTcYJ.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.11.2
 ##
@@ -26,7 +26,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.setEnabled(False)
+        MainWindow.setEnabled(True)
         MainWindow.resize(990, 588)
         icon = QIcon()
         icon.addFile(u":/images/icon.ico", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
@@ -51,6 +51,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
         self.pushButtonConfig = QPushButton(self.centralwidget)
         self.pushButtonConfig.setObjectName(u"pushButtonConfig")
+        self.pushButtonConfig.setEnabled(False)
         sizePolicy = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
