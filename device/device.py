@@ -112,7 +112,6 @@ class inRatDevice(QObject):
     event = Signal(object)
     parentevent = Signal(object)
 
-
     signal_connected = Signal()
     signal_disconnected = Signal()
     signal_error = Signal(str)
@@ -214,7 +213,7 @@ class inRatDevice(QObject):
             self._receivers_data.remove(receiver)
         receiver.stop()
 
-    def add_receiver_sig(self, receiver):
+    def add_receiver_exg(self, receiver):
         """ добавить объект приёмника в коллекцию биосигналов """
         if self._running:
             receiver.start()

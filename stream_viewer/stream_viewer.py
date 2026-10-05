@@ -375,6 +375,7 @@ class StreamViewer(pg.PlotWidget):
         """ обработка события от приёмников/родителей """
         pass
 
+
     def receiver_event(self, event):
         """ получить события от приёмников (снизу-вверх) """
         self.process_event(event)

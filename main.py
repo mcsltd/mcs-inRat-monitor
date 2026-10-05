@@ -6,6 +6,7 @@ from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QHBoxLayout, QFrame
 from bleak import BLEDevice
 
+from detector.peak_detector import RPeakDetector
 from device.device import inRatDevice
 from device.enums import TypeSignal
 from ble_scanner.scanner import BleScanner
@@ -44,6 +45,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.device = inRatDevice(qt_loop)
         self.scanner = BleScanner(qt_loop)
         self.storage = Storage(self.settings)
+        self._ecg_detector = RPeakDetector()
+        self.device.add_receiver_exg(self._ecg_detector)
 
         # отображение сигнала exg
         self.layout_control_pane_exg = QHBoxLayout()
@@ -165,7 +168,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def enable_display_sig(self, state: bool):
         logger.debug("Активация окна отображения сигналов ЭКГ/ЭМГ")
         if state:
-            self.device.add_receiver_sig(self.display_sig)
+            self.device.add_receiver_exg(self.display_sig)
             self.display_sig.setVisible(True)
             self.control_pane_sig.setVisible(True)
         else:

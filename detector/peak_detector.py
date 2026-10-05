@@ -6,6 +6,8 @@ from threading import Thread
 
 from PySide6.QtCore import QObject, Signal
 
+from device.device import SignalDatablock
+
 
 class RPeakDetector(QObject):
     """
@@ -20,11 +22,14 @@ class RPeakDetector(QObject):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
+        self._ecg_enable = True
         self._receivers = []
         self._input_queue: Queue = Queue()
         self._running: bool = False
         self._worker: Thread | None = None
+
+    def update_params(self, params: SignalDatablock | None):
+        pass
 
     def start(self):
         """ запуск """
