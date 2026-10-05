@@ -23,6 +23,7 @@ from device.ui.control_pane import FrmControlDevicePane
 
 # ui
 from device.res.frm_battery_level import Ui_FrmBattery
+from events import DeviceEvent
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +76,8 @@ class SignalDatablock:
         класс, описывающий структуру передаваемого сигнала
         используется для настройки всех модулей
     """
+
+
     def __init__(
             self,
             type_signal: TypeSignal, sample_rate: int, counter_per_sample: int,
@@ -102,8 +105,13 @@ class SignalDatablock:
 
         self.device_name: str | None = device_name
 
+
 class inRatDevice(QObject):
     """ класс для работы с inRat """
+
+    event = Signal(object)
+    parentevent = Signal(object)
+
 
     signal_connected = Signal()
     signal_disconnected = Signal()
@@ -194,6 +202,10 @@ class inRatDevice(QObject):
             receiver.start()
         if receiver not in self._receivers_data:
             self._receivers_data.append(receiver)
+
+            receiver.event.connect(self.receiver_event)
+            receiver.parentevent.connect(receiver.parentevent)
+
         else:
             logger.warning(f"Попытка дублировать {receiver} в приёмниках данных")
     def remove_receiver_data(self, receiver):
@@ -210,6 +222,10 @@ class inRatDevice(QObject):
         if receiver not in self._receivers_sig:
             self._receivers_sig.append(receiver)
             receiver.update_params(params=self._exg_datablock)
+
+            receiver.event.connect(self.receiver_event)
+            receiver.parentevent.connect(receiver.parentevent)
+
         else:
             logger.warning(f"Попытка дублировать {receiver} в приёмниках сигналов ЭКГ/ЭМГ")
     def remove_receiver_sig(self, receiver):
@@ -225,6 +241,9 @@ class inRatDevice(QObject):
         if receiver not in self._receivers_acc:
             self._receivers_acc.append(receiver)
             receiver.update_params(params=self._acc_datablock)
+
+            receiver.event.connect(self.receiver_event)
+            receiver.parentevent.connect(receiver.parentevent)
         else:
             logger.warning(f"Попытка дублировать {receiver} в приёмниках акселерометра")
     def remove_receiver_acc(self, receiver):
@@ -261,6 +280,13 @@ class inRatDevice(QObject):
             ...
 
         if self._inrat.is_connected:
+            self.event.emit(
+                DeviceEvent(
+                    type="Connected",
+                    desc=f"{self._inrat.name} подсоединен"
+                )
+            )
+
             # get and set battery level
             future = asyncio.run_coroutine_threadsafe(self._inrat.get_status(), self._loop)
             future.add_done_callback(self._on_status_received)
@@ -305,6 +331,12 @@ class inRatDevice(QObject):
         except Exception as exc:
             ...
 
+        self.event.emit(
+            DeviceEvent(
+                type="Disconnected",
+                desc=f"{self._inrat.name} отсоединен!"
+            )
+        )
         self.signal_disconnected.emit()
 
         if not self._inrat.is_connected:
@@ -350,6 +382,13 @@ class inRatDevice(QObject):
                 for receiver in self._receivers_data:
                     receiver.update_params(params_acc=self._acc_datablock, params_exg=self._exg_datablock)
                     receiver.start()
+
+                self.event.emit(
+                    DeviceEvent(
+                        type="AcquisitionStart",
+                        desc=f"{self._inrat.name} запущен"
+                    )
+                )
 
                 if self._receiver_temp:
                     self._receiver_temp.clear_plot()
@@ -464,9 +503,6 @@ class inRatDevice(QObject):
         for receiver in self._receivers_data:
             receiver.stop()
 
-        # if self._receiver_temp:
-        #     self._receiver_temp.clear_plot()
-
         if self._work_sig:
             self._work_sig.join(1.5)
             self._work_sig = None
@@ -482,8 +518,12 @@ class inRatDevice(QObject):
         """ обработка остановки устройства """
         self._control_pane.set_pause()
         self._timer_check_conn.stop()
-
-        self._last_exg_sample = -1
+        self.event.emit(
+            DeviceEvent(
+                type="AcquisitionStop",
+                desc=f"{self._inrat.name} остановлен"
+            )
+        )
 
     def on_config_clicked(self):
         """ обработка нажатия окна конфигураций """
@@ -594,4 +634,16 @@ class inRatDevice(QObject):
             return 5
         return level
 
+    def process_event(self, event):
+        """ обработка события от приёмников/родителей """
+        pass
 
+    def receiver_event(self, event):
+        """ получить события от приёмников (снизу-вверх) """
+        self.process_event(event)
+        self.event.emit(event)
+
+    def parent_event(self, event):
+        """ получить события от приёмников (сверху-вниз) """
+        self.process_event(event)
+        self.parentevent.emit(event)

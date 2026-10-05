@@ -8,7 +8,7 @@ import time
 import numpy as np
 
 from threading import Thread, Lock
-from PySide6.QtCore import QObject, QSettings
+from PySide6.QtCore import QObject, QSettings, Signal
 from PySide6.QtWidgets import QFileDialog
 from pyedflib import EdfWriter
 
@@ -27,6 +27,10 @@ logger = logging.getLogger(__name__)
 
 class Storage(QObject):
     """ класс для сохранения данных с устройства в EDF файл """
+
+    event = Signal(object)
+    parentevent = Signal(object)
+
     def __init__(self, settings: QSettings | None = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -504,3 +508,17 @@ class Storage(QObject):
         # self._control_pane.set_file_count(self._cnt_file)
         # self._control_pane.set_disable()
         # self._control_pane.enable_archive(False)
+
+    def process_event(self, event):
+        """ обработка события от приёмников/родителей """
+        pass
+
+    def receiver_event(self, event):
+        """ получить события от приёмников (снизу-вверх) """
+        self.process_event(event)
+        self.event.emit(event)
+
+    def parent_event(self, event):
+        """ получить события от приёмников (сверху-вниз) """
+        self.process_event(event)
+        self.parentevent.emit(event)

@@ -9,6 +9,7 @@ from bleak import BLEDevice
 from device.device import inRatDevice
 from device.enums import TypeSignal
 from ble_scanner.scanner import BleScanner
+from events import DeviceEvent
 from stream_viewer.stream_viewer import StreamViewer, TempStreamViewer, FrmControlXYRange
 from ui.dlg_config import DlgConfig
 from utils.check_bluetooth import check_bluetooth_status
@@ -90,14 +91,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.device.battery_pane.setVisible(False)
 
         # connection
-        self.device.signal_connected.connect(self.on_device_connected)
-        self.device.signal_disconnected.connect(self.on_device_disconnected)
-        self.device.signal_error.connect(self.show_message_error)
-        self.device.signal_disconnected.connect(self.storage.reset)
-
         self.device.signal_enable_sig.connect(self.enable_display_sig)
         self.device.signal_enable_acc.connect(self.enable_display_acc)
         self.device.signal_enable_temp.connect(self.enable_display_temp)
+
+        self.device.event.connect(self.process_event)
 
         self.scanner.signal_connect.connect(self.device.process_connect)
         self.pushButtonConfig.clicked.connect(self.on_config_clicked)
@@ -110,6 +108,48 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.horizontalLayoutControlPane.insertWidget(1, self.device.control_pane)
         self.horizontalLayoutControlPane.insertWidget(2, self.storage.control_pane)
 
+    def process_event(self, event):
+        """ обработка приходящих событий от модулей """
+        if isinstance(event, DeviceEvent):
+            self.__process_event_device(event)
+
+    def __process_event_device(self, event: DeviceEvent):
+        """
+        Логика поведения главного окна при событиях устройства
+        Виды событий:
+
+        - ConnectionStart
+        - ConnectionStop
+        - ConnectionError
+        - ConnectionLost - для случая переподключения
+
+        - AcquisitionStart
+        - AcquisitionStop
+        - AcquisitionError
+
+        - Disconnect
+         """
+        if event.type == "ConnectStart":
+            self.pushButtonConfig.setEnabled(True)
+            self._waiting_connection_dlg.show()
+        elif event.type == "ConnectStop":
+            self._waiting_connection_dlg.close()
+            self.device.battery_pane.setVisible(True)
+
+        # todo add event - ConnectionStart, ConnectionStop, ConnectionError, ConnectionLost, \
+        if event.type == "AcquisitionStart":
+            self.pushButtonConfig.setEnabled(False)
+        if event.type == "AcquisitionStop":
+            self.pushButtonConfig.setEnabled(True)
+        if event.type == "Disconnect":
+            self.device.stop()
+            self.device.process_disconnect()
+            self.pushButtonConfig.setEnabled(False)
+            self._waiting_connection_dlg.close()
+            self.device.battery_pane.setVisible(False)
+        if event.type == "ConnectionLost":
+            self.device.stop()
+            self.pushButtonConfig.setEnabled(False)
 
     def enable_display_acc(self, state: bool):
         logger.debug("Активация окна отображения сигналов ЭКГ/ЭМГ")
@@ -141,28 +181,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             self.device.remove_receiver_temp()
             self.display_temp.setVisible(False)
-
-    def on_connect_clicked(self):
-        """ обработка нажатия кнопки открытия устройства """
-        self._waiting_connection_dlg.show()
-        self.scanner.stop()
-
-    def on_device_connected(self):
-        """ обработка случая подключения устройства """
-        self._waiting_connection_dlg.close()
-        self.device.battery_pane.setVisible(True)
-
-    def on_disconnect_clicked(self):
-        """ обработка нажатия кнопки отсоединения от устройства """
-        self.scanner.run(self.qt_loop)
-        if self.device.is_running():
-            self.device.stop()
-        self.device.process_disconnect()
-
-    def on_device_disconnected(self):
-        """ обработка случая если устройство отсоединено """
-        self._waiting_connection_dlg.close()
-        self.device.battery_pane.setVisible(False)
 
     def show_message_error(self, msg: str):
         QMessageBox.critical(self,"Ошибка", msg, QMessageBox.StandardButton.Ok)

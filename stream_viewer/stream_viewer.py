@@ -68,8 +68,10 @@ class FrmControlXYRange(QFrame, Ui_FrmControlXYRange):
 
 
 class StreamViewer(pg.PlotWidget):
-
     """ класс для отображения сигналов """
+
+    event = Signal(object)
+    parentevent = Signal(object)
 
     def __init__(
             self,
@@ -368,6 +370,20 @@ class StreamViewer(pg.PlotWidget):
             self._input_queue.put(data, False)
         except:
             pass
+
+    def process_event(self, event):
+        """ обработка события от приёмников/родителей """
+        pass
+
+    def receiver_event(self, event):
+        """ получить события от приёмников (снизу-вверх) """
+        self.process_event(event)
+        self.event.emit(event)
+
+    def parent_event(self, event):
+        """ получить события от приёмников (сверху-вниз) """
+        self.process_event(event)
+        self.parentevent.emit(event)
 
 class TempStreamViewer(pg.PlotWidget):
     """ класс для отображения событий температуры """
