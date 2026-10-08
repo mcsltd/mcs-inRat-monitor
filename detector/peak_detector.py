@@ -1,13 +1,19 @@
 import copy
+import logging
+import time
+from collections import deque
 
-from wfdb.processing import XQRS
+import numpy as np
+from wfdb.processing import XQRS, xqrs_detect
 from queue import Queue, Empty
 from threading import Thread
 
 from PySide6.QtCore import QObject, Signal
 
 from device.device import SignalDatablock
+from device.enums import TypeSignal
 
+logger = logging.getLogger(__name__)
 
 class RPeakDetector(QObject):
     """
@@ -27,9 +33,34 @@ class RPeakDetector(QObject):
         self._input_queue: Queue = Queue()
         self._running: bool = False
         self._worker: Thread | None = None
+        self._params = None
+
+        self._window_sec = 1
+        self._fs = 1000
+        self._buffer = deque(maxlen=self._window_sec * self._fs)
+        self._window_len = int(self._window_sec * self._fs)
+        self._xqrs = None
+        # params
+        self._refractory_ms = 250
+        self._refractory = int(self._refractory_ms * self._fs / 1000)
+        self._abs_index = 0
+        self._last_peak_abs = -np.inf
+        self._peak_times = []
+        self._rr_intervals = []
 
     def update_params(self, params: SignalDatablock | None):
-        pass
+        if params.type_signal == TypeSignal.ECG:
+            self._ecg_enable = True
+            self._params = params
+            # recalc param for new fs
+            self._refractory = int(self._refractory_ms * self._fs / 1000)
+            self._buffer = deque(maxlen=self._window_sec * self._fs)
+            logger.debug(f"{self.__class__}: детектор RR-пиков активирован")
+        else:
+            self._ecg_enable = False
+            self._params = None
+            # self._xqrs = XQRS(conf=self.CONF, fs=params.sample_rate)
+
 
     def start(self):
         """ запуск """
@@ -56,11 +87,12 @@ class RPeakDetector(QObject):
                 self.process_input(data)
             except Empty:
                 data = None
-            except Exception as err:
-                raise ValueError(f"АХТУНГ!!! {err}")
+            # except Exception as err:
+            #     data = None
+            #     logger.error(f"{self.__class__}: {err}")
 
             try:
-                data = self.process_output()
+                data = self.process_output(data)
             except Exception as e:
                 data = None
 
@@ -68,13 +100,46 @@ class RPeakDetector(QObject):
                 for rec in self._receivers:
                     rec._transmit_data(copy.deepcopy(data))
 
+            time.sleep(0.0005)
+
     def process_input(self, data):
         """ метод для получения и обработки данных из входной очереди """
-        pass
+        if not self._ecg_enable or data is None:
+            return
 
-    def process_output(self):
+        ecg = (data["signal"] / 1000).tolist()[0]
+        self._buffer.extend(ecg)
+        self._abs_index += 1
+
+        if len(self._buffer) < self._window_len:
+            return
+
+        peaks_rel = xqrs_detect(
+            sig=np.array(self._buffer),
+            fs=self._fs,
+            # conf=self.CONF,
+            learn=False, verbose=False
+        )
+
+        oldest_abs = self._abs_index - self._window_len + 1
+        peaks_abs = oldest_abs + peaks_rel
+
+        for p_abs in peaks_abs:
+            if p_abs - self._last_peak_abs < self._refractory:
+                continue
+
+            if p_abs > self._last_peak_abs:
+                self._last_peak_abs = p_abs
+                t = p_abs / self._fs
+                self._peak_times.append(t)
+
+                if len(self._peak_times) >= 2:
+                    self._rr_intervals.append(self._peak_times[-1] - self._peak_times[-2])
+
+
+    def process_output(self, data):
         """ метод для передачи обработанных данных в выходную очередь """
-        pass
+        return data
 
     def _transmit_data(self, data):
         """ отправление данных в очередь """

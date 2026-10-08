@@ -185,6 +185,7 @@ class inRatDevice(QObject):
     def is_running(self) -> bool:
         return self._running
 
+    # ui widgets
     @property
     def control_pane(self) -> FrmControlDevicePane | None:
         return self._control_pane
@@ -201,10 +202,8 @@ class inRatDevice(QObject):
             receiver.start()
         if receiver not in self._receivers_data:
             self._receivers_data.append(receiver)
-
             receiver.event.connect(self.receiver_event)
             receiver.parentevent.connect(receiver.parentevent)
-
         else:
             logger.warning(f"Попытка дублировать {receiver} в приёмниках данных")
     def remove_receiver_data(self, receiver):
@@ -217,7 +216,6 @@ class inRatDevice(QObject):
         """ добавить объект приёмника в коллекцию биосигналов """
         if self._running:
             receiver.start()
-
         if receiver not in self._receivers_sig:
             self._receivers_sig.append(receiver)
             receiver.update_params(params=self._exg_datablock)
@@ -410,6 +408,14 @@ class inRatDevice(QObject):
 
     def process_start(self):
         """ обработка запуска устройства """
+
+        for rec in self._receivers_sig:
+            rec.update_params(self._exg_datablock)
+        for rec in self._receivers_acc:
+            rec.update_params(self._acc_datablock)
+        for rec in self._receivers_data:
+            rec.update_params(params_acc=self._acc_datablock, params_exg=self._exg_datablock)
+
         self.battery_timer = 0
         self._control_pane.set_start()
         self._timer_check_conn.start()
