@@ -33,7 +33,7 @@ class RPeakDetector(QObject):
         self._input_queue: Queue = Queue()
         self._running: bool = False
         self._worker: Thread | None = None
-        self._params = None
+        self._params: SignalDatablock | None = None
 
         self._window_sec = 1
         self._fs = 1000
@@ -47,6 +47,8 @@ class RPeakDetector(QObject):
         self._last_peak_abs = -np.inf
         self._peak_times = []
         self._rr_intervals = []
+
+        self._last_heart_rate = 60
 
     def update_params(self, params: SignalDatablock | None):
         if params.type_signal == TypeSignal.ECG:
@@ -100,7 +102,7 @@ class RPeakDetector(QObject):
                 for rec in self._receivers:
                     rec._transmit_data(copy.deepcopy(data))
 
-            time.sleep(0.0005)
+            time.sleep(0.001)
 
     def process_input(self, data):
         """ метод для получения и обработки данных из входной очереди """
@@ -109,9 +111,9 @@ class RPeakDetector(QObject):
 
         ecg = (data["signal"] / 1000).tolist()[0]
         self._buffer.extend(ecg)
-        self._abs_index += 1
+        self._abs_index += self._params.counter_per_sample
 
-        if len(self._buffer) < self._window_len:
+        if len(self._buffer) < self._window_len:    # load buffer
             return
 
         peaks_rel = xqrs_detect(
@@ -120,7 +122,7 @@ class RPeakDetector(QObject):
             # conf=self.CONF,
             learn=False, verbose=False
         )
-
+        print(f"{peaks_rel=}")
         oldest_abs = self._abs_index - self._window_len + 1
         peaks_abs = oldest_abs + peaks_rel
 
@@ -132,10 +134,21 @@ class RPeakDetector(QObject):
                 self._last_peak_abs = p_abs
                 t = p_abs / self._fs
                 self._peak_times.append(t)
+                logger.debug(f"{self._peak_times=}")
 
                 if len(self._peak_times) >= 2:
                     self._rr_intervals.append(self._peak_times[-1] - self._peak_times[-2])
 
+                if len(self._peak_times) >= 3:
+                    self._last_heart_rate = self._get_heart_rate()
+                    self.send_event({"type":"HeartRate", "value": self._last_heart_rate})
+
+    def _get_heart_rate(self) -> float | int:
+        """ расчёт чсс """
+        dt_rr = self._peak_times[-1] - self._peak_times[-2]
+        a = 0.2
+        hr = int(a * (60 / dt_rr) + (1 - a) * self._last_heart_rate)
+        return hr
 
     def process_output(self, data):
         """ метод для передачи обработанных данных в выходную очередь """
@@ -158,6 +171,7 @@ class RPeakDetector(QObject):
 
     def send_event(self, event):
         """ отправить события во все связанные слоты(методы класса) """
+        logger.debug(f"Отправка события: {event}")
         self.event.emit(event)
         self.parentevent.emit(event)
 

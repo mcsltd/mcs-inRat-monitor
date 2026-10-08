@@ -45,8 +45,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.device = inRatDevice(qt_loop)
         self.scanner = BleScanner(qt_loop)
         self.storage = Storage(self.settings)
-        self._ecg_detector = RPeakDetector()
-        self.device.add_receiver_exg(self._ecg_detector)
+        self._detector = RPeakDetector()
 
         # отображение сигнала exg
         self.layout_control_pane_exg = QHBoxLayout()
@@ -169,6 +168,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         logger.debug("Активация окна отображения сигналов ЭКГ/ЭМГ")
         if state:
             self.device.add_receiver_exg(self.display_sig)
+            # self.device.add_receiver_exg(self._detector)
+            self.display_sig.add_receiver(self._detector)
+
             self.display_sig.setVisible(True)
             self.control_pane_sig.setVisible(True)
         else:

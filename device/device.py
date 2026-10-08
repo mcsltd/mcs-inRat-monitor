@@ -220,8 +220,8 @@ class inRatDevice(QObject):
             self._receivers_sig.append(receiver)
             receiver.update_params(params=self._exg_datablock)
 
-            receiver.event.connect(self.receiver_event)
-            receiver.parentevent.connect(receiver.parentevent)
+            receiver.event.connect(self.receiver_event, Qt.ConnectionType.QueuedConnection)
+            receiver.parentevent.connect(receiver.parentevent, Qt.ConnectionType.QueuedConnection)
 
         else:
             logger.warning(f"Попытка дублировать {receiver} в приёмниках сигналов ЭКГ/ЭМГ")
@@ -239,8 +239,8 @@ class inRatDevice(QObject):
             self._receivers_acc.append(receiver)
             receiver.update_params(params=self._acc_datablock)
 
-            receiver.event.connect(self.receiver_event)
-            receiver.parentevent.connect(receiver.parentevent)
+            receiver.event.connect(self.receiver_event, Qt.ConnectionType.QueuedConnection)
+            receiver.parentevent.connect(receiver.parentevent, Qt.ConnectionType.QueuedConnection)
         else:
             logger.warning(f"Попытка дублировать {receiver} в приёмниках акселерометра")
     def remove_receiver_acc(self, receiver):
@@ -642,6 +642,12 @@ class inRatDevice(QObject):
     def process_event(self, event):
         """ обработка события от приёмников/родителей """
         pass
+
+    def send_event(self, event):
+        """ отправить события во все связанные слоты(методы класса) """
+        logger.debug(f"Отправка события: {event}")
+        self.event.emit(event)
+        self.parentevent.emit(event)
 
     def receiver_event(self, event):
         """ получить события от приёмников (снизу-вверх) """
