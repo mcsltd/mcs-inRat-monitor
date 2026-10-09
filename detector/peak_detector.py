@@ -51,12 +51,14 @@ class RPeakDetector(QObject):
         self._last_heart_rate = 60
 
     def update_params(self, params: SignalDatablock | None):
-        if params.type_signal == TypeSignal.ECG:
+        if params is not None and params.type_signal == TypeSignal.ECG:
             self._ecg_enable = True
             self._params = params
             # recalc param for new fs
+            self._fs = params.sample_rate
             self._refractory = int(self._refractory_ms * self._fs / 1000)
-            self._buffer = deque(maxlen=self._window_sec * self._fs)
+            self._window_len = int(self._window_sec * self._fs)
+            self._buffer = deque(maxlen=self._window_len)
             logger.debug(f"{self.__class__}: детектор RR-пиков активирован")
         else:
             self._ecg_enable = False
@@ -122,7 +124,6 @@ class RPeakDetector(QObject):
             # conf=self.CONF,
             learn=False, verbose=False
         )
-        print(f"{peaks_rel=}")
         oldest_abs = self._abs_index - self._window_len + 1
         peaks_abs = oldest_abs + peaks_rel
 

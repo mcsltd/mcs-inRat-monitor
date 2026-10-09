@@ -203,7 +203,7 @@ class inRatDevice(QObject):
         if receiver not in self._receivers_data:
             self._receivers_data.append(receiver)
             receiver.event.connect(self.receiver_event)
-            receiver.parentevent.connect(receiver.parentevent)
+            receiver.parentevent.connect(self.parent_event)
         else:
             logger.warning(f"Попытка дублировать {receiver} в приёмниках данных")
     def remove_receiver_data(self, receiver):
@@ -221,7 +221,7 @@ class inRatDevice(QObject):
             receiver.update_params(params=self._exg_datablock)
 
             receiver.event.connect(self.receiver_event, Qt.ConnectionType.QueuedConnection)
-            receiver.parentevent.connect(receiver.parentevent, Qt.ConnectionType.QueuedConnection)
+            receiver.parentevent.connect(self.parent_event, Qt.ConnectionType.QueuedConnection)
 
         else:
             logger.warning(f"Попытка дублировать {receiver} в приёмниках сигналов ЭКГ/ЭМГ")
@@ -240,7 +240,7 @@ class inRatDevice(QObject):
             receiver.update_params(params=self._acc_datablock)
 
             receiver.event.connect(self.receiver_event, Qt.ConnectionType.QueuedConnection)
-            receiver.parentevent.connect(receiver.parentevent, Qt.ConnectionType.QueuedConnection)
+            receiver.parentevent.connect(self.parent_event, Qt.ConnectionType.QueuedConnection)
         else:
             logger.warning(f"Попытка дублировать {receiver} в приёмниках акселерометра")
     def remove_receiver_acc(self, receiver):

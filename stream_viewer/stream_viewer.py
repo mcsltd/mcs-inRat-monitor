@@ -141,7 +141,7 @@ class StreamViewer(pg.PlotWidget):
             receiver.update_params(params=self._sig_datablock)
 
             receiver.event.connect(self.receiver_event, Qt.ConnectionType.QueuedConnection)
-            receiver.parentevent.connect(receiver.parentevent, Qt.ConnectionType.QueuedConnection)
+            receiver.parentevent.connect(self.parent_event, Qt.ConnectionType.QueuedConnection)
         else:
             logger.warning(f"Попытка дублировать {receiver} в приёмниках акселерометра")
     def remove_receiver(self, receiver):
