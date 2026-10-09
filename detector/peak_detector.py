@@ -8,7 +8,7 @@ from wfdb.processing import XQRS, xqrs_detect
 from queue import Queue, Empty
 from threading import Thread
 
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import QObject, Signal, Qt
 
 from device.device import SignalDatablock
 from device.enums import TypeSignal
@@ -24,7 +24,8 @@ class RPeakDetector(QObject):
     event = Signal(object)
     parentevent = Signal(object)
 
-    CONF = XQRS.Conf(hr_init=350, hr_max=600, hr_min=150, qrs_width=0.018, ref_period=0.06)
+    CONF_RAT = XQRS.Conf(hr_init=350, hr_max=600, hr_min=150, qrs_width=0.018, ref_period=0.06)
+    CONF_RAT = XQRS.Conf(hr_init=350, hr_max=600, hr_min=150, qrs_width=0.018, ref_period=0.06)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -68,6 +69,13 @@ class RPeakDetector(QObject):
 
     def start(self):
         """ запуск """
+        
+        try:
+            self.process_start()
+        except Exception as err:
+            pass
+
+        
         if not self._running:
             self._running = True
             self._worker = Thread(target=self._worker_thread)
@@ -95,14 +103,14 @@ class RPeakDetector(QObject):
             #     data = None
             #     logger.error(f"{self.__class__}: {err}")
 
-            try:
-                data = self.process_output(data)
-            except Exception as e:
-                data = None
+            # try:
+            #     data = self.process_output(data)
+            # except Exception as e:
+            #     data = None
 
-            if data:
-                for rec in self._receivers:
-                    rec._transmit_data(copy.deepcopy(data))
+            # if data:
+            #     for rec in self._receivers:
+            #         rec._transmit_data(copy.deepcopy(data))
 
             time.sleep(0.001)
 
@@ -111,7 +119,7 @@ class RPeakDetector(QObject):
         if not self._ecg_enable or data is None:
             return
 
-        ecg = (data["signal"] / 1000).tolist()[0]
+        ecg = (data["signal"]).tolist()[0]  # to mV
         self._buffer.extend(ecg)
         self._abs_index += self._params.counter_per_sample
 
@@ -142,7 +150,7 @@ class RPeakDetector(QObject):
 
                 if len(self._peak_times) >= 3:
                     self._last_heart_rate = self._get_heart_rate()
-                    self.send_event({"type":"HeartRate", "value": self._last_heart_rate})
+                    self.send_event({"type":"HeartRate", "value": self._last_heart_rate, "timestamp": t})
 
     def _get_heart_rate(self) -> float | int:
         """ расчёт чсс """
@@ -150,6 +158,9 @@ class RPeakDetector(QObject):
         a = 0.2
         hr = int(a * (60 / dt_rr) + (1 - a) * self._last_heart_rate)
         return hr
+
+    def process_start(self):
+        self.send_event({"type": "HeartRate", "value": self._last_heart_rate, "timestamp": 0})
 
     def process_output(self, data):
         """ метод для передачи обработанных данных в выходную очередь """
@@ -162,13 +173,27 @@ class RPeakDetector(QObject):
         except:
             pass # todo send event error
 
-    def add_receiver(self, receiver):
-        pass
-    def remove_receiver(self, receiver):
-        pass
     def process_event(self, event):
         """ обработка событий"""
         pass
+
+    def add_receiver(self, receiver):
+        """ добавить объект приёмника акселерометра в коллекцию """
+        if self._running:
+            receiver.start()
+
+        if receiver not in self._receivers:
+            self._receivers.append(receiver)
+            receiver.event.connect(self.receiver_event, Qt.ConnectionType.QueuedConnection)
+            receiver.parentevent.connect(self.parent_event, Qt.ConnectionType.QueuedConnection)
+        else:
+            logger.warning(f"Попытка дублировать {receiver} в приёмниках акселерометра")
+
+    def remove_receiver(self, receiver):
+        """ удалить объект приёмника из коллекции акселерометра """
+        if receiver in self._receivers:
+            self._receivers.remove(receiver)
+        receiver.stop()
 
     def send_event(self, event):
         """ отправить события во все связанные слоты(методы класса) """
@@ -183,4 +208,5 @@ class RPeakDetector(QObject):
 
     def parent_event(self, event):
         """ получение событий от прикрепленного родителя """
+        self.process_event(event)
         self.parentevent.emit(event)

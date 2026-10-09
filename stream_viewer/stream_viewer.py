@@ -179,7 +179,7 @@ class StreamViewer(pg.PlotWidget):
         if not params:
             return None
 
-        if self._sig_datablock.type_signal == TypeSignal.ECG:
+        if self._sig_datablock.type_signal == TypeSignal.ECG and not self._legend_hr:
             self._legend_hr = pg.LabelItem(text="ЧСС --", size="25pt", color="white")
             self._legend_hr.setParentItem(self.graphicsItem())  # на сцену поверх графика
             self._legend_hr.anchor(itemPos=(1, 0), parentPos=(1, 0), offset=(-10, 10))
@@ -289,7 +289,7 @@ class StreamViewer(pg.PlotWidget):
             self.set_event_point(data)
             return
 
-        current_sample, signal = data["sample"], data["signal"]  # .shape = (1,32) for exg; .shape = (3,8) for acc
+        current_sample, signal = data["sample"], copy.deepcopy(data["signal"])  # .shape = (1,32) for exg; .shape = (3,8) for acc
 
         if self.unit == "uV":
             signal /= 1e6   # to V
@@ -419,7 +419,7 @@ class StreamViewer(pg.PlotWidget):
         """ обработка события от приёмников/родителей """
         if self._legend_hr and event["type"] == "HeartRate":
             value = event["value"]
-            self._legend_hr.setText(f"ЧСС {value:.1f}")
+            self._legend_hr.setText(f"ЧСС {int(value)}")
 
     def send_event(self, event):
         """ отправить события во все связанные слоты(методы класса) """

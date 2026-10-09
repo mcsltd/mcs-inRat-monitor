@@ -168,8 +168,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         logger.debug("Активация окна отображения сигналов ЭКГ/ЭМГ")
         if state:
             self.device.add_receiver_exg(self.display_sig)
-            # self.device.add_receiver_exg(self._detector)
             self.display_sig.add_receiver(self._detector)
+            self._detector.add_receiver(self.storage)
 
             self.display_sig.setVisible(True)
             self.control_pane_sig.setVisible(True)
@@ -203,7 +203,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         dlg = DlgConfig()
         pane = self.device.config_pane
         dlg.add_pane(pane)
-        # todo - wtf !?
         try:
             dlg.exec()
         finally:
