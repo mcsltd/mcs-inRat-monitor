@@ -511,19 +511,17 @@ class Storage(QObject):
 
     def process_event(self, event):
         """ обработка события от приёмников/родителей """
-        if self._recording and event["type"] == "HeartRate":
-            value = event["value"]
-            timestamp = event["timestamp"]
+        if self._recording and self._exg_param and event["type"] == "HeartRate":
+            value = "R"
+            timestamp = (event["counter"] - self._exg_start_sample * self._exg_param.counter_per_sample) / self._exg_param.sample_rate
             self._ev_buffer.append((timestamp, value))
 
     def receiver_event(self, event):
         """ получить события от приёмников (снизу-вверх) """
-        print(f"Storage: receive event {event} from receiver")
         self.process_event(event)
         self.event.emit(event)
 
     def parent_event(self, event):
         """ получить события от приёмников (сверху-вниз) """
-        print(f"Storage: receive event {event} from parent")
         self.process_event(event)
         self.parentevent.emit(event)
