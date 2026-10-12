@@ -1,10 +1,12 @@
 from dataclasses import dataclass, field
 
+from device.enums import TypeSignal
+
 
 @dataclass
 class ExgConfig:
     """ Описание параметров сигнала Exg """
-    type_signal: str # eeg, ecg
+    type_signal: TypeSignal # eeg, ecg
     hpf: float
     sample_rate: int | float
     gain: int
@@ -12,7 +14,7 @@ class ExgConfig:
 @dataclass
 class AccConfig:
     """ Описание параметров сигнала Acc """
-    type_signal: str # acc
+    type_signal: TypeSignal # acc
     sample_rate: int | float
     scale: float
 

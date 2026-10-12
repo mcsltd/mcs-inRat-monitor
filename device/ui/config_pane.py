@@ -1,6 +1,7 @@
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QFrame, QComboBox
 
+from device.enums import TypeSignal
 from device.models import ExgConfig, AccConfig, DeviceConfig, EventConfig
 from device.res.frm_config_device import Ui_FrmConfigDevicePane
 
@@ -88,7 +89,7 @@ class FrmConfigDevicePane(QFrame, Ui_FrmConfigDevicePane):
 
     def _setup_combobox_acc(self):
         # настройка акселерометра
-        data = [("Отключено", None), ("Включено, 100 Гц", ("acc", 100))]
+        data = [("Отключено", None), ("Включено, 100 Гц", (TypeSignal.ACC, 100))]
         for text, value in data:
             self.comboBoxAcc.addItem(text, userData=value)
 
@@ -102,11 +103,11 @@ class FrmConfigDevicePane(QFrame, Ui_FrmConfigDevicePane):
         # настройка exg
         data = [
             ("Отключено", None),
-            ("ЭКГ, 500 Гц", ("ecg", 500)),
-            ("ЭКГ, 1000 Гц", ("ecg", 1000)),
-            ("ЭКГ, 2000 Гц", ("ecg", 2000)),
-            ("ЭЭГ, 250 Гц", ("eeg", 250)),
-            ("ЭЭГ, 500 Гц", ("eeg", 500))
+            ("ЭКГ, 500 Гц", (TypeSignal.ECG, 500)),
+            ("ЭКГ, 1000 Гц", (TypeSignal.ECG, 1000)),
+            ("ЭКГ, 2000 Гц", (TypeSignal.ECG, 2000)),
+            ("ЭЭГ, 250 Гц", (TypeSignal.EEG, 250)),
+            ("ЭЭГ, 500 Гц", (TypeSignal.EEG, 500))
         ]
         for text, value in data:
             self.comboBoxExg.addItem(text, userData=value)
@@ -147,7 +148,7 @@ class FrmConfigDevicePane(QFrame, Ui_FrmConfigDevicePane):
             return None
         type_signal, sample_rate = data_exg
         hpf = self.comboBoxExgHpf.currentData()
-        gain = self.comboBoxExgHpf.currentData()
+        gain = self.comboBoxExgGain.currentData()
         exg_config = ExgConfig(type_signal=type_signal, hpf=hpf, sample_rate=sample_rate, gain=gain,)
         return exg_config
 
@@ -195,7 +196,11 @@ class FrmConfigDevicePane(QFrame, Ui_FrmConfigDevicePane):
         acc_config = self._get_acc_config()
         ev_config = self._get_event_config()
 
-        config = DeviceConfig(activated=self.checkBoxActivated, signals=[exg_config, acc_config], events=ev_config)
+        config = DeviceConfig(
+            activated=self.checkBoxActivated.isChecked(),
+            signals=[exg_config, acc_config],
+            events=ev_config
+        )
         return config
 
     def _on_ok_clicked(self):

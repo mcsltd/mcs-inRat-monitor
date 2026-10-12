@@ -116,7 +116,7 @@ class RPeakDetector(QObject):
 
     def process_input(self, data):
         """ метод для получения и обработки данных из входной очереди """
-        if not self._ecg_enable or data is None:
+        if not self._ecg_enable or data is None or data["type"] == "ev":
             return
 
         ecg = (data["signal"]).tolist()[0]  # to mV

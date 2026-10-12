@@ -3,6 +3,7 @@ import copy
 import logging
 import time
 from asyncio import AbstractEventLoop
+from collections.abc import coroutine
 from concurrent.futures import Future
 from dataclasses import dataclass, field
 from threading import Thread
@@ -126,14 +127,7 @@ class inRatDevice(QObject):
         self._loop: AbstractEventLoop = loop
         self._inrat: inRat | None = None
         self._property: DeviceProperty | None = None
-        self._config: DeviceConfig | None = DeviceConfig(
-            activated=False,
-            signals=[
-                ExgConfig(type_signal="ecg", sample_rate=1000, hpf=0.83, gain=1),
-                AccConfig(type_signal="acc", sample_rate=100, scale=2)
-            ],
-            events=EventConfig(type_events=["T",], threshold=2)
-        )
+        self._config: DeviceConfig | None = None
 
         # очередь для передачи всех данных с устройства
         self._receivers_data = []
@@ -268,7 +262,46 @@ class inRatDevice(QObject):
         if config is None:
             raise ValueError("Не заданы параметры регистрации")
         self._config = config
-        # todo распаковать настройки
+        if self._config.activated and not self._inrat.is_activated:
+            _ = asyncio.run_coroutine_threadsafe(self._inrat.activate(True), self._loop)
+
+        enabled_channels = EnabledChannels.NONE
+        for cfg in self._config.signals:
+            if isinstance(cfg, ExgConfig):
+                self._inrat.sample_rate = cfg.sample_rate
+                self._inrat.hpf = cfg.hpf
+                self._inrat.gain = cfg.gain
+                enabled_channels |= EnabledChannels.EXG
+                self.signal_enable_sig.emit(True)
+            else:
+                self.signal_enable_sig.emit(True)
+
+            if isinstance(cfg, AccConfig):
+                self._inrat.full_scale_accelerometer = cfg.scale
+                enabled_channels |= (EnabledChannels.ACC_X | EnabledChannels.ACC_Y | EnabledChannels.ACC_Z)
+                self.signal_enable_acc.emit(True)
+            else:
+                self.signal_enable_acc.emit(False)
+        self._inrat.enabled_channels = enabled_channels
+
+        enabled_events = EventType.NONE
+        if not self._config.events:
+            self._inrat.enabled_events = EventType.NONE
+            return
+
+        if "T" in self._config.events.type_events:
+            enabled_events |= EventType.TEMP
+            self.signal_enable_temp.emit(True)
+        else:
+            self.signal_enable_temp.emit(False)
+
+        if "A" in self._config.events.type_events:
+            enabled_events |= EventType.ACTIVITY
+        if "O" in self._config.events.type_events:
+            enabled_events |= EventType.ORIENTATION
+        if "F" in self._config.events.type_events:
+            enabled_events |= EventType.FREEFALL
+        self._inrat.enabled_events = enabled_events
 
     def process_connect(self, device: BLEDevice):
         """ обработка соединения с inRat """
@@ -280,8 +313,17 @@ class inRatDevice(QObject):
         """ обработка результата соединения с устройством """
         try:
             future.result(timeout=10.0)
-        except Exception as err:
-            ...
+        except:
+            pass
+
+        default_config = DeviceConfig(
+            activated=self._inrat.is_activated,
+            signals=[
+                ExgConfig(type_signal=TypeSignal.ECG, sample_rate=1000, hpf=0.83, gain=1),
+                AccConfig(type_signal=TypeSignal.ACC, sample_rate=100, scale=2)
+            ],
+            events=EventConfig(type_events=["T",], threshold=2)
+        )
 
         if self._inrat.is_connected:
             self.event.emit(
@@ -298,7 +340,6 @@ class inRatDevice(QObject):
             self._control_pane.set_enabled(True)
             self.signal_connected.emit()
 
-            self._config.activated = self._inrat.is_activated
             if self._acc_datablock:
                 self._acc_datablock.device_name = self._inrat.name
             if self._exg_datablock:
@@ -309,13 +350,7 @@ class inRatDevice(QObject):
                 msg = f"Обнаружена новая версия прошивки {self._inrat.firmware}!"
                 QMessageBox.warning(None, title, msg, QMessageBox.StandardButton.Ok)
 
-            self._inrat.enabled_channels = EnabledChannels.ECG | EnabledChannels.ACC_X | EnabledChannels.ACC_Z | EnabledChannels.ACC_Y
-            self._inrat.sample_rate = 500
-            self._inrat.activity_threshold = 2
-
-            self.signal_enable_acc.emit(True)
-            self.signal_enable_sig.emit(True)
-
+            self.process_update(default_config)
             self._config_pane = FrmConfigDevicePane(self._config)
         else:
             self.signal_disconnected.emit()
