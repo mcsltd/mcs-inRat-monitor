@@ -8,7 +8,7 @@ import time
 import numpy as np
 
 from threading import Thread, Lock
-from PySide6.QtCore import QObject, QSettings, Signal
+from PySide6.QtCore import QObject, QSettings, Signal, Qt
 from PySide6.QtWidgets import QFileDialog
 from pyedflib import EdfWriter
 
@@ -36,6 +36,7 @@ class Storage(QObject):
 
         self._input_queue = queue.Queue()
         self._thlock_save = Lock()
+        self._receivers = []
 
         self._recording = False
         self._running = False
@@ -202,6 +203,20 @@ class Storage(QObject):
             self._input_queue.put(data, False)
         except Exception as err:
             logger.error(f"{self.__class__}: ошибка передачи данных в очередь - {err}")
+
+    def add_receiver(self, receiver):
+        """ добавить объект-источник событий в коллекцию """
+        if receiver not in self._receivers:
+            self._receivers.append(receiver)
+            receiver.event.connect(self.receiver_event, Qt.ConnectionType.QueuedConnection)
+            receiver.parentevent.connect(self.parent_event, Qt.ConnectionType.QueuedConnection)
+        else:
+            logger.warning(f"Попытка дублировать {receiver} в источниках событий хранилища")
+
+    def remove_receiver(self, receiver):
+        """ удалить объект-источник событий из коллекции """
+        if receiver in self._receivers:
+            self._receivers.remove(receiver)
 
     def update_params(
             self,

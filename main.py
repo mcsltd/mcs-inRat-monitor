@@ -169,7 +169,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if state:
             self.device.add_receiver_exg(self.display_sig)
             self.display_sig.add_receiver(self._detector)
-            self._detector.add_receiver(self.storage)
+            self.storage.add_receiver(self._detector)
 
             self.display_sig.setVisible(True)
             self.control_pane_sig.setVisible(True)
