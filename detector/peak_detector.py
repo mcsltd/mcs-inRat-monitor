@@ -150,7 +150,7 @@ class RPeakDetector(QObject):
 
                 if len(self._peak_times) >= 3:
                     self._last_heart_rate = self._get_heart_rate()
-                    self.send_event({"type":"HeartRate", "value": self._last_heart_rate, "timestamp": t})
+                    self.send_event({"type":"HeartRate", "value": self._last_heart_rate, "counter": p_abs})
 
     def _get_heart_rate(self) -> float | int:
         """ расчёт чсс """
@@ -185,7 +185,7 @@ class RPeakDetector(QObject):
         if receiver not in self._receivers:
             self._receivers.append(receiver)
             receiver.event.connect(self.receiver_event, Qt.ConnectionType.QueuedConnection)
-            receiver.parentevent.connect(self.parent_event, Qt.ConnectionType.QueuedConnection)
+            self.parentevent.connect(receiver.parent_event, Qt.ConnectionType.QueuedConnection)
         else:
             logger.warning(f"Попытка дублировать {receiver} в приёмниках акселерометра")
 
