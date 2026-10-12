@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'frm_config_deviceVQciqT.ui'
+## Form generated from reading UI file 'frm_config_deviceqfUCjb.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.11.2
+## Created by: Qt User Interface Compiler version 6.12.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -16,14 +16,15 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFormLayout,
-    QFrame, QGridLayout, QGroupBox, QLabel,
-    QSizePolicy, QSpacerItem, QVBoxLayout, QWidget)
+    QFrame, QGridLayout, QGroupBox, QHBoxLayout,
+    QLabel, QPushButton, QSizePolicy, QSpacerItem,
+    QVBoxLayout, QWidget)
 
 class Ui_FrmConfigDevicePane(object):
     def setupUi(self, FrmConfigDevicePane):
         if not FrmConfigDevicePane.objectName():
             FrmConfigDevicePane.setObjectName(u"FrmConfigDevicePane")
-        FrmConfigDevicePane.resize(623, 564)
+        FrmConfigDevicePane.resize(623, 596)
         self.gridLayout = QGridLayout(FrmConfigDevicePane)
         self.gridLayout.setObjectName(u"gridLayout")
         self.verticalLayout = QVBoxLayout()
@@ -206,6 +207,20 @@ class Ui_FrmConfigDevicePane(object):
 
         self.verticalLayout.addWidget(self.groupBoxEv)
 
+        self.horizontalLayout = QHBoxLayout()
+        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout.addItem(self.horizontalSpacer_3)
+
+        self.pushButtonOk = QPushButton(FrmConfigDevicePane)
+        self.pushButtonOk.setObjectName(u"pushButtonOk")
+
+        self.horizontalLayout.addWidget(self.pushButtonOk)
+
+
+        self.verticalLayout.addLayout(self.horizontalLayout)
+
         self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout.addItem(self.verticalSpacer)
@@ -242,5 +257,6 @@ class Ui_FrmConfigDevicePane(object):
         self.checkBoxFreefall.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u041d\u0435\u0432\u0435\u0441\u043e\u043c\u043e\u0441\u0442\u044c (\u041d)", None))
         self.labelInfoFreefall.setText(QCoreApplication.translate("FrmConfigDevicePane", u"?", None))
         self.labelInfoSens.setText(QCoreApplication.translate("FrmConfigDevicePane", u"?", None))
+        self.pushButtonOk.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u041f\u0440\u0438\u043c\u0435\u043d\u0438\u0442\u044c", None))
     # retranslateUi
 

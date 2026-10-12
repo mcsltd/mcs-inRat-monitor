@@ -1,11 +1,13 @@
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QFrame, QComboBox
 
-from device.models import ExgConfig, AccConfig
+from device.models import ExgConfig, AccConfig, DeviceConfig, EventConfig
 from device.res.frm_config_device import Ui_FrmConfigDevicePane
 
 
 class FrmConfigDevicePane(QFrame, Ui_FrmConfigDevicePane):
     """ Класс-фрейм для настроек inRat """
+    signal_apply = Signal(object)
 
     def __init__(self, config, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -25,6 +27,8 @@ class FrmConfigDevicePane(QFrame, Ui_FrmConfigDevicePane):
 
         self.comboBoxAcc.currentIndexChanged.connect(self.on_acc_switched)
         self.comboBoxExg.currentIndexChanged.connect(self.on_exg_switched)
+
+        self.pushButtonOk.clicked.connect(self._on_ok_clicked)
 
     def set_default(self):
         """ установка настроек по умолчанию """
@@ -66,9 +70,11 @@ class FrmConfigDevicePane(QFrame, Ui_FrmConfigDevicePane):
         if value is None:
             self.groupBoxEv.setEnabled(True)
             self.comboBoxAcEvThreshold.setEnabled(True)
+            self.comboBoxAccScale.setEnabled(False)
         else:
             self.groupBoxEv.setEnabled(False)
             self.comboBoxAcEvThreshold.setEnabled(False)
+            self.comboBoxAccScale.setEnabled(True)
 
     def on_exg_switched(self, idx):
         """ обработка переключения сигналов exg """
@@ -134,6 +140,65 @@ class FrmConfigDevicePane(QFrame, Ui_FrmConfigDevicePane):
                 return idx
         return 0
 
-    def save(self):
-        """ сохранение настроек """
-        pass
+    def _get_exg_config(self) -> ExgConfig | None:
+        """ получение настроек сигнала exg """
+        data_exg = self.comboBoxExg.currentData()
+        if data_exg is None:
+            return None
+        type_signal, sample_rate = data_exg
+        hpf = self.comboBoxExgHpf.currentData()
+        gain = self.comboBoxExgHpf.currentData()
+        exg_config = ExgConfig(type_signal=type_signal, hpf=hpf, sample_rate=sample_rate, gain=gain,)
+        return exg_config
+
+    def _get_acc_config(self) -> AccConfig | None:
+        """ получение настроек сигнала acc """
+        data_acc = self.comboBoxAcc.currentData()
+        if data_acc is None:
+            return None
+        type_signal, sample_rate = data_acc
+        scale = self.comboBoxAccScale.currentData()
+        acc_config = AccConfig(type_signal=type_signal, sample_rate=sample_rate, scale=scale)
+        return acc_config
+
+    def _get_event_config(self) -> EventConfig | None:
+        """ получение настроек регистрации событий """
+        event = []
+        if self.checkBoxTemp.isChecked():
+            event.append("T")
+        if self.checkBoxActivity.isChecked():
+            event.append("A")
+        if self.checkBoxOrientation.isChecked():
+            event.append("O")
+        if self.checkBoxFreefall.isChecked():
+            event.append("F")
+        if len(event) != 0:
+            threshold = self.comboBoxAcEvThreshold.currentData()
+            event_config = EventConfig(type_events=event, threshold=threshold)
+            return event_config
+        else:
+            return None
+
+    def _get_config(self) -> DeviceConfig | None:
+        """
+        сохранение настроек
+        DeviceConfig(
+            activated=False,
+            signals=[
+                ExgConfig(type_signal="ecg", sample_rate=1000, hpf=0.83, gain=1),
+                AccConfig(type_signal="acc", sample_rate=100, scale=2)
+            ],
+            events=EventConfig(type_events=["T",], threshold=2)
+        )
+        """
+        exg_config = self._get_exg_config()
+        acc_config = self._get_acc_config()
+        ev_config = self._get_event_config()
+
+        config = DeviceConfig(activated=self.checkBoxActivated, signals=[exg_config, acc_config], events=ev_config)
+        return config
+
+    def _on_ok_clicked(self):
+        """ обработка нажатия кнопки применить """
+        config = self._get_config()
+        self.signal_apply.emit(config)

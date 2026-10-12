@@ -15,7 +15,7 @@ from bleak import BLEDevice
 from device.constants import Pkt
 from device.enums import EnabledChannels, TypeSignal, EventType
 from device.inrat import inRat, FIRMWARE_ACC_EXG, FIRMWARE_V0
-from device.models import DeviceProperty, DeviceConfig, ExgConfig, EventsConfig, AccConfig
+from device.models import DeviceProperty, DeviceConfig, ExgConfig, EventConfig, AccConfig
 from device.structures import Event, Usage
 from device.ui.config_dialog import DlgConfigDevice
 from device.ui.config_pane import FrmConfigDevicePane
@@ -132,7 +132,7 @@ class inRatDevice(QObject):
                 ExgConfig(type_signal="ecg", sample_rate=1000, hpf=0.83, gain=1),
                 AccConfig(type_signal="acc", sample_rate=100, scale=2)
             ],
-            events=EventsConfig(type_events=["T",], threshold=2)
+            events=EventConfig(type_events=["T",], threshold=2)
         )
 
         # очередь для передачи всех данных с устройства
@@ -263,6 +263,13 @@ class inRatDevice(QObject):
         self._receiver_temp = None
         logger.info("Удален приёмник событий temp")
 
+    def process_update(self, config: DeviceConfig):
+        """ обновление параметров регистрации inRat """
+        if config is None:
+            raise ValueError("Не заданы параметры регистрации")
+        self._config = config
+        # todo распаковать настройки
+
     def process_connect(self, device: BLEDevice):
         """ обработка соединения с inRat """
         self._inrat = inRat(ble_device=device)
@@ -328,12 +335,7 @@ class inRatDevice(QObject):
         except Exception as exc:
             ...
 
-        self.event.emit(
-            DeviceEvent(
-                type="Disconnected",
-                desc=f"{self._inrat.name} отсоединен!"
-            )
-        )
+        self.event.emit(DeviceEvent(type="Disconnected", desc=f"{self._inrat.name} отсоединен!"))
         self.signal_disconnected.emit()
 
         if not self._inrat.is_connected:

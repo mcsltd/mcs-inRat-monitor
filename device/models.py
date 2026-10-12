@@ -18,7 +18,7 @@ class AccConfig:
 
 
 @dataclass
-class EventsConfig:
+class EventConfig:
     """ структура настроек типов рег. событий """
     type_events: list[str]
     threshold: int
@@ -27,7 +27,7 @@ class EventsConfig:
 class DeviceConfig:
     """ структура хранения настроек устройства """
     activated: bool
-    events: EventsConfig
+    events: EventConfig
     signals: list[ExgConfig | AccConfig] = field(default_factory=list)
 
 @dataclass

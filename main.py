@@ -202,6 +202,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """ открытие окна настроек """
         dlg = DlgConfig()
         pane = self.device.config_pane
+        pane.signal_apply.connect(self.device)
         dlg.add_pane(pane)
         try:
             dlg.exec()
