@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'frm_config_deviceqfUCjb.ui'
+## Form generated from reading UI file 'frm_config_devicefflvtX.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.12.0
 ##
@@ -236,7 +236,7 @@ class Ui_FrmConfigDevicePane(object):
 
     def retranslateUi(self, FrmConfigDevicePane):
         FrmConfigDevicePane.setWindowTitle(QCoreApplication.translate("FrmConfigDevicePane", u"Frame", None))
-        self.groupBoxInRat.setTitle(QCoreApplication.translate("FrmConfigDevicePane", u"inRat-...", None))
+        self.groupBoxInRat.setTitle(QCoreApplication.translate("FrmConfigDevicePane", u"inRat", None))
         self.checkBoxActivated.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u0410\u043a\u0442\u0438\u0432\u0438\u0440\u043e\u0432\u0430\u043d\u043e", None))
         self.groupBoxExg.setTitle(QCoreApplication.translate("FrmConfigDevicePane", u"ExG (\u042d\u041a\u0413/\u042d\u042d\u0413)", None))
         self.labelExg.setText(QCoreApplication.translate("FrmConfigDevicePane", u"ExG, \u0413\u0446", None))

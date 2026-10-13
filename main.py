@@ -201,13 +201,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def on_config_clicked(self):
         """ открытие окна настроек """
         dlg = DlgConfig()
-        pane = self.device.config_pane
-        pane.signal_apply.connect(self.device.process_update)
-        dlg.add_pane(pane)
+
+        pane_device = self.device.config_pane
+        pane_device.signal_apply.connect(self.device.process_update)
+        dlg.add_pane(pane_device)
+
+        pane_detector = self._detector.config_pane
+        dlg.add_pane(pane_detector)
+
         try:
             dlg.exec()
         finally:
-            pane.setParent(None)
+            pane_device.setParent(None)
+            pane_detector.setParent(None)
 
 
 if __name__ == "__main__":

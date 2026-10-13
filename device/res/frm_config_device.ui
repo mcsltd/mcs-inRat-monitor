@@ -19,7 +19,7 @@
      <item>
       <widget class="QGroupBox" name="groupBoxInRat">
        <property name="title">
-        <string>inRat-...</string>
+        <string>inRat</string>
        </property>
        <layout class="QGridLayout" name="gridLayout_7">
         <item row="0" column="0">

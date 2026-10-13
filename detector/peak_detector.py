@@ -10,6 +10,7 @@ from threading import Thread
 
 from PySide6.QtCore import QObject, Signal, Qt
 
+from detector.ui.config_pane import FrmConfigDetectorPane
 from device.device import SignalDatablock
 from device.enums import TypeSignal
 
@@ -24,7 +25,6 @@ class RPeakDetector(QObject):
     event = Signal(object)
     parentevent = Signal(object)
 
-    CONF_RAT = XQRS.Conf(hr_init=350, hr_max=600, hr_min=150, qrs_width=0.018, ref_period=0.06)
     CONF_RAT = XQRS.Conf(hr_init=350, hr_max=600, hr_min=150, qrs_width=0.018, ref_period=0.06)
 
     def __init__(self, *args, **kwargs):
@@ -51,9 +51,22 @@ class RPeakDetector(QObject):
 
         self._last_heart_rate = 60
 
+        # ui config
+        self._config_pane = FrmConfigDetectorPane(self)
+
+    @property
+    def enable(self) -> bool:
+        return self._ecg_enable
+    @enable.setter
+    def enable(self, state: bool):
+        self._ecg_enable = state
+
+    @property
+    def config_pane(self) -> FrmConfigDetectorPane | None:
+        return self._config_pane
+
     def update_params(self, params: SignalDatablock | None):
         if params is not None and params.type_signal == TypeSignal.ECG:
-            self._ecg_enable = True
             self._params = params
             # recalc param for new fs
             self._fs = params.sample_rate
@@ -69,13 +82,11 @@ class RPeakDetector(QObject):
 
     def start(self):
         """ запуск """
-        
         try:
             self.process_start()
         except Exception as err:
             pass
 
-        
         if not self._running:
             self._running = True
             self._worker = Thread(target=self._worker_thread)
@@ -116,7 +127,10 @@ class RPeakDetector(QObject):
 
     def process_input(self, data):
         """ метод для получения и обработки данных из входной очереди """
-        if not self._ecg_enable or data is None or data["type"] == "ev":
+        if not self._ecg_enable:
+            return
+
+        if data is None or data["type"] == "ev":
             return
 
         ecg = (data["signal"]).tolist()[0]  # to mV
