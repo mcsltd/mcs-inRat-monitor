@@ -6,7 +6,7 @@ from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QHBoxLayout, QFrame
 from bleak import BLEDevice
 
-from detector.peak_detector import RPeakDetector
+from detector.peak_detector import QrsDetector
 from device.device import inRatDevice
 from device.enums import TypeSignal
 from ble_scanner.scanner import BleScanner
@@ -45,7 +45,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.device = inRatDevice(qt_loop)
         self.scanner = BleScanner(qt_loop)
         self.storage = Storage(self.settings)
-        self._detector = RPeakDetector()
+        self._detector = QrsDetector()
 
         # отображение сигнала exg
         self.layout_control_pane_exg = QHBoxLayout()

@@ -1,22 +1,20 @@
 import copy
 import logging
 import time
-from collections import deque
 
-import numpy as np
-from wfdb.processing import XQRS, xqrs_detect
 from queue import Queue, Empty
 from threading import Thread
 
 from PySide6.QtCore import QObject, Signal, Qt
 
+from detector.detector import RealTimeQRSDetector
 from detector.ui.config_pane import FrmConfigDetectorPane
 from device.device import SignalDatablock
 from device.enums import TypeSignal
 
 logger = logging.getLogger(__name__)
 
-class RPeakDetector(QObject):
+class QrsDetector(QObject):
     """
     Класс детектора RR-пиков ЭКГ сигнала.
     Генерирует события обнаружения пиков.
@@ -24,8 +22,6 @@ class RPeakDetector(QObject):
     """
     event = Signal(object)
     parentevent = Signal(object)
-
-    CONF_RAT = XQRS.Conf(hr_init=350, hr_max=600, hr_min=150, qrs_width=0.018, ref_period=0.06)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -36,19 +32,9 @@ class RPeakDetector(QObject):
         self._worker: Thread | None = None
         self._params: SignalDatablock | None = None
 
-        self._window_sec = 1
         self._fs = 1000
-        self._buffer = deque(maxlen=self._window_sec * self._fs)
-        self._window_len = int(self._window_sec * self._fs)
-        self._xqrs = None
-        # params
-        self._refractory_ms = 250
-        self._refractory = int(self._refractory_ms * self._fs / 1000)
-        self._abs_index = 0
-        self._last_peak_abs = -np.inf
-        self._peak_times = []
-        self._rr_intervals = []
 
+        self._detector = None
         self._last_heart_rate = 60
 
         # ui config
@@ -70,9 +56,28 @@ class RPeakDetector(QObject):
             self._params = params
             # recalc param for new fs
             self._fs = params.sample_rate
-            self._refractory = int(self._refractory_ms * self._fs / 1000)
-            self._window_len = int(self._window_sec * self._fs)
-            self._buffer = deque(maxlen=self._window_len)
+
+            detector_human = RealTimeQRSDetector(
+                sampling_rate=self._fs,
+                low_cutoff=5.0,  # Классические частоты Пана-Томпкинса
+                high_cutoff=15.0,
+                refractory_period_sec=0.25,  # 250 мс (максимальный отслеживаемый пульс 240 уд/мин)
+                algorithmic_delay_sec=0.15,  # Задержка 150 мс, чтобы захватить весь комплекс целиком
+                threshold_coefficient=0.6,  # Чуть строже к амплитуде
+                buffer_duration_sec=3.0
+            )
+
+            # detector_rat = RealTimeQRSDetector(
+            #     sampling_rate=self._fs,          # Ваша частота
+            #     low_cutoff=15.0,             # Режем дыхание и базовую линию
+            #     high_cutoff=50.0,            # Оставляем только быстрый спад/подъем R-волны
+            #     refractory_period_sec=0.07,  # 70 мс (максимальный отслеживаемый пульс ~850 уд/мин)
+            #     algorithmic_delay_sec=0.04,  # Окно задержки всего 40 мс
+            #     threshold_coefficient=0.5
+            # )
+
+
+            self._detector = detector_human
             logger.debug(f"{self.__class__}: детектор RR-пиков активирован")
         else:
             self._ecg_enable = False
@@ -133,38 +138,25 @@ class RPeakDetector(QObject):
         if data is None or data["type"] == "ev":
             return
 
-        ecg = (data["signal"]).tolist()[0]  # to mV
-        self._buffer.extend(ecg)
-        self._abs_index += self._params.counter_per_sample
+        packet = data["signal"][0,:]  # to mV
+        logger.debug(f"Founded peaks: {self._detector.process_packet(packet)}")
 
-        if len(self._buffer) < self._window_len:    # load buffer
-            return
-
-        peaks_rel = xqrs_detect(
-            sig=np.array(self._buffer),
-            fs=self._fs,
-            # conf=self.CONF,
-            learn=False, verbose=False
-        )
-        oldest_abs = self._abs_index - self._window_len + 1
-        peaks_abs = oldest_abs + peaks_rel
-
-        for p_abs in peaks_abs:
-            if p_abs - self._last_peak_abs < self._refractory:
-                continue
-
-            if p_abs > self._last_peak_abs:
-                self._last_peak_abs = p_abs
-                t = p_abs / self._fs
-                self._peak_times.append(t)
-                logger.debug(f"{self._peak_times=}")
-
-                if len(self._peak_times) >= 2:
-                    self._rr_intervals.append(self._peak_times[-1] - self._peak_times[-2])
-
-                if len(self._peak_times) >= 3:
-                    self._last_heart_rate = self._get_heart_rate()
-                    self.send_event({"type":"HeartRate", "value": self._last_heart_rate, "counter": p_abs})
+        # for p_abs in peaks_abs:
+        #     if p_abs - self._last_peak_abs < self._refractory:
+        #         continue
+        #
+        #     if p_abs > self._last_peak_abs:
+        #         self._last_peak_abs = p_abs
+        #         t = p_abs / self._fs
+        #         self._peak_times.append(t)
+        #         logger.debug(f"{self._peak_times=}")
+        #
+        #         if len(self._peak_times) >= 2:
+        #             self._rr_intervals.append(self._peak_times[-1] - self._peak_times[-2])
+        #
+        #         if len(self._peak_times) >= 3:
+        #             self._last_heart_rate = self._get_heart_rate()
+        #             self.send_event({"type":"HeartRate", "value": self._last_heart_rate, "counter": p_abs})
 
     def _get_heart_rate(self) -> float | int:
         """ расчёт чсс """
