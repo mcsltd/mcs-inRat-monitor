@@ -90,7 +90,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.enable_display_temp(False)
 
         self.horizontalLayoutStatusBar.addWidget(self.device.battery_pane)
-        self.device.battery_pane.setVisible(False)
+        # self.device.battery_pane.setVisible(False)
 
         # connection
         self.device.signal_enable_sig.connect(self.enable_display_sig)

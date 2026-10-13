@@ -9,9 +9,14 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>990</width>
-    <height>588</height>
+    <width>999</width>
+    <height>575</height>
    </rect>
+  </property>
+  <property name="font">
+   <font>
+    <pointsize>11</pointsize>
+   </font>
   </property>
   <property name="windowTitle">
    <string>inRat monitor</string>
@@ -24,6 +29,9 @@
    <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="0">
      <layout class="QVBoxLayout" name="verticalLayout">
+      <property name="spacing">
+       <number>3</number>
+      </property>
       <item>
        <layout class="QHBoxLayout" name="horizontalLayoutControlPane">
         <property name="spacing">
@@ -96,12 +104,12 @@
             <property name="maximumSize">
              <size>
               <width>16777215</width>
-              <height>12</height>
+              <height>20</height>
              </size>
             </property>
             <property name="font">
              <font>
-              <pointsize>9</pointsize>
+              <pointsize>11</pointsize>
              </font>
             </property>
             <property name="text">
@@ -172,7 +180,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>990</width>
+     <width>999</width>
      <height>33</height>
     </rect>
    </property>

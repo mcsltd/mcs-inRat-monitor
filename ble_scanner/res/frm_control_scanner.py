@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'frm_control_scannerNEKAFC.ui'
+## Form generated from reading UI file 'frm_control_scannerQSBdNw.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.12.0
 ##
@@ -62,6 +62,9 @@ class Ui_FrmControlScanner(object):
         sizePolicy.setHeightForWidth(self.labelSearch.sizePolicy().hasHeightForWidth())
         self.labelSearch.setSizePolicy(sizePolicy)
         self.labelSearch.setMaximumSize(QSize(16777215, 15))
+        font = QFont()
+        font.setPointSize(12)
+        self.labelSearch.setFont(font)
         self.labelSearch.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.verticalLayout.addWidget(self.labelSearch)

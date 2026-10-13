@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>198</width>
-    <height>136</height>
+    <height>118</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,6 +16,9 @@
   <layout class="QGridLayout" name="gridLayout">
    <item row="0" column="0">
     <widget class="Line" name="line_2">
+     <property name="frameShadow">
+      <enum>QFrame::Shadow::Sunken</enum>
+     </property>
      <property name="orientation">
       <enum>Qt::Orientation::Vertical</enum>
      </property>
@@ -23,6 +26,9 @@
    </item>
    <item row="0" column="1">
     <layout class="QVBoxLayout" name="verticalLayout">
+     <property name="spacing">
+      <number>0</number>
+     </property>
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout">
        <item>
@@ -114,12 +120,12 @@
        <property name="maximumSize">
         <size>
          <width>16777215</width>
-         <height>15</height>
+         <height>20</height>
         </size>
        </property>
        <property name="font">
         <font>
-         <pointsize>10</pointsize>
+         <pointsize>11</pointsize>
         </font>
        </property>
        <property name="text">
@@ -134,6 +140,9 @@
    </item>
    <item row="0" column="2">
     <widget class="Line" name="line">
+     <property name="frameShadow">
+      <enum>QFrame::Shadow::Sunken</enum>
+     </property>
      <property name="orientation">
       <enum>Qt::Orientation::Vertical</enum>
      </property>

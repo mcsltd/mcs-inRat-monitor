@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'frm_control_recordingIvtPkh.ui'
+## Form generated from reading UI file 'frm_control_recordingjKZBdr.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.12.0
 ##
@@ -23,17 +23,18 @@ class Ui_frmControlRecording(object):
     def setupUi(self, frmControlRecording):
         if not frmControlRecording.objectName():
             frmControlRecording.setObjectName(u"frmControlRecording")
-        frmControlRecording.resize(178, 124)
+        frmControlRecording.resize(196, 124)
         self.gridLayout = QGridLayout(frmControlRecording)
         self.gridLayout.setObjectName(u"gridLayout")
         self.line_2 = QFrame(frmControlRecording)
         self.line_2.setObjectName(u"line_2")
-        self.line_2.setFrameShape(QFrame.Shape.VLine)
         self.line_2.setFrameShadow(QFrame.Shadow.Sunken)
+        self.line_2.setFrameShape(QFrame.Shape.VLine)
 
         self.gridLayout.addWidget(self.line_2, 0, 0, 1, 1)
 
         self.verticalLayout = QVBoxLayout()
+        self.verticalLayout.setSpacing(3)
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
@@ -46,6 +47,9 @@ class Ui_frmControlRecording(object):
         sizePolicy.setHeightForWidth(self.pushButtonStart.sizePolicy().hasHeightForWidth())
         self.pushButtonStart.setSizePolicy(sizePolicy)
         self.pushButtonStart.setMaximumSize(QSize(75, 75))
+        font = QFont()
+        font.setPointSize(12)
+        self.pushButtonStart.setFont(font)
 
         self.horizontalLayout.addWidget(self.pushButtonStart)
 
@@ -55,6 +59,7 @@ class Ui_frmControlRecording(object):
         sizePolicy.setHeightForWidth(self.pushButtonStop.sizePolicy().hasHeightForWidth())
         self.pushButtonStop.setSizePolicy(sizePolicy)
         self.pushButtonStop.setMaximumSize(QSize(75, 75))
+        self.pushButtonStop.setFont(font)
 
         self.horizontalLayout.addWidget(self.pushButtonStop)
 
@@ -64,6 +69,7 @@ class Ui_frmControlRecording(object):
         self.label = QLabel(frmControlRecording)
         self.label.setObjectName(u"label")
         self.label.setMaximumSize(QSize(16777215, 15))
+        self.label.setFont(font)
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.verticalLayout.addWidget(self.label)
@@ -73,8 +79,8 @@ class Ui_frmControlRecording(object):
 
         self.line = QFrame(frmControlRecording)
         self.line.setObjectName(u"line")
-        self.line.setFrameShape(QFrame.Shape.VLine)
         self.line.setFrameShadow(QFrame.Shadow.Sunken)
+        self.line.setFrameShape(QFrame.Shape.VLine)
 
         self.gridLayout.addWidget(self.line, 0, 2, 1, 1)
 

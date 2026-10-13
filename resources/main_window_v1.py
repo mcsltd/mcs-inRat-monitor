@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'main_window_v1qPTcYJ.ui'
+## Form generated from reading UI file 'main_window_v1oLvuiS.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.11.2
+## Created by: Qt User Interface Compiler version 6.12.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -27,7 +27,10 @@ class Ui_MainWindow(object):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
         MainWindow.setEnabled(True)
-        MainWindow.resize(990, 588)
+        MainWindow.resize(999, 575)
+        font = QFont()
+        font.setPointSize(11)
+        MainWindow.setFont(font)
         icon = QIcon()
         icon.addFile(u":/images/icon.ico", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         MainWindow.setWindowIcon(icon)
@@ -38,6 +41,7 @@ class Ui_MainWindow(object):
         self.gridLayout = QGridLayout(self.centralwidget)
         self.gridLayout.setObjectName(u"gridLayout")
         self.verticalLayout = QVBoxLayout()
+        self.verticalLayout.setSpacing(3)
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.horizontalLayoutControlPane = QHBoxLayout()
         self.horizontalLayoutControlPane.setSpacing(2)
@@ -72,9 +76,7 @@ class Ui_MainWindow(object):
 
         self.labelConfigDesc = QLabel(self.centralwidget)
         self.labelConfigDesc.setObjectName(u"labelConfigDesc")
-        self.labelConfigDesc.setMaximumSize(QSize(16777215, 12))
-        font = QFont()
-        font.setPointSize(9)
+        self.labelConfigDesc.setMaximumSize(QSize(16777215, 20))
         self.labelConfigDesc.setFont(font)
         self.labelConfigDesc.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -124,7 +126,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 990, 33))
+        self.menubar.setGeometry(QRect(0, 0, 999, 33))
         self.menu = QMenu(self.menubar)
         self.menu.setObjectName(u"menu")
         MainWindow.setMenuBar(self.menubar)
