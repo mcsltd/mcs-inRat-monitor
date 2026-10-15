@@ -1,18 +1,24 @@
 import copy
 import logging
 import time
+from collections import deque
 
 from queue import Queue, Empty
 from threading import Thread
 
 from PySide6.QtCore import QObject, Signal, Qt
 
-from detector.detector import RealTimeQRSDetector
+from detector.detector import RealTimeRPeakDetector
+from detector.models import ConfigDetector
 from detector.ui.config_pane import FrmConfigDetectorPane
 from device.device import SignalDatablock
 from device.enums import TypeSignal
 
 logger = logging.getLogger(__name__)
+
+
+CONFIG_HUMAN = ConfigDetector(low_freq=5, high_freq=15, win_sec=0.15,refractory_sec=0.2)
+CONFIG_RAT = ConfigDetector(low_freq=5, high_freq=15, win_sec=0.15,refractory_sec=0.2)
 
 class QrsDetector(QObject):
     """
@@ -36,6 +42,7 @@ class QrsDetector(QObject):
 
         self._detector = None
         self._last_heart_rate = 60
+        self._abs_idx_peaks = deque(maxlen=10)
 
         # ui config
         self._config_pane = FrmConfigDetectorPane(self)
@@ -57,32 +64,17 @@ class QrsDetector(QObject):
             # recalc param for new fs
             self._fs = params.sample_rate
 
-            detector_human = RealTimeQRSDetector(
-                sampling_rate=self._fs,
-                low_cutoff=5.0,  # Классические частоты Пана-Томпкинса
-                high_cutoff=15.0,
-                refractory_period_sec=0.25,  # 250 мс (максимальный отслеживаемый пульс 240 уд/мин)
-                algorithmic_delay_sec=0.15,  # Задержка 150 мс, чтобы захватить весь комплекс целиком
-                threshold_coefficient=0.6,  # Чуть строже к амплитуде
-                buffer_duration_sec=3.0
+            detector_human = RealTimeRPeakDetector(
+                sampling_rat=self._fs,
+                config=CONFIG_HUMAN,
+                init_sec=2
             )
-
-            # detector_rat = RealTimeQRSDetector(
-            #     sampling_rate=self._fs,          # Ваша частота
-            #     low_cutoff=15.0,             # Режем дыхание и базовую линию
-            #     high_cutoff=50.0,            # Оставляем только быстрый спад/подъем R-волны
-            #     refractory_period_sec=0.07,  # 70 мс (максимальный отслеживаемый пульс ~850 уд/мин)
-            #     algorithmic_delay_sec=0.04,  # Окно задержки всего 40 мс
-            #     threshold_coefficient=0.5
-            # )
-
 
             self._detector = detector_human
             logger.debug(f"{self.__class__}: детектор RR-пиков активирован")
         else:
             self._ecg_enable = False
             self._params = None
-            # self._xqrs = XQRS(conf=self.CONF, fs=params.sample_rate)
 
 
     def start(self):
@@ -115,18 +107,6 @@ class QrsDetector(QObject):
                 self.process_input(data)
             except Empty:
                 data = None
-            # except Exception as err:
-            #     data = None
-            #     logger.error(f"{self.__class__}: {err}")
-
-            # try:
-            #     data = self.process_output(data)
-            # except Exception as e:
-            #     data = None
-
-            # if data:
-            #     for rec in self._receivers:
-            #         rec._transmit_data(copy.deepcopy(data))
 
             time.sleep(0.001)
 
@@ -139,7 +119,20 @@ class QrsDetector(QObject):
             return
 
         packet = data["signal"][0,:]  # to mV
-        logger.debug(f"Founded peaks: {self._detector.process_packet(packet)}")
+        abs_idx_peaks = self._detector.process_packet(packet)
+
+        if len(abs_idx_peaks) == 0:
+            return
+        logger.debug(f"idx peaks: {abs_idx_peaks}")
+
+
+        for idx_peak in abs_idx_peaks:
+            self._abs_idx_peaks.append(idx_peak)
+            self.send_event({"type": "RPeakDetected", "data": idx_peak})
+
+        # if len(self._abs_idx_peaks) > 2:
+        #     hr = self._get_heart_rate()
+        #     self.send_event({"type": "RPeakDetected", "value": hr, "counter": self._abs_idx_peaks[-1]})
 
         # for p_abs in peaks_abs:
         #     if p_abs - self._last_peak_abs < self._refractory:
@@ -160,7 +153,7 @@ class QrsDetector(QObject):
 
     def _get_heart_rate(self) -> float | int:
         """ расчёт чсс """
-        dt_rr = self._peak_times[-1] - self._peak_times[-2]
+        dt_rr = (self._abs_idx_peaks[-1] - self._abs_idx_peaks[-2]) / self._fs
         a = 0.2
         hr = int(a * (60 / dt_rr) + (1 - a) * self._last_heart_rate)
         return hr

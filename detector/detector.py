@@ -1,105 +1,154 @@
 import numpy as np
-from scipy.signal import butter, lfilter
+from scipy.signal import butter, lfilter, sosfilt
+
+from detector.models import ConfigDetector
 
 
-class RealTimeQRSDetector:
 
-    def __init__(
-            self,
-            sampling_rate: int,
-            buffer_duration_sec: float,
-            low_cutoff: float = 15.0,
-            high_cutoff: float = 50.0,
-            refractory_period_sec: float = 0.07,
-            algorithmic_delay_sec: float = 0.04,
-            threshold_coefficient: float = 0.5
-    ):
+
+class RealTimeRPeakDetector:
+
+    """ Класс детектора r-пиков"""
+
+    def __init__(self, sampling_rat: float, config: ConfigDetector, init_sec = 2.0):
         """
-        Универсальный Real-Time детектор R-пиков.
-
-        :param sampling_rate: Частота дискретизации сигнала (Гц). Например: 500, 1000, 2000.
-        :param buffer_duration_sec: Размер кольцевого буфера для визуализации/анализа в секундах.
-        :param low_cutoff: Нижняя граница полосового фильтра (Гц). (Человек: 5.0, Крыса: 15.0)
-        :param high_cutoff: Верхняя граница полосового фильтра (Гц). (Человек: 15.0, Крыса: 50.0)
-        :param refractory_period_sec: Минимальное время между двумя R-пиками (сек). (Человек: 0.2, Крыса: 0.07)
-        :param algorithmic_delay_sec: Искусственная задержка окна анализа (сек). Нужна, чтобы успеть
-                                      зафиксировать спад R-волны. (Человек: 0.12, Крыса: 0.04)
-        :param threshold_coefficient: Коэффициент жесткости порога (0.0 - 1.0). Чем выше, тем строже отбор пиков.
+        Детектор R пиков в реальном времени
         """
-        self._fs = sampling_rate
-        self._buffer_size = int(sampling_rate * buffer_duration_sec)
+        self._config = config
+        self._fs = float(sampling_rat)
 
-        self._raw_buffer = np.zeros(self._buffer_size)
-        self._filtered_buffer = np.zeros(self._buffer_size)
+        # полосовой бих-фильтр
+        self._sos = butter(
+            2, [self._config.low_freq, self._config.high_freq], fs=self._fs,
+            btype="bandpass", output="sos")
+        self._zi_bandpass = np.zeros((self._sos.shape[0], 2))
 
-        # полосовой фильтр 15-50 Гц для резких пиков
-        self._b, self._a = butter(N=2, Wn=[low_cutoff, high_cutoff], btype="bandpass", fs=self._fs)
-        self._filter_zi = np.zeros(max(len(self._a), len(self._b)) - 1)
+        # 5-точечный дифференциатор
+        # y[n] = (2*x[n] + x[n-1] - x[n-3] - 2*x[n-4]) / 8
+        self._diff_kernel = np.array([2.0, 1.0, 0.0, -1.0, -2.0]) / 8.0
+        self._diff_buffer = np.zeros(len(self._diff_kernel))  # ring на 5 отсчётов
 
-        # уменьшенная задержка для алгоритма - 40 мс для крысы
-        self._delay_samples = int(algorithmic_delay_sec * self._fs)
-        self._min_rr_samples = int(refractory_period_sec * self._fs)
-        self._threshold_coef = threshold_coefficient
+        # скользящее интегрирование
+        self._integ_win = max(1, int(round(self._config.win_sec * self._fs)))
+        self._integ_buffer = np.zeros(self._integ_win)
+        self._integ_sum = 0.0
+        self._integ_pos = 0
 
-        # переменные состояния детектора
-        self._last_peak_global_idx = -self._min_rr_samples
-        self._threshold = 0.0
-        self._total_samples = 0
-        self._last_peak_abs_idx = -self._min_rr_samples
+        # пороги и адаптация
+        self._spki = 1e-3
+        self._npki = 1e-4
+        self._refractory = int(round(self._config.refractory_sec * self._fs))
+        self._t_wave_win = int(round(self._config.win_sec * self._fs))
+
+        # глобальное состояние времени
+        self._sample_count = 0
+        self._last_qrs_idx = -self._refractory  # глобальный индекс последнего R
+
+        # детекция пиков с задержкой в 1 отсчёт
+        self._prev_integ = 0.0  # y[n-1] огибающей
+        self._prev_prev_integ = 0.0  # y[n-2] огибающей
+        self._pending_peak_idx = -1  # индекс кандидата в пик
+        self._pending_peak_val = 0.0
+
+        # фаза обучения
+        self._init_samples = int(round(init_sec * self._fs))
+        self._learn_peaks = []  # амплитуды пиков во время обучения
+        self._learning = True
+
+        # буферы для возврата к реальным r
+        self._raw_buffer_len = int(round(0.4 * self._fs))  # ~400 мс истории
+        self._raw_buffer = np.zeros(self._raw_buffer_len)
+        self._raw_pos = 0
+
+        # амплитуда последнего QRS
+        self._last_qrs_val = 0.0
 
     def process_packet(self, packet) -> list:
-        n_samples = len(packet)
-        if n_samples == 0:
-            return []
+        """
+        обрабатывает пакет из 32 отсчётов,
+        возвращает список абсолютных индексов r-пиков
+        """
+        packet = np.asarray(packet, dtype=float).ravel()
+        detected = []
 
-        self._total_samples += n_samples  # абсолютный счётчик
+        # полосовой фильтр
+        filtered, self._zi_bandpass = sosfilt(self._sos, packet, zi=self._zi_bandpass)
 
-        # сдвиг буферов и запись нового пакета
-        self._raw_buffer = np.roll(self._raw_buffer, -n_samples)
-        self._raw_buffer[-n_samples:] = packet
+        for x in filtered:
+            # дифферециатор
+            self._diff_buffer = np.roll(self._diff_buffer, 1)
+            self._diff_buffer[0] = x
+            d = float(np.dot(self._diff_kernel, self._diff_buffer))
 
-        filtered_packet, self._filter_zi = lfilter(
-            self._b, self._a, packet, zi=self._filter_zi
-        )
+            # квадрат
+            sq = d ** 2
 
-        self._filtered_buffer = np.roll(self._filtered_buffer, -n_samples)
-        self._filtered_buffer[-n_samples:] = filtered_packet
+            # скользящее интегрирование
+            old = self._integ_buffer[self._integ_pos]
+            self._integ_buffer[self._integ_pos] = sq
+            self._integ_sum += sq - old
+            self._integ_pos = (self._integ_pos + 1) % self._integ_win
+            integ = self._integ_sum / self._integ_win
 
-        start_idx = self._buffer_size - n_samples - self._delay_samples
-        end_idx = self._buffer_size - self._delay_samples
+            # детекция пика
+            if (self._prev_integ > self._prev_prev_integ
+                    and self._prev_integ >= integ):
+                peak_idx = self._sample_count - 1
+                peak_val = self._prev_integ
+                r = self._handle_peak(peak_idx, peak_val)
+                if r is not None:
+                    detected.append(r)
 
-        if start_idx < 1:  # нужно хотя бы по одному соседу с каждой стороны
-            return []
+                # сдвиг истории огибающей
+            self._prev_prev_integ = self._prev_integ
+            self._prev_integ = integ
+            self._sample_count += 1
 
-        # захватываем на 1 отсчёт шире для проверки локальных максимумов
-        zone_start = max(0, start_idx - 1)
-        zone_end = min(self._buffer_size, end_idx + 1)
-        analysis_zone = self._filtered_buffer[zone_start:zone_end]
-        abs_zone = np.abs(analysis_zone)
+        return detected
 
-        # обновление порога по модулю
-        recent_history_samples = min(int(self._fs * 0.5), self._buffer_size)
-        current_max = np.max(np.abs(self._filtered_buffer[-recent_history_samples:]))
-        if current_max > 0:
-            self._threshold = self._threshold_coef * current_max + (1 - self._threshold_coef) * self._threshold
+    def _handle_peak(self, peak_idx: int, peak_val: float):
+        """
+        Логика пороговой детекции для одного пика огибающей.
+        Возвращает либо индекс R пика, либо None
+        """
+        # фаза обучения
+        if self._learning:
+            self._learn_peaks.append(peak_val)
+            if self._sample_count >= self._init_samples:
+                if self._learn_peaks:
+                    self._spki = max(self._learn_peaks) / 3.0
+                    self._npki = float(np.mean(self._learn_peaks)) / 2.0
+                self._learning = False
+            return None
 
-        found_peaks = []
+        # пороги
+        thr_i1 = self._npki + 0.25 * (self._spki - self._npki)
+        thr_i2 = 0.5 * thr_i1
 
-        if len(abs_zone) > 2:
-            local_max_mask = (abs_zone[1:-1] > abs_zone[:-2]) & (abs_zone[1:-1] > abs_zone[2:])
-            local_max_indices = np.where(local_max_mask)[0] + 1  # индексы в abs_zone
+        # рефрактерность
+        if peak_idx - self._last_qrs_idx < self._refractory:
+            if peak_val < thr_i1:
+                self._npki = 0.125 * peak_val + 0.875 * self._npki
+            return None
 
-            for idx in local_max_indices:
-                buffer_idx = zone_start + idx
-                # проверяем, что пик внутри целевой зоны [start_idx, end_idx)
-                if buffer_idx < start_idx or buffer_idx >= end_idx:
-                    continue
+        # правило T-зубца
+        if self._last_qrs_idx >= 0:
+            dt = peak_idx - self._last_qrs_idx
+            if dt < self._t_wave_win and peak_val < 0.5 * self._last_qrs_val:
+                self._npki = 0.125 * peak_val + 0.875 * self._npki
+                return None
 
-                val = abs_zone[idx]
-                if val > self._threshold:
-                    abs_idx = self._total_samples - self._buffer_size + buffer_idx
-                    if abs_idx - self._last_peak_abs_idx > self._min_rr_samples:
-                        found_peaks.append(buffer_idx)
-                        self._last_peak_abs_idx = abs_idx
-
-        return found_peaks
+        # решение по порогам
+        if peak_val > thr_i1:
+            # QRS
+            self._spki = 0.125 * peak_val + 0.875 * self._spki
+            self._last_qrs_idx = peak_idx
+            self._last_qrs_val = peak_val
+            return peak_idx
+        elif peak_val > thr_i2:
+            # просто шум (обратный поиск не реализован)
+            self._npki = 0.125 * peak_val + 0.875 * self._npki
+            return None
+        else:
+            self._npki = 0.125 * peak_val + 0.875 * self._npki
+            return None

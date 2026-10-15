@@ -526,10 +526,12 @@ class Storage(QObject):
 
     def process_event(self, event):
         """ обработка события от приёмников/родителей """
-        if self._recording and self._exg_param and event["type"] == "HeartRate":
-            value = "R"
-            timestamp = (event["counter"] - self._exg_start_sample * self._exg_param.counter_per_sample) / self._exg_param.sample_rate
-            self._ev_buffer.append((timestamp, value))
+        if not self._recording:
+            return
+
+        if event["type"] == "RPeakDetected":
+            timestamp = (event["data"] - self._exg_start_sample * self._exg_param.counter_per_sample) / self._exg_param.sample_rate
+            self._ev_buffer.append((timestamp, "R"))
 
     def receiver_event(self, event):
         """ получить события от приёмников (снизу-вверх) """

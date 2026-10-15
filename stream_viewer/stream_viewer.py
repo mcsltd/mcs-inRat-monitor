@@ -9,7 +9,7 @@ import pyqtgraph as pg
 from PySide6.QtCore import Signal, Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QFrame
-from pyqtgraph import mkPen, ScatterPlotItem, LegendItem
+from pyqtgraph import mkPen, ScatterPlotItem, LegendItem, InfiniteLine
 
 from device.device import SignalDatablock
 from device.enums import TypeSignal, EventType
@@ -119,6 +119,7 @@ class StreamViewer(pg.PlotWidget):
         self.legend_ev.anchor(itemPos=(0, 1), parentPos=(0, 1), offset=(35, -35))
 
         self._legend_hr = None
+        # self._r_peak_lines = []
 
         self.setLabel("left", left_label, color="white")
         self.setLabel("bottom", color="white") # "mm:ss",
@@ -175,6 +176,10 @@ class StreamViewer(pg.PlotWidget):
     def update_params(self, params: SignalDatablock | None):
         """ установка параметров для начала отображения сигналов """
         self._sig_datablock = params
+
+        # for l in self._r_peak_lines:
+        #     self.removeItem(l)
+        # self._r_peak_lines = []
 
         if not params:
             return None
@@ -420,6 +425,12 @@ class StreamViewer(pg.PlotWidget):
         if self._legend_hr and event["type"] == "HeartRate":
             value = event["value"]
             self._legend_hr.setText(f"ЧСС {int(value)}")
+
+        # if event["type"] == "RPeakDetected":
+        #     timestamp = event["data"] / self._sig_datablock.sample_rate
+        #     line = InfiniteLine(pos=timestamp, angle=90, pen=mkPen("w", width=2))
+        #     self.addItem(line)
+        #     self._r_peak_lines.append(line)
 
     def send_event(self, event):
         """ отправить события во все связанные слоты(методы класса) """
