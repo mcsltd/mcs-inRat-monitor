@@ -3,9 +3,9 @@ import sys
 
 from PySide6 import QtAsyncio
 from PySide6.QtCore import QSettings
-from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QHBoxLayout, QFrame
-from bleak import BLEDevice
+from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QHBoxLayout
 
+from camera.camera import Camera
 from detector.peak_detector import QrsDetector
 from device.device import inRatDevice
 from device.enums import TypeSignal
@@ -45,6 +45,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.device = inRatDevice(qt_loop)
         self.scanner = BleScanner(qt_loop)
         self.storage = Storage(self.settings)
+        self.camera = Camera()
         self._detector = QrsDetector()
 
         # отображение сигнала exg
@@ -109,6 +110,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.horizontalLayoutControlPane.insertWidget(0, self.scanner.control_pane)
         self.horizontalLayoutControlPane.insertWidget(1, self.device.control_pane)
         self.horizontalLayoutControlPane.insertWidget(2, self.storage.control_pane)
+        self.horizontalLayoutControlPane.insertWidget(3, self.camera.control_pane)
 
 
     def process_event(self, event):
