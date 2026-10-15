@@ -38,7 +38,7 @@ class RealTimeRPeakDetector:
         self._spki = 1e-3
         self._npki = 1e-4
         self._refractory = int(round(self._config.refractory_sec * self._fs))
-        self._t_wave_win = int(round(self._config.win_sec * self._fs))
+        self._t_wave_win = int(round(self._config.twave_sec * self._fs))
 
         # глобальное состояние времени
         self._sample_count = 0

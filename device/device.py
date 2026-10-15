@@ -309,6 +309,13 @@ class inRatDevice(QObject):
         future = asyncio.run_coroutine_threadsafe(self._inrat.connect(), self._loop)
         future.add_done_callback(self.on_device_connected)
 
+        self.event.emit(
+            DeviceEvent(
+                type="ConnectStart",
+                desc=f"{self._inrat.name} подсоединен"
+            )
+        )
+
     def on_device_connected(self, future: Future):
         """ обработка результата соединения с устройством """
         try:
@@ -328,7 +335,7 @@ class inRatDevice(QObject):
         if self._inrat.is_connected:
             self.event.emit(
                 DeviceEvent(
-                    type="Connected",
+                    type="ConnectStop",
                     desc=f"{self._inrat.name} подсоединен"
                 )
             )

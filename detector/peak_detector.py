@@ -4,21 +4,18 @@ import time
 from collections import deque
 
 from queue import Queue, Empty
-from threading import Thread
+from threading import Thread, Lock
 
 from PySide6.QtCore import QObject, Signal, Qt
 
 from detector.detector import RealTimeRPeakDetector
-from detector.models import ConfigDetector
+from detector.models import CONFIG_HUMAN, ConfigDetector
 from detector.ui.config_pane import FrmConfigDetectorPane
 from device.device import SignalDatablock
 from device.enums import TypeSignal
 
 logger = logging.getLogger(__name__)
 
-
-CONFIG_HUMAN = ConfigDetector(low_freq=5, high_freq=15, win_sec=0.15,refractory_sec=0.2)
-CONFIG_RAT = ConfigDetector(low_freq=5, high_freq=15, win_sec=0.15,refractory_sec=0.2)
 
 class QrsDetector(QObject):
     """
@@ -31,12 +28,13 @@ class QrsDetector(QObject):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._ecg_enable = True
+        self._config = copy.deepcopy(CONFIG_HUMAN)
         self._receivers = []
         self._input_queue: Queue = Queue()
         self._running: bool = False
         self._worker: Thread | None = None
         self._params: SignalDatablock | None = None
+        self._detector_lock = Lock()
 
         self._fs = 1000
 
@@ -48,32 +46,49 @@ class QrsDetector(QObject):
         self._config_pane = FrmConfigDetectorPane(self)
 
     @property
+    def config(self) -> ConfigDetector:
+        """ текущий конфиг детектора """
+        return self._config
+
+    @property
     def enable(self) -> bool:
-        return self._ecg_enable
+        return self._config.enabled
+
     @enable.setter
     def enable(self, state: bool):
-        self._ecg_enable = state
+        self._config.enabled = state
 
     @property
     def config_pane(self) -> FrmConfigDetectorPane | None:
         return self._config_pane
+
+    def process_update(self, config: ConfigDetector):
+        """ применение настроек детектора (кнопка Применить) """
+        if config is None:
+            return
+        self._config = config
+        # переинициализация детектора, если ЭКГ уже запущена
+        if self._params is not None:
+            self._init_detector()
+        logger.info(f"{self.__class__}: применены настройки детектора {config}")
+
+    def _init_detector(self):
+        """ создание детектора r-пиков по текущим параметрам """
+        with self._detector_lock:
+            self._detector = RealTimeRPeakDetector(
+                sampling_rat=self._fs,
+                config=self._config,
+                init_sec=2
+            )
+        logger.debug(f"{self.__class__}: детектор RR-пиков активирован")
 
     def update_params(self, params: SignalDatablock | None):
         if params is not None and params.type_signal == TypeSignal.ECG:
             self._params = params
             # recalc param for new fs
             self._fs = params.sample_rate
-
-            detector_human = RealTimeRPeakDetector(
-                sampling_rat=self._fs,
-                config=CONFIG_HUMAN,
-                init_sec=2
-            )
-
-            self._detector = detector_human
-            logger.debug(f"{self.__class__}: детектор RR-пиков активирован")
+            self._init_detector()
         else:
-            self._ecg_enable = False
             self._params = None
 
 
@@ -112,14 +127,17 @@ class QrsDetector(QObject):
 
     def process_input(self, data):
         """ метод для получения и обработки данных из входной очереди """
-        if not self._ecg_enable:
+        if not self._config.enabled:
             return
 
         if data is None or data["type"] == "ev":
             return
 
         packet = data["signal"][0,:]  # to mV
-        abs_idx_peaks = self._detector.process_packet(packet)
+        with self._detector_lock:
+            if self._detector is None:
+                return
+            abs_idx_peaks = self._detector.process_packet(packet)
 
         if len(abs_idx_peaks) == 0:
             return

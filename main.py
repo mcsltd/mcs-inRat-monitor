@@ -110,6 +110,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.horizontalLayoutControlPane.insertWidget(1, self.device.control_pane)
         self.horizontalLayoutControlPane.insertWidget(2, self.storage.control_pane)
 
+
     def process_event(self, event):
         """ обработка приходящих событий от модулей """
         if isinstance(event, DeviceEvent):
@@ -131,6 +132,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         - Disconnect
          """
+
         if event.type == "ConnectStart":
             self.pushButtonConfig.setEnabled(True)
             self._waiting_connection_dlg.show()
@@ -207,6 +209,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         dlg.add_pane(pane_device)
 
         pane_detector = self._detector.config_pane
+        pane_detector.signal_apply.connect(self._detector.process_update)
         dlg.add_pane(pane_detector)
 
         try:
