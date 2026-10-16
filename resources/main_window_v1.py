@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'main_window_v1AStHdm.ui'
+## Form generated from reading UI file 'main_window_v1.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.12.0
 ##
@@ -113,14 +113,17 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.addWidget(self.line)
 
-        self.horizontalLayoutStatusBar = QHBoxLayout()
+        self.widgetStatusBar = QWidget(self.centralwidget)
+        self.widgetStatusBar.setObjectName(u"widgetStatusBar")
+        self.horizontalLayoutStatusBar = QHBoxLayout(self.widgetStatusBar)
         self.horizontalLayoutStatusBar.setObjectName(u"horizontalLayoutStatusBar")
+        self.horizontalLayoutStatusBar.setContentsMargins(0, 0, 0, 0)
         self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayoutStatusBar.addItem(self.horizontalSpacer_2)
 
 
-        self.verticalLayout.addLayout(self.horizontalLayoutStatusBar)
+        self.verticalLayout.addWidget(self.widgetStatusBar)
 
 
         self.gridLayout.addLayout(self.verticalLayout, 0, 0, 1, 1)

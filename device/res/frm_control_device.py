@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'frm_control_deviceCCDuwP.ui'
+## Form generated from reading UI file 'frm_control_deviceThCafK.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.12.0
 ##
@@ -24,16 +24,9 @@ class Ui_FrmControlDevice(object):
     def setupUi(self, FrmControlDevice):
         if not FrmControlDevice.objectName():
             FrmControlDevice.setObjectName(u"FrmControlDevice")
-        FrmControlDevice.resize(198, 118)
+        FrmControlDevice.resize(192, 117)
         self.gridLayout = QGridLayout(FrmControlDevice)
         self.gridLayout.setObjectName(u"gridLayout")
-        self.line_2 = QFrame(FrmControlDevice)
-        self.line_2.setObjectName(u"line_2")
-        self.line_2.setFrameShadow(QFrame.Shadow.Sunken)
-        self.line_2.setFrameShape(QFrame.Shape.VLine)
-
-        self.gridLayout.addWidget(self.line_2, 0, 0, 1, 1)
-
         self.verticalLayout = QVBoxLayout()
         self.verticalLayout.setSpacing(0)
         self.verticalLayout.setObjectName(u"verticalLayout")
@@ -95,14 +88,7 @@ class Ui_FrmControlDevice(object):
         self.verticalLayout.addWidget(self.labelManage)
 
 
-        self.gridLayout.addLayout(self.verticalLayout, 0, 1, 1, 1)
-
-        self.line = QFrame(FrmControlDevice)
-        self.line.setObjectName(u"line")
-        self.line.setFrameShadow(QFrame.Shadow.Sunken)
-        self.line.setFrameShape(QFrame.Shape.VLine)
-
-        self.gridLayout.addWidget(self.line, 0, 2, 1, 1)
+        self.gridLayout.addLayout(self.verticalLayout, 0, 0, 1, 1)
 
 
         self.retranslateUi(FrmControlDevice)

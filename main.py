@@ -3,7 +3,7 @@ import sys
 
 from PySide6 import QtAsyncio
 from PySide6.QtCore import QSettings, QTimer
-from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QHBoxLayout
+from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QHBoxLayout, QFrame
 
 from camera.camera import Camera
 from detector.peak_detector import QrsDetector
@@ -95,7 +95,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.horizontalLayoutStatusBar.insertWidget(0, self.storage.info_pane)
         self.horizontalLayoutStatusBar.addWidget(self.device.battery_pane)
-        # self.device.battery_pane.setVisible(False)
+        self.device.battery_pane.setVisible(False)
+
+        # фиксируем высоту строки состояния по самому высокому виджету
+        status_widgets = (self.storage.info_pane, self.device.battery_pane)
+        self.widgetStatusBar.setFixedHeight(
+            max(widget.sizeHint().height() for widget in status_widgets)
+        )
 
         # connection
         self.device.signal_enable_sig.connect(self.enable_display_sig)
@@ -112,10 +118,27 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._waiting_connection_dlg = WaitingDialog(self)
 
         self.actionExit.triggered.connect(self.close)
-        self.horizontalLayoutControlPane.insertWidget(0, self.scanner.control_pane)
-        self.horizontalLayoutControlPane.insertWidget(1, self.device.control_pane)
-        self.horizontalLayoutControlPane.insertWidget(2, self.storage.control_pane)
-        self.horizontalLayoutControlPane.insertWidget(3, self.camera.control_pane)
+
+        modules = [
+            self.scanner.control_pane,
+            self.device.control_pane,
+            self.storage.control_pane,
+            self.camera.control_pane,
+        ]
+        row = []
+        for idx, pane in enumerate(modules):
+            if idx > 0:
+                row.append(self._make_module_separator())
+            row.append(pane)
+        for item in reversed(row):
+            self.horizontalLayoutControlPane.insertWidget(0, item)
+
+    def _make_module_separator(self) -> QFrame:
+        """ вертикальный разделитель между панелями управления модулями """
+        line = QFrame(self)
+        line.setFrameShape(QFrame.Shape.VLine)
+        line.setFrameShadow(QFrame.Shadow.Sunken)
+        return line
 
 
     def process_event(self, event):

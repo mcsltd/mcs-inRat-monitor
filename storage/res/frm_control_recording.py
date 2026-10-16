@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'frm_control_recordingjKZBdr.ui'
+## Form generated from reading UI file 'frm_control_recordingaPomXH.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.12.0
 ##
@@ -23,16 +23,9 @@ class Ui_frmControlRecording(object):
     def setupUi(self, frmControlRecording):
         if not frmControlRecording.objectName():
             frmControlRecording.setObjectName(u"frmControlRecording")
-        frmControlRecording.resize(196, 124)
+        frmControlRecording.resize(178, 116)
         self.gridLayout = QGridLayout(frmControlRecording)
         self.gridLayout.setObjectName(u"gridLayout")
-        self.line_2 = QFrame(frmControlRecording)
-        self.line_2.setObjectName(u"line_2")
-        self.line_2.setFrameShadow(QFrame.Shadow.Sunken)
-        self.line_2.setFrameShape(QFrame.Shape.VLine)
-
-        self.gridLayout.addWidget(self.line_2, 0, 0, 1, 1)
-
         self.verticalLayout = QVBoxLayout()
         self.verticalLayout.setSpacing(3)
         self.verticalLayout.setObjectName(u"verticalLayout")
@@ -75,14 +68,7 @@ class Ui_frmControlRecording(object):
         self.verticalLayout.addWidget(self.label)
 
 
-        self.gridLayout.addLayout(self.verticalLayout, 0, 1, 1, 1)
-
-        self.line = QFrame(frmControlRecording)
-        self.line.setObjectName(u"line")
-        self.line.setFrameShadow(QFrame.Shadow.Sunken)
-        self.line.setFrameShape(QFrame.Shape.VLine)
-
-        self.gridLayout.addWidget(self.line, 0, 2, 1, 1)
+        self.gridLayout.addLayout(self.verticalLayout, 0, 0, 1, 1)
 
 
         self.retranslateUi(frmControlRecording)

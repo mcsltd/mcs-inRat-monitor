@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'frm_control_scannerQSBdNw.ui'
+## Form generated from reading UI file 'frm_control_scannernIYYZl.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.12.0
 ##
@@ -26,13 +26,6 @@ class Ui_FrmControlScanner(object):
         FrmControlScanner.resize(114, 116)
         self.horizontalLayout_2 = QHBoxLayout(FrmControlScanner)
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
-        self.line_2 = QFrame(FrmControlScanner)
-        self.line_2.setObjectName(u"line_2")
-        self.line_2.setFrameShape(QFrame.Shape.VLine)
-        self.line_2.setFrameShadow(QFrame.Shadow.Sunken)
-
-        self.horizontalLayout_2.addWidget(self.line_2)
-
         self.verticalLayout = QVBoxLayout()
         self.verticalLayout.setSpacing(0)
         self.verticalLayout.setObjectName(u"verticalLayout")
@@ -71,13 +64,6 @@ class Ui_FrmControlScanner(object):
 
 
         self.horizontalLayout_2.addLayout(self.verticalLayout)
-
-        self.line = QFrame(FrmControlScanner)
-        self.line.setObjectName(u"line")
-        self.line.setFrameShape(QFrame.Shape.VLine)
-        self.line.setFrameShadow(QFrame.Shadow.Sunken)
-
-        self.horizontalLayout_2.addWidget(self.line)
 
 
         self.retranslateUi(FrmControlScanner)

@@ -1,7 +1,6 @@
 from PySide6.QtWidgets import QFrame
 
 from device.res.frm_control_device import Ui_FrmControlDevice
-from device.res.frm_online_control_device import Ui_FrmOnlineControlDevice
 
 
 class FrmControlDevicePane(QFrame, Ui_FrmControlDevice):

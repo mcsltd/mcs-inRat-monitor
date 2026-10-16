@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'frm_control_cameraKfMGeZ.ui'
+## Form generated from reading UI file 'frm_control_cameraBweJQw.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.12.0
 ##
@@ -24,16 +24,9 @@ class Ui_FrmAddCamera(object):
     def setupUi(self, FrmAddCamera):
         if not FrmAddCamera.objectName():
             FrmAddCamera.setObjectName(u"FrmAddCamera")
-        FrmAddCamera.resize(174, 131)
+        FrmAddCamera.resize(168, 131)
         self.gridLayout = QGridLayout(FrmAddCamera)
         self.gridLayout.setObjectName(u"gridLayout")
-        self.line_2 = QFrame(FrmAddCamera)
-        self.line_2.setObjectName(u"line_2")
-        self.line_2.setFrameShadow(QFrame.Shadow.Sunken)
-        self.line_2.setFrameShape(QFrame.Shape.VLine)
-
-        self.gridLayout.addWidget(self.line_2, 0, 0, 1, 1)
-
         self.verticalLayout = QVBoxLayout()
         self.verticalLayout.setSpacing(0)
         self.verticalLayout.setObjectName(u"verticalLayout")
@@ -78,14 +71,7 @@ class Ui_FrmAddCamera(object):
         self.verticalLayout.addWidget(self.labelCamera)
 
 
-        self.gridLayout.addLayout(self.verticalLayout, 0, 1, 1, 1)
-
-        self.line = QFrame(FrmAddCamera)
-        self.line.setObjectName(u"line")
-        self.line.setFrameShadow(QFrame.Shadow.Sunken)
-        self.line.setFrameShape(QFrame.Shape.VLine)
-
-        self.gridLayout.addWidget(self.line, 0, 2, 1, 1)
+        self.gridLayout.addLayout(self.verticalLayout, 0, 0, 1, 1)
 
 
         self.retranslateUi(FrmAddCamera)
