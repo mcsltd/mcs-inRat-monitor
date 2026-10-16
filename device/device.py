@@ -3,9 +3,7 @@ import copy
 import logging
 import time
 from asyncio import AbstractEventLoop
-from collections.abc import coroutine
 from concurrent.futures import Future
-from dataclasses import dataclass, field
 from threading import Thread
 
 import numpy as np
@@ -133,18 +131,12 @@ class inRatDevice(QObject):
         self._receivers_data = []
 
         self._work_sig: Thread | None = None
-        self._exg_datablock = SignalDatablock(type_signal=TypeSignal.ECG, sample_rate=500,
-            counter_per_sample=Pkt.SamplesCountEcg, number_channels=Pkt.ChannelsCountEcg,
-            channel_names=["ecg"], units="uV", physical_max=6000, physical_min=-6000)
+        self._exg_datablock = None
         self._receivers_sig = []
         self._sig_queue = asyncio.Queue()
 
         self._work_acc: Thread | None = None
-        self._acc_datablock = SignalDatablock(
-            type_signal=TypeSignal.ACC, sample_rate=100, counter_per_sample=Pkt.SamplesCountAcc,
-            number_channels=Pkt.ChannelsCountAcc, channel_names=["acc_x", "acc_y", "acc_z"],
-            units="G", physical_max=16.0, physical_min=-16.0
-        )
+        self._acc_datablock = None
         self._receivers_acc = []
         self._acc_queue = asyncio.Queue()
         self._receiver_temp = None
@@ -266,8 +258,14 @@ class inRatDevice(QObject):
             _ = asyncio.run_coroutine_threadsafe(self._inrat.activate(True), self._loop)
 
         enabled_channels = EnabledChannels.NONE
+        self._exg_datablock, self._acc_datablock = None, None
         for cfg in self._config.signals:
             if isinstance(cfg, ExgConfig):
+                self._exg_datablock = SignalDatablock(
+                    type_signal=cfg.type_signal, sample_rate=cfg.sample_rate,
+                    counter_per_sample=Pkt.SamplesCountEcg, number_channels=Pkt.ChannelsCountEcg,
+                    channel_names=["ecg"], units="uV", physical_max=6000, physical_min=-6000
+                )
                 self._inrat.sample_rate = cfg.sample_rate
                 self._inrat.hpf = cfg.hpf
                 self._inrat.gain = cfg.gain
@@ -277,6 +275,12 @@ class inRatDevice(QObject):
                 self.signal_enable_sig.emit(True)
 
             if isinstance(cfg, AccConfig):
+                self._acc_datablock = SignalDatablock(
+                    type_signal=TypeSignal.ACC, sample_rate=100, counter_per_sample=Pkt.SamplesCountAcc,
+                    number_channels=Pkt.ChannelsCountAcc, channel_names=["acc_x", "acc_y", "acc_z"],
+                    units="G", physical_max=16.0, physical_min=-16.0
+                )
+
                 self._inrat.full_scale_accelerometer = cfg.scale
                 enabled_channels |= (EnabledChannels.ACC_X | EnabledChannels.ACC_Y | EnabledChannels.ACC_Z)
                 self.signal_enable_acc.emit(True)
@@ -294,7 +298,6 @@ class inRatDevice(QObject):
             self.signal_enable_temp.emit(True)
         else:
             self.signal_enable_temp.emit(False)
-
         if "A" in self._config.events.type_events:
             enabled_events |= EventType.ACTIVITY
         if "O" in self._config.events.type_events:
@@ -573,74 +576,6 @@ class inRatDevice(QObject):
                 desc=f"{self._inrat.name} остановлен"
             )
         )
-
-    def on_config_clicked(self):
-        """ обработка нажатия окна конфигураций """
-        dlg = DlgConfigDevice(self._inrat)
-        dlg.exec()
-
-        # активация экг/ээг
-        if bool(self._inrat.enabled_channels & EnabledChannels.ECG):
-            self.signal_enable_sig.emit(True)
-
-            self._exg_datablock = SignalDatablock(
-                type_signal=self._inrat.mode,
-                sample_rate=self._inrat.sample_rate,
-                counter_per_sample=Pkt.SamplesCountEcg,
-                number_channels=Pkt.ChannelsCountEcg,
-                channel_names=[self._inrat.mode.value],  # list[str]
-                units="uV",
-                device_name=self._inrat.name,
-                physical_max=6000, physical_min=-6000
-            ) # todo: check it
-
-            # активация событий
-            if bool(self._inrat.enabled_events & EventType.TEMP):
-                self._exg_datablock.type_events.append("temp")
-            if bool(self._inrat.enabled_events & EventType.ORIENTATION):
-                self._exg_datablock.type_events.append("orientation")
-            if bool(self._inrat.enabled_events & EventType.ACTIVITY):
-                self._exg_datablock.type_events.append("activity")
-            if bool(self._inrat.enabled_events & EventType.FREEFALL):
-                self._exg_datablock.type_events.append("freefall")
-
-        else:
-            self.signal_enable_sig.emit(False)
-            self._exg_datablock = None
-
-        # активация акселерометра
-        if (
-                bool(self._inrat.enabled_channels & EnabledChannels.ACC_X) and
-                bool(self._inrat.enabled_channels & EnabledChannels.ACC_Y) and
-                bool(self._inrat.enabled_channels & EnabledChannels.ACC_Z)
-        ):
-            self.signal_enable_acc.emit(True)
-            self._acc_datablock = SignalDatablock(
-                type_signal=TypeSignal.ACC,
-                sample_rate=100,
-                counter_per_sample=Pkt.SamplesCountAcc,
-                number_channels=Pkt.ChannelsCountAcc,
-                channel_names=["acc_x", "acc_y", "acc_z"],
-                units="G",
-                device_name=self._inrat.name,
-                physical_max=16.0, physical_min=-16.0
-            )
-        else:
-            self.signal_enable_acc.emit(False)
-            self._acc_datablock = None
-
-        if bool(self._inrat.enabled_events & EventType.TEMP):
-            self.signal_enable_temp.emit(True)
-        else:
-            self.signal_enable_temp.emit(False)
-
-        # обновление параметров
-        for receiver in self._receivers_sig:
-            receiver.update_params(self._exg_datablock)
-        for receiver in self._receivers_acc:
-            receiver.update_params(self._acc_datablock)
-        for receiver in self._receivers_data:
-            receiver.update_params(params_acc=self._acc_datablock, params_exg=self._exg_datablock)
 
     def on_state_activate_changed(self, state: Qt.CheckState):
         """ обработка активации/деактивации устройства """
