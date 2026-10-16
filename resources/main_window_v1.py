@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'main_window_v1.ui'
+## Form generated from reading UI file 'main_window_v1NdKbXk.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.12.0
 ##
@@ -97,14 +97,24 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.addWidget(self.line_2)
 
+        self.horizontalLayout_2 = QHBoxLayout()
+        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
         self.verticalLayoutDisplay = QVBoxLayout()
         self.verticalLayoutDisplay.setObjectName(u"verticalLayoutDisplay")
-
-        self.verticalLayout.addLayout(self.verticalLayoutDisplay)
-
         self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.verticalLayout.addItem(self.verticalSpacer)
+        self.verticalLayoutDisplay.addItem(self.verticalSpacer)
+
+
+        self.horizontalLayout_2.addLayout(self.verticalLayoutDisplay)
+
+        self.verticalLayoutCamera = QVBoxLayout()
+        self.verticalLayoutCamera.setObjectName(u"verticalLayoutCamera")
+
+        self.horizontalLayout_2.addLayout(self.verticalLayoutCamera)
+
+
+        self.verticalLayout.addLayout(self.horizontalLayout_2)
 
         self.line = QFrame(self.centralwidget)
         self.line.setObjectName(u"line")

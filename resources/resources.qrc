@@ -8,5 +8,7 @@
     <file>images/stop.png</file>
     <file>images/camera.png</file>
     <file>images/record.png</file>
+    <file>images/stop_record.png</file>
+    <file>images/start_record.png</file>
 </qresource>
 </RCC>
