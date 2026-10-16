@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'frm_control_recordingaPomXH.ui'
+## Form generated from reading UI file 'frm_control_recordingPvlzLP.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.12.0
 ##
@@ -18,6 +18,7 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
 from PySide6.QtWidgets import (QApplication, QFrame, QGridLayout, QHBoxLayout,
     QLabel, QPushButton, QSizePolicy, QVBoxLayout,
     QWidget)
+import resources.resources_rc
 
 class Ui_frmControlRecording(object):
     def setupUi(self, frmControlRecording):
@@ -43,6 +44,14 @@ class Ui_frmControlRecording(object):
         font = QFont()
         font.setPointSize(12)
         self.pushButtonStart.setFont(font)
+        self.pushButtonStart.setStyleSheet(u"QPushButton {\n"
+"    background-color: transparent;\n"
+"    border: none;\n"
+"}")
+        icon = QIcon()
+        icon.addFile(u":/images/start_record.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.pushButtonStart.setIcon(icon)
+        self.pushButtonStart.setIconSize(QSize(75, 75))
 
         self.horizontalLayout.addWidget(self.pushButtonStart)
 
@@ -53,6 +62,14 @@ class Ui_frmControlRecording(object):
         self.pushButtonStop.setSizePolicy(sizePolicy)
         self.pushButtonStop.setMaximumSize(QSize(75, 75))
         self.pushButtonStop.setFont(font)
+        self.pushButtonStop.setStyleSheet(u"QPushButton {\n"
+"    background-color: transparent;\n"
+"    border: none;\n"
+"}")
+        icon1 = QIcon()
+        icon1.addFile(u":/images/stop_record.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.pushButtonStop.setIcon(icon1)
+        self.pushButtonStop.setIconSize(QSize(75, 75))
 
         self.horizontalLayout.addWidget(self.pushButtonStop)
 
@@ -78,10 +95,8 @@ class Ui_frmControlRecording(object):
 
     def retranslateUi(self, frmControlRecording):
         frmControlRecording.setWindowTitle(QCoreApplication.translate("frmControlRecording", u"Frame", None))
-        self.pushButtonStart.setText(QCoreApplication.translate("frmControlRecording", u"\u041d\u0430\u0447\u0430\u0442\u044c \n"
-"\u0437\u0430\u043f\u0438\u0441\u044c", None))
-        self.pushButtonStop.setText(QCoreApplication.translate("frmControlRecording", u"\u041e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \n"
-"\u0437\u0430\u043f\u0438\u0441\u044c", None))
+        self.pushButtonStart.setText("")
+        self.pushButtonStop.setText("")
         self.label.setText(QCoreApplication.translate("frmControlRecording", u"\u0417\u0430\u043f\u0438\u0441\u044c", None))
     # retranslateUi
 

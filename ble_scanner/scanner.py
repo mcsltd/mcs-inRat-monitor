@@ -13,6 +13,7 @@ class BleScanner(QObject):
     signal_found = Signal(object)
     signal_connect = Signal(object)
     signal_scan_requested = Signal()
+    signal_select_camera = Signal(object)  # название камеры (str) или None
 
     def __init__(self, loop: AbstractEventLoop):
         super().__init__()
@@ -43,6 +44,7 @@ class BleScanner(QObject):
         self.signal_found.connect(self._dlg_scan.set_device)
         self._dlg_scan.signal_select.connect(self.on_open_clicked)
         self._dlg_scan.finished.connect(self._on_dlg_finished)
+        self._dlg_scan.signal_select_camera.connect(self.signal_select_camera.emit)
         self._dlg_scan.open()
 
     def _on_dlg_finished(self, result):

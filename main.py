@@ -91,6 +91,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.device.add_receiver_data(self.storage)
         self.verticalLayoutDisplay.addWidget(self.display_temp)
 
+        # отображение видео с камеры (левая колонка)
+        self.verticalLayoutCamera.addWidget(self.camera.output_pane)
+
         # область графиков забирает свободное место, видимые графики растягиваются
         self.verticalLayout.setStretchFactor(self.verticalLayoutDisplay, 1)
         self.verticalLayoutDisplay.setStretchFactor(self.display_sig, 1)
@@ -127,6 +130,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.scanner.signal_connect.connect(self.device.process_connect)
         self.scanner.signal_scan_requested.connect(self.on_scan_requested)
+        self.scanner.signal_select_camera.connect(self.camera.set_camera_name)
         self.pushButtonConfig.clicked.connect(self.on_config_clicked)
 
         # ui elements
@@ -138,7 +142,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.scanner.control_pane,
             self.device.control_pane,
             self.storage.control_pane,
-            self.camera.control_pane,
         ]
         row = []
         for idx, pane in enumerate(modules):
@@ -164,18 +167,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def __process_event_device(self, event: DeviceEvent):
         """
         Логика поведения главного окна при событиях устройства
-        Виды событий:
-
-        - ConnectionStart
-        - ConnectionStop
-        - ConnectionError
-        - ConnectionLost - для случая переподключения
-
-        - AcquisitionStart
-        - AcquisitionStop
-        - AcquisitionError
-
-        - Disconnect
          """
 
         if event.type == "ConnectStart":
@@ -191,7 +182,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.scanner.set_enabled(True)
             self._offer_reconnect()
 
-        # todo add event - ConnectionStart, ConnectionStop, ConnectionError, ConnectionLost, \
         if event.type == "AcquisitionStart":
             self.pushButtonConfig.setEnabled(False)
             self.scanner.set_enabled(False)

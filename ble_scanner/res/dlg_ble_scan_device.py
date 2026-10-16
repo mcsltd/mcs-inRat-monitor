@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'dlg_ble_scan_deviceFyWcbw.ui'
+## Form generated from reading UI file 'dlg_ble_scan_deviceHPAcsg.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.11.2
+## Created by: Qt User Interface Compiler version 6.12.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -15,15 +15,16 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QDialog, QGridLayout, QHBoxLayout,
-    QLabel, QListWidget, QListWidgetItem, QPushButton,
-    QSizePolicy, QSpacerItem, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QApplication, QComboBox, QDialog, QGridLayout,
+    QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
+    QPushButton, QSizePolicy, QSpacerItem, QVBoxLayout,
+    QWidget)
 
 class Ui_DlgBleScan(object):
     def setupUi(self, DlgBleScan):
         if not DlgBleScan.objectName():
             DlgBleScan.setObjectName(u"DlgBleScan")
-        DlgBleScan.resize(314, 444)
+        DlgBleScan.resize(486, 423)
         self.gridLayout = QGridLayout(DlgBleScan)
         self.gridLayout.setObjectName(u"gridLayout")
         self.verticalLayout = QVBoxLayout()
@@ -37,6 +38,26 @@ class Ui_DlgBleScan(object):
         self.listWidgetFoundDevice.setObjectName(u"listWidgetFoundDevice")
 
         self.verticalLayout.addWidget(self.listWidgetFoundDevice)
+
+        self.horizontalLayout_2 = QHBoxLayout()
+        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
+        self.labelCamera = QLabel(DlgBleScan)
+        self.labelCamera.setObjectName(u"labelCamera")
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.labelCamera.sizePolicy().hasHeightForWidth())
+        self.labelCamera.setSizePolicy(sizePolicy)
+
+        self.horizontalLayout_2.addWidget(self.labelCamera)
+
+        self.comboBoxCameras = QComboBox(DlgBleScan)
+        self.comboBoxCameras.setObjectName(u"comboBoxCameras")
+
+        self.horizontalLayout_2.addWidget(self.comboBoxCameras)
+
+
+        self.verticalLayout.addLayout(self.horizontalLayout_2)
 
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
@@ -71,6 +92,7 @@ class Ui_DlgBleScan(object):
     def retranslateUi(self, DlgBleScan):
         DlgBleScan.setWindowTitle(QCoreApplication.translate("DlgBleScan", u"\u041f\u043e\u0438\u0441\u043a \u0438 \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0435", None))
         self.label.setText(QCoreApplication.translate("DlgBleScan", u"\u041d\u0430\u0439\u0434\u0435\u043d\u043d\u044b\u0435 \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u0430:", None))
+        self.labelCamera.setText(QCoreApplication.translate("DlgBleScan", u"\u0414\u043e\u0441\u0442\u0443\u043f\u043d\u044b\u0435 \u043a\u0430\u043c\u0435\u0440\u044b:", None))
         self.pushButtonOpen.setText(QCoreApplication.translate("DlgBleScan", u"\u041e\u0442\u043a\u0440\u044b\u0442\u044c", None))
         self.pushButtonReset.setText(QCoreApplication.translate("DlgBleScan", u"\u041e\u0447\u0438\u0441\u0442\u0438\u0442\u044c", None))
     # retranslateUi
