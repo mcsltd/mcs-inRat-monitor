@@ -149,6 +149,11 @@ class StreamViewer(pg.PlotWidget):
         """ удалить объект приёмника из коллекции акселерометра """
         if receiver in self._receivers:
             self._receivers.remove(receiver)
+            try:
+                receiver.event.disconnect(self.receiver_event)
+                receiver.parentevent.disconnect(self.parent_event)
+            except (RuntimeError, TypeError):
+                pass
         receiver.stop()
 
     def set_x_range(self, value: float):

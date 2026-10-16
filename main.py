@@ -89,6 +89,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.device.add_receiver_data(self.storage)
         self.verticalLayoutDisplay.addWidget(self.display_temp)
 
+        # область графиков забирает свободное место, видимые графики растягиваются
+        self.verticalLayout.setStretchFactor(self.verticalLayoutDisplay, 1)
+        self.verticalLayoutDisplay.setStretchFactor(self.display_sig, 1)
+        self.verticalLayoutDisplay.setStretchFactor(self.display_acc, 1)
+        self.verticalLayoutDisplay.setStretchFactor(self.display_temp, 1)
+
+        # убираем фиксированный отступ спейсера над строкой состояния
+        self.verticalSpacer.changeSize(
+            0, 0,
+            self.verticalSpacer.sizePolicy().horizontalPolicy(),
+            self.verticalSpacer.sizePolicy().verticalPolicy(),
+        )
+
         self.enable_display_sig(False)
         self.enable_display_acc(False)
         self.enable_display_temp(False)
@@ -204,7 +217,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             )
 
     def enable_display_acc(self, state: bool):
-        logger.debug("Активация окна отображения сигналов ЭКГ/ЭМГ")
+        logger.debug(f"Окно отображения сигналов акселерометра: {state}")
         if state:
             self.device.add_receiver_acc(self.display_acc)
             self.display_acc.setVisible(True)
@@ -215,7 +228,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.control_pane_acc.setVisible(False)
 
     def enable_display_sig(self, state: bool):
-        logger.debug("Активация окна отображения сигналов ЭКГ/ЭМГ")
+        logger.debug(f"Окно отображения сигналов ЭКГ/ЭМГ: {state}")
         if state:
             self.device.add_receiver_exg(self.display_sig)
             self.display_sig.add_receiver(self._detector)
@@ -225,11 +238,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.control_pane_sig.setVisible(True)
         else:
             self.device.remove_receiver_sig(self.display_sig)
+            self.display_sig.remove_receiver(self._detector)
+            self.storage.remove_receiver(self._detector)
             self.display_sig.setVisible(False)
             self.control_pane_sig.setVisible(False)
 
     def enable_display_temp(self, state: bool):
-        logger.debug("Активация окна отображения сигналов ЭКГ/ЭМГ")
+        logger.debug(f"Окно отображения сигнала температуры: {state}")
         if state:
             self.device.add_receiver_temp(self.display_temp)
             self.display_temp.setVisible(True)

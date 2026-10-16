@@ -218,13 +218,11 @@ class inRatDevice(QObject):
             receiver.start()
         if receiver not in self._receivers_sig:
             self._receivers_sig.append(receiver)
-            receiver.update_params(params=self._exg_datablock)
-
             receiver.event.connect(self.receiver_event, Qt.ConnectionType.QueuedConnection)
             receiver.parentevent.connect(self.parent_event, Qt.ConnectionType.QueuedConnection)
-
         else:
             logger.warning(f"Попытка дублировать {receiver} в приёмниках сигналов ЭКГ/ЭМГ")
+        receiver.update_params(params=self._exg_datablock)
     def remove_receiver_sig(self, receiver):
         """ удалить объект приёмника биосигналов из коллекции """
         if receiver in self._receivers_sig:
@@ -237,12 +235,11 @@ class inRatDevice(QObject):
             receiver.start()
         if receiver not in self._receivers_acc:
             self._receivers_acc.append(receiver)
-            receiver.update_params(params=self._acc_datablock)
-
             receiver.event.connect(self.receiver_event, Qt.ConnectionType.QueuedConnection)
             receiver.parentevent.connect(self.parent_event, Qt.ConnectionType.QueuedConnection)
         else:
             logger.warning(f"Попытка дублировать {receiver} в приёмниках акселерометра")
+        receiver.update_params(params=self._acc_datablock)
     def remove_receiver_acc(self, receiver):
         """ удалить объект приёмника из коллекции акселерометра """
         if receiver in self._receivers_acc:
@@ -272,6 +269,7 @@ class inRatDevice(QObject):
             _ = asyncio.run_coroutine_threadsafe(self._inrat.activate(True), self._loop)
 
         enabled_channels = EnabledChannels.NONE
+        enabled_sig, enabled_acc = False, False
         self._exg_datablock, self._acc_datablock = None, None
         for cfg in self._config.signals:
             if isinstance(cfg, ExgConfig):
@@ -284,11 +282,8 @@ class inRatDevice(QObject):
                 self._inrat.hpf = cfg.hpf
                 self._inrat.gain = cfg.gain
                 enabled_channels |= EnabledChannels.EXG
-                self.signal_enable_sig.emit(True)
-            else:
-                self.signal_enable_sig.emit(True)
-
-            if isinstance(cfg, AccConfig):
+                enabled_sig = True
+            elif isinstance(cfg, AccConfig):
                 self._acc_datablock = SignalDatablock(
                     type_signal=TypeSignal.ACC, sample_rate=100, counter_per_sample=Pkt.SamplesCountAcc,
                     number_channels=Pkt.ChannelsCountAcc, channel_names=["acc_x", "acc_y", "acc_z"],
@@ -297,32 +292,29 @@ class inRatDevice(QObject):
 
                 self._inrat.full_scale_accelerometer = cfg.scale
                 enabled_channels |= (EnabledChannels.ACC_X | EnabledChannels.ACC_Y | EnabledChannels.ACC_Z)
-                self.signal_enable_acc.emit(True)
-            else:
-                self.signal_enable_acc.emit(False)
+                enabled_acc = True
         self._inrat.enabled_channels = enabled_channels
 
         enabled_events = EventType.NONE
-        if not self._config.events:
-            self._inrat.enabled_events = EventType.NONE
-            return
-
-        if "T" in self._config.events.type_events:
-            enabled_events |= EventType.TEMP
-            self.signal_enable_temp.emit(True)
-        else:
-            self.signal_enable_temp.emit(False)
-        if self._exg_datablock:
-            if "A" in self._config.events.type_events:
-                enabled_events |= EventType.ACTIVITY
-                self._exg_datablock.event_markers.append("A")
-            if "O" in self._config.events.type_events:
-                enabled_events |= EventType.ORIENTATION
-                self._exg_datablock.event_markers.append("O")
-            if "F" in self._config.events.type_events:
-                enabled_events |= EventType.FREEFALL
-                self._exg_datablock.event_markers.append("F")
+        events = self._config.events
+        if events:
+            if "T" in events.type_events:
+                enabled_events |= EventType.TEMP
+            if self._exg_datablock:
+                if "A" in events.type_events:
+                    enabled_events |= EventType.ACTIVITY
+                    self._exg_datablock.type_events.append("activity")
+                if "O" in events.type_events:
+                    enabled_events |= EventType.ORIENTATION
+                    self._exg_datablock.type_events.append("orientation")
+                if "F" in events.type_events:
+                    enabled_events |= EventType.FREEFALL
+                    self._exg_datablock.type_events.append("freefall")
         self._inrat.enabled_events = enabled_events
+
+        self.signal_enable_sig.emit(enabled_sig)
+        self.signal_enable_acc.emit(enabled_acc)
+        self.signal_enable_temp.emit(bool(enabled_events & EventType.TEMP))
 
     def process_connect(self, device: BLEDevice):
         """ обработка соединения с inRat """

@@ -59,10 +59,12 @@ class Storage(QObject):
         self._exg_param = None
         self._exg_buffer = None
         self._exg_start_sample = None
+        self._exg_last_sample = None
         # acc params recording
         self._acc_param = None
         self._acc_buffer = None
         self._acc_start_sample = None
+        self._acc_last_sample = None
         # event buffer
         self._ev_buffer = []
 
@@ -202,7 +204,7 @@ class Storage(QObject):
         try:
             self.process_stop()
         except Exception as err:
-            pass
+            logger.error(f"{self.__class__}: ошибка остановки модуля - {err}")
 
     def _worker_thread(self):
         """ запуск рабочего потока """
@@ -252,6 +254,11 @@ class Storage(QObject):
         """ удалить объект-источник событий из коллекции """
         if receiver in self._receivers:
             self._receivers.remove(receiver)
+            try:
+                receiver.event.disconnect(self.receiver_event)
+                receiver.parentevent.disconnect(self.parent_event)
+            except (RuntimeError, TypeError):
+                pass
 
     def update_params(
             self,
@@ -264,6 +271,7 @@ class Storage(QObject):
             self._acc_param = copy.copy(params_acc)
             self._device_name = self._acc_param.device_name
             self._acc_start_sample = None
+            self._acc_last_sample = None
             self._acc_buffer = np.zeros(
                 (
                     self._acc_param.number_channels,
@@ -275,6 +283,7 @@ class Storage(QObject):
             self._exg_param = copy.copy(params_exg)
             self._device_name = self._exg_param.device_name
             self._exg_start_sample = None
+            self._exg_last_sample = None
             self._exg_buffer = np.zeros(
                 (
                     self._exg_param.number_channels,
@@ -292,10 +301,7 @@ class Storage(QObject):
 
     def process_stop(self):
         """ метод очистки после остановки """
-        if self._recording:
-            self._close_recording()
-            self.signal_recording_stopped.emit()
-
+        self.stop_recording()
         self._control_pane.set_enabled(False)
 
     def _on_start_recording(self):
@@ -305,9 +311,27 @@ class Storage(QObject):
         self.signal_recording_started.emit(self._sec_buffer_size)
 
     def _on_stop_recording(self):
-        """ обработка остановки записи """
-        self._close_recording()
-        self.signal_recording_stopped.emit()
+        """ обработка остановки записи по кнопке """
+        self.stop_recording()
+
+    def stop_recording(self):
+        """
+        единая точка остановки записи (кнопка записи и остановка устройства).
+
+        Метод идемпотентен и гарантирует, что индикатор записи будет скрыт,
+        даже если сохранение файла завершилось ошибкой.
+        """
+        if not self._recording:
+            return
+
+        try:
+            self._close_recording()
+        except Exception as err:
+            logger.error(f"{self.__class__}: ошибка при сохранении записи - {err}")
+        finally:
+            self._recording = False
+            self._control_pane.set_pause()
+            self.signal_recording_stopped.emit()
 
     def _prepare_recording(self):
         """ метод подготовки к записи """
@@ -338,31 +362,43 @@ class Storage(QObject):
         acc_signal, exg_signal = None, None
 
         if self._acc_param:
-            idx_finish = (self._acc_last_sample - self._acc_start_sample) * self._acc_param.counter_per_sample
-            length_acc_sec = self._acc_buffer[:, :idx_finish].shape[1] / self._acc_param.sample_rate
-            acc_signal = self._acc_buffer[:, :idx_finish]
+            if self._acc_last_sample is not None and self._acc_start_sample is not None:
+                idx_finish = (self._acc_last_sample - self._acc_start_sample) * self._acc_param.counter_per_sample
+                if idx_finish > 0:
+                    length_acc_sec = self._acc_buffer[:, :idx_finish].shape[1] / self._acc_param.sample_rate
+                    acc_signal = self._acc_buffer[:, :idx_finish]
+                    logger.debug(f"Буфер acc очищен, было записано сигнала - {length_acc_sec} сек.")
 
             self._acc_buffer = np.zeros(
                 (self._acc_param.number_channels, self._acc_param.sample_rate * self._sec_buffer_size),
                 dtype=np.float32
             )
             self._acc_start_sample = None
-            logger.debug(f"Буфер acc очищен, было записано сигнала - {length_acc_sec} сек.")
+            self._acc_last_sample = None
 
         if self._exg_param:
-            idx_finish = (self._exg_last_sample - self._exg_start_sample) * self._exg_param.counter_per_sample
-            length_exg_sec = self._exg_buffer[:, :idx_finish].shape[1] / self._exg_param.sample_rate
-            exg_signal = self._exg_buffer[:, :idx_finish]
+            if self._exg_last_sample is not None and self._exg_start_sample is not None:
+                idx_finish = (self._exg_last_sample - self._exg_start_sample) * self._exg_param.counter_per_sample
+                if idx_finish > 0:
+                    length_exg_sec = self._exg_buffer[:, :idx_finish].shape[1] / self._exg_param.sample_rate
+                    exg_signal = self._exg_buffer[:, :idx_finish]
+                    logger.debug(f"Буфер exg очищен, было записано сигнала - {length_exg_sec} сек.")
 
             self._exg_buffer = np.zeros(
                 (self._exg_param.number_channels, self._exg_param.sample_rate * self._sec_buffer_size),
                 dtype=np.float32
             )
             self._exg_start_sample = None
-            logger.debug(f"Буфер exg очищен, было записано сигнала - {length_exg_sec} сек.")
+            self._exg_last_sample = None
+
+        # нечего сохранять (например, запись остановлена до прихода данных)
+        if acc_signal is None and exg_signal is None:
+            logger.debug(f"{self.__class__}: нет данных для сохранения, файл не создаётся")
+            self._ev_buffer = []
+            return
 
         # заполнение пропущенных отсчётов acc
-        if self._exg_param and self._acc_param:
+        if exg_signal is not None and acc_signal is not None:
             record_dur = exg_signal.shape[1] / self._exg_param.sample_rate
             lost = int(record_dur * self._acc_param.sample_rate - acc_signal.shape[1])
             logger.debug(f"Сигнал acc отстал на {lost} отсчётов; {lost / self._acc_param.sample_rate} c.")

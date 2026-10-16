@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'frm_control_cameraBweJQw.ui'
+## Form generated from reading UI file 'frm_control_camerapDdHyM.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.12.0
 ##
@@ -34,7 +34,7 @@ class Ui_FrmAddCamera(object):
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.pushButtonAdd = QPushButton(FrmAddCamera)
         self.pushButtonAdd.setObjectName(u"pushButtonAdd")
-        self.pushButtonAdd.setEnabled(True)
+        self.pushButtonAdd.setEnabled(False)
         sizePolicy = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
