@@ -24,6 +24,7 @@ class BleScanner(QObject):
         self._running: bool = False
         self._seen_names: set[str] = set()
         self._dlg_scan: DlgBleScan | None = None
+        self._scan_future = None
 
         self._control_pane = FrmControlScannerPane()
         self._control_pane.pushButtonStart.clicked.connect(self.on_start_clicked)
@@ -95,8 +96,15 @@ class BleScanner(QObject):
         self._seen_names = set()
         self.event_stop_scan.clear()
         self._running = True
-        asyncio.run_coroutine_threadsafe(self._scanning(), self._loop)
+        self._scan_future = asyncio.run_coroutine_threadsafe(self._scanning(), self._loop)
 
     def stop(self):
         self.event_stop_scan.set()
         self._running = False
+
+    def shutdown(self):
+        """ остановка поиска с ожиданием завершения корутины сканирования """
+        self.stop()
+        if self._scan_future is not None and not self._scan_future.done():
+            self._scan_future.cancel()
+        return self._scan_future

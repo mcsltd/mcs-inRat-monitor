@@ -2,7 +2,7 @@ import logging
 import sys
 
 from PySide6 import QtAsyncio
-from PySide6.QtCore import QSettings
+from PySide6.QtCore import QSettings, QTimer
 from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QHBoxLayout
 
 from camera.camera import Camera
@@ -40,6 +40,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # hide
         # self.pushButtonDisconnect.hide()
         self.qt_loop = qt_loop
+
+        # флаг отложенного завершения приложения
+        self._closing = False
 
         # main classes
         self.device = inRatDevice(qt_loop)
@@ -90,6 +93,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.enable_display_acc(False)
         self.enable_display_temp(False)
 
+        self.horizontalLayoutStatusBar.insertWidget(0, self.storage.info_pane)
         self.horizontalLayoutStatusBar.addWidget(self.device.battery_pane)
         # self.device.battery_pane.setVisible(False)
 
@@ -229,12 +233,54 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.device.retry_connect()
 
     def closeEvent(self, event):
-        self.scanner.stop()
-        if self.device.is_running():
-            self.device.stop()
-
         # save basic settings
         self.storage.save_settings()
+
+        if self._closing:
+            event.accept()
+            return
+
+        # остановка поиска BLE (с ожиданием завершения корутины)
+        scan_future = self.scanner.shutdown()
+
+        # остановка приёма и отсоединение BLE-клиента
+        disconnect_future = None
+        if self.device.is_connected() or self.device.is_running():
+            self.device.stop()
+            disconnect_future = self.device.process_disconnect()
+
+        pending = [f for f in (scan_future, disconnect_future) if f is not None]
+        if not pending:
+            event.accept()
+            return
+
+        # отложенное завершение: закрываем цикл только после отсоединения BLE,
+        # иначе bleak обращается к уже закрытому циклу событий
+        self._closing = True
+        event.ignore()
+        self.hide()
+
+        remaining = {"count": len(pending)}
+
+        def _on_done(_future):
+            try:
+                if not _future.cancelled():
+                    _future.exception()
+            except Exception:
+                pass
+            remaining["count"] -= 1
+            if remaining["count"] <= 0:
+                QTimer.singleShot(0, QApplication.instance().quit)
+
+        for future in pending:
+            future.add_done_callback(_on_done)
+
+        # страховка на случай зависшего отсоединения
+        QTimer.singleShot(3000, self._force_quit)
+
+    def _force_quit(self):
+        """ принудительное завершение приложения """
+        QApplication.instance().quit()
 
     def on_config_clicked(self):
         """ открытие окна настроек """

@@ -17,6 +17,7 @@ from device.device import SignalDatablock
 from device.enums import EventType
 from device.utils import get_orientation
 from storage.config_pane import FrmConfigStorage
+from storage.info_pane import FrmInfoRecording
 from storage.models import StorageConfig
 from storage.ui.frm_control_storage import FrmControlStorage
 
@@ -28,6 +29,11 @@ class Storage(QObject):
 
     event = Signal(object)
     parentevent = Signal(object)
+
+    signal_recording_started = Signal(int)
+    signal_recording_new_file = Signal(int)
+    signal_recording_stopped = Signal()
+    signal_file_count_changed = Signal(int)
 
     def __init__(self, settings: QSettings | None = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -62,8 +68,14 @@ class Storage(QObject):
 
         # ui panels
         self._control_pane = FrmControlStorage()
-        self._control_pane.pushButtonStart.clicked.connect(self._prepare_recording)
-        self._control_pane.pushButtonStop.clicked.connect(self._close_recording)
+        self._control_pane.pushButtonStart.clicked.connect(self._on_start_recording)
+        self._control_pane.pushButtonStop.clicked.connect(self._on_stop_recording)
+
+        self._info_pane = FrmInfoRecording()
+        self.signal_recording_started.connect(self._info_pane.start)
+        self.signal_recording_new_file.connect(self._info_pane.new_file)
+        self.signal_recording_stopped.connect(self._info_pane.stop)
+        self.signal_file_count_changed.connect(self._info_pane.set_file_count)
 
         self._settings = settings
         if self._settings:
@@ -124,6 +136,10 @@ class Storage(QObject):
     def control_pane(self):
         return self._control_pane
 
+    @property
+    def info_pane(self):
+        return self._info_pane
+
     def _on_select_save_folder_clicked(self):
         """ выбор места сохранения для записей edf """
         write_dir = QFileDialog.getExistingDirectory(
@@ -178,7 +194,6 @@ class Storage(QObject):
     def stop(self):
         """ остановка модуля """
         logger.debug(f"{self.__class__}: остановка модуля")
-        self._recording = False
         self._running = False
         if self._worker:
             self._worker.join(1.0)
@@ -279,8 +294,20 @@ class Storage(QObject):
         """ метод очистки после остановки """
         if self._recording:
             self._close_recording()
+            self.signal_recording_stopped.emit()
 
         self._control_pane.set_enabled(False)
+
+    def _on_start_recording(self):
+        """ обработка запуска записи """
+        self._cnt_file = 0
+        self._prepare_recording()
+        self.signal_recording_started.emit(self._sec_buffer_size)
+
+    def _on_stop_recording(self):
+        """ обработка остановки записи """
+        self._close_recording()
+        self.signal_recording_stopped.emit()
 
     def _prepare_recording(self):
         """ метод подготовки к записи """
@@ -301,6 +328,7 @@ class Storage(QObject):
 
         self.__process_signals_for_save()
         self._cnt_file += 1
+        self.signal_file_count_changed.emit(self._cnt_file)
 
         self._control_pane.set_pause()
 
@@ -472,9 +500,7 @@ class Storage(QObject):
         self._prepare_recording()
         self._thlock_save.release()
 
-        # увеличение счётчика записи
-        self._cnt_file += 1
-        # self._control_pane.set_file_count(self._cnt_file)
+        self.signal_recording_new_file.emit(self._sec_buffer_size)
 
     @staticmethod
     def interpolate_missing_samples(signal: np.ndarray, lost_samples: int) -> np.ndarray:
