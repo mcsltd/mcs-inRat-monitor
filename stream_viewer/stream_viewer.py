@@ -226,9 +226,9 @@ class StreamViewer(pg.PlotWidget):
 
     def _create_hr_legend(self):
         """ создание лейбла чсс на графике ЭКГ """
-        self._legend_hr = pg.LabelItem(text="ЧСС --", size="25pt", color="white")
+        self._legend_hr = pg.LabelItem(text="ЧСС --", size="40pt", color="white", bold=True)
         self._legend_hr.setParentItem(self.graphicsItem())  # на сцену поверх графика
-        self._legend_hr.anchor(itemPos=(1, 0), parentPos=(1, 0), offset=(-10, 10))
+        self._legend_hr.anchor(itemPos=(1, 0.5), parentPos=(1, 0.5), offset=(-10, 0))
 
     def set_hr_enabled(self, enabled: bool):
         """ показать/скрыть лейбл чсс при включении/отключении детектора R-пиков """
@@ -493,9 +493,9 @@ class TempStreamViewer(pg.PlotWidget):
         self.temp_scatter = ScatterPlotItem(pen=pg.mkPen((255,255,0)), brush=pg.mkBrush('y'))
         self.addItem(self.temp_scatter)
 
-        self.label_temp = pg.LabelItem(text="--°C", size="25pt", color="white")
+        self.label_temp = pg.LabelItem(text="--°C", size="40pt", color="white", bold=True)
         self.label_temp.setParentItem(self.graphicsItem())  # на сцену поверх графика
-        self.label_temp.anchor(itemPos=(1, 0), parentPos=(1, 0), offset=(-10, 10))
+        self.label_temp.anchor(itemPos=(1, 0.5), parentPos=(1, 0.5), offset=(-10, 0))
 
         self.setLabel("left", left_label, units=units, color="white") # "°C",
         self.setLabel("bottom", color="white") # "Время", units="s",
