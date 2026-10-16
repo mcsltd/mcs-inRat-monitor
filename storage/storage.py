@@ -16,14 +16,12 @@ from device.constants import Const
 from device.device import SignalDatablock
 from device.enums import EventType
 from device.utils import get_orientation
+from storage.config_pane import FrmConfigStorage
+from storage.models import StorageConfig
 from storage.ui.frm_control_storage import FrmControlStorage
 
 logger = logging.getLogger(__name__)
 
-# todo
-# добавить восстановление acc из времени записи
-# добавить раздельное сохранение acc/exg
-# протестировать получение событий
 
 class Storage(QObject):
     """ класс для сохранения данных с устройства в EDF файл """
@@ -44,7 +42,8 @@ class Storage(QObject):
 
         # general recording params
         self._recording_start_time = None
-        self._sec_buffer_size = 1200
+        self._duration_min: int = 20
+        self._sec_buffer_size = self._duration_min * 60
         self._format = "edf"
         self._device_name = None
         self._object_name = None
@@ -69,6 +68,27 @@ class Storage(QObject):
         self._settings = settings
         if self._settings:
             self.load_settings()
+
+        self._config_pane = FrmConfigStorage(self)
+
+    @property
+    def config_pane(self):
+        return self._config_pane
+
+    @property
+    def write_dir(self) -> str | None:
+        return self._write_dir
+
+    @property
+    def duration_min(self) -> int:
+        return self._duration_min
+
+    def process_update(self, config: StorageConfig):
+        """ обновление параметров из окна настроек """
+        if config.write_dir:
+            self._write_dir = config.write_dir
+        self._duration_min = max(1, min(30, int(config.duration_min)))
+        self._sec_buffer_size = self._duration_min * 60
 
     def load_settings(self):
         """ загрузка сохраненных настроек """
@@ -249,7 +269,7 @@ class Storage(QObject):
 
     def process_start(self):
         """ метод инициализации параметров перед стартом """
-        self._control_pane.set_start()
+        self._control_pane.set_pause()
 
         if self._write_dir and self._device_name:
             self._control_pane.set_enabled(True)

@@ -241,18 +241,26 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         dlg = DlgConfig()
 
         pane_device = self.device.config_pane
-        pane_device.signal_apply.connect(self.device.process_update)
-        dlg.add_pane(pane_device)
+        if pane_device:
+            pane_device.signal_apply.connect(self.device.process_update)
+            dlg.add_pane(pane_device)
 
         pane_detector = self._detector.config_pane
         pane_detector.signal_apply.connect(self._detector.process_update)
         dlg.add_pane(pane_detector)
 
+        pane_storage = self.storage.config_pane
+        pane_storage.signal_apply.connect(self.storage.process_update)
+        pane_storage.set_default()
+        dlg.add_pane(pane_storage)
+
         try:
             dlg.exec()
         finally:
-            pane_device.setParent(None)
+            if pane_device:
+                pane_device.setParent(None)
             pane_detector.setParent(None)
+            pane_storage.setParent(None)
 
     def on_scan_requested(self):
         """ обработка запроса поиска и подключения нового устройства """
