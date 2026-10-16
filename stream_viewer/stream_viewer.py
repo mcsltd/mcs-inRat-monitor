@@ -226,7 +226,7 @@ class StreamViewer(pg.PlotWidget):
 
     def _create_hr_legend(self):
         """ создание лейбла чсс на графике ЭКГ """
-        self._legend_hr = pg.LabelItem(text="ЧСС --", size="40pt", color="white", bold=True)
+        self._legend_hr = pg.LabelItem(text="ЧСС --", size="30pt", color="white", bold=True)
         self._legend_hr.setParentItem(self.graphicsItem())  # на сцену поверх графика
         self._legend_hr.anchor(itemPos=(1, 0.5), parentPos=(1, 0.5), offset=(-10, 0))
 
@@ -450,7 +450,10 @@ class StreamViewer(pg.PlotWidget):
         """ обработка события от приёмников/родителей """
         if self._legend_hr and event["type"] == "HeartRate":
             value = event["value"]
-            self._legend_hr.setText(f"ЧСС {int(value)}")
+            if value is None:
+                self._legend_hr.setText("ЧСС --")
+            else:
+                self._legend_hr.setText(f"ЧСС {int(value)}")
 
         # if event["type"] == "RPeakDetected":
         #     timestamp = event["data"] / self._sig_datablock.sample_rate
@@ -493,7 +496,7 @@ class TempStreamViewer(pg.PlotWidget):
         self.temp_scatter = ScatterPlotItem(pen=pg.mkPen((255,255,0)), brush=pg.mkBrush('y'))
         self.addItem(self.temp_scatter)
 
-        self.label_temp = pg.LabelItem(text="--°C", size="40pt", color="white", bold=True)
+        self.label_temp = pg.LabelItem(text="--°C", size="30pt", color="white", bold=True)
         self.label_temp.setParentItem(self.graphicsItem())  # на сцену поверх графика
         self.label_temp.anchor(itemPos=(1, 0.5), parentPos=(1, 0.5), offset=(-10, 0))
 

@@ -54,6 +54,7 @@ class QrsDetector(QObject):
         self._last_peak_wall: float | None = None  # время пика по wall-clock, для тайм-аута
         self._hr_valid: bool = False
         self._awaiting_recovery: bool = True
+        self._last_sent_hr: int | None = None  # последнее отправленное приёмникам значение
 
         self._configure_hr()
 
@@ -115,6 +116,16 @@ class QrsDetector(QObject):
         self._hr_valid = False
         self._awaiting_recovery = True
         self._last_heart_rate = None
+        # уведомить приёмников о скрытии прошлого значения
+        self._emit_hr()
+
+    def _emit_hr(self):
+        """ отправка рассчитанной ЧСС приёмникам (None — скрыть значение) """
+        value = self._last_heart_rate if self._hr_valid else None
+        if value == self._last_sent_hr:
+            return
+        self._last_sent_hr = value
+        self.send_event({"type": "HeartRate", "value": value})
 
     def _on_peak(self, idx_peak: int):
         """ обработка очередного R-пика и расчёт ЧСС """
@@ -128,6 +139,7 @@ class QrsDetector(QObject):
             self._last_peak_wall = now
             self._awaiting_recovery = False
             self._hr_valid = False
+            self._emit_hr()
             return
 
         if self._last_peak_time is not None:
@@ -145,6 +157,8 @@ class QrsDetector(QObject):
                 self._hr_valid = True
                 logger.debug(f"hr value: {self._last_heart_rate}")
 
+        self._emit_hr()
+
     def _check_timeout(self):
         """ проверка отсутствия R-пиков: заморозить и пометить ЧСС невалидной """
         if self._last_peak_wall is None:
@@ -152,6 +166,7 @@ class QrsDetector(QObject):
         if time.monotonic() - self._last_peak_wall > self._get_hr_params()["timeout"]:
             self._hr_valid = False
             self._awaiting_recovery = True
+            self._emit_hr()
 
     def update_params(self, params: SignalDatablock | None):
         if params is not None and params.type_signal == TypeSignal.ECG:
