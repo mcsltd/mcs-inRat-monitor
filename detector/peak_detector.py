@@ -9,12 +9,18 @@ from threading import Thread, Lock
 from PySide6.QtCore import QObject, Signal, Qt
 
 from detector.detector import RealTimeRPeakDetector
-from detector.models import CONFIG_HUMAN, ConfigDetector
+from detector.models import CONFIG_HUMAN, ConfigDetector, Subject
 from detector.ui.config_pane import FrmConfigDetectorPane
 from device.device import SignalDatablock
 from device.enums import TypeSignal
 
 logger = logging.getLogger(__name__)
+
+# параметры расчёта ЧСС по объекту исследования
+HR_PARAMS = {
+    Subject.HUMAN: {"n": 5, "timeout": 5.0, "min_rr": 3},
+    Subject.RAT: {"n": 10, "timeout": 3.0, "min_rr": 4},
+}
 
 
 class QrsDetector(QObject):
@@ -40,8 +46,16 @@ class QrsDetector(QObject):
         self._fs = 1000
 
         self._detector = None
-        self._last_heart_rate = 60
-        self._abs_idx_peaks = deque(maxlen=10)
+
+        # состояние расчёта ЧСС
+        self._last_heart_rate: int | None = None
+        self._rr_buffer: deque = deque(maxlen=HR_PARAMS[Subject.HUMAN]["n"])
+        self._last_peak_time: float | None = None  # время пика по индексам отсчётов
+        self._last_peak_wall: float | None = None  # время пика по wall-clock, для тайм-аута
+        self._hr_valid: bool = False
+        self._awaiting_recovery: bool = True
+
+        self._configure_hr()
 
         # ui config
         self._config_pane = FrmConfigDetectorPane(self)
@@ -68,10 +82,14 @@ class QrsDetector(QObject):
         """ применение настроек детектора (кнопка Применить) """
         if config is None:
             return
+        subject_changed = config.subject != self._config.subject
         self._config = config
         # переинициализация детектора, если ЭКГ уже запущена
         if self._params is not None:
             self._init_detector()
+        # параметры расчёта ЧСС зависят от объекта исследования
+        if subject_changed:
+            self._configure_hr()
         self.signal_enable_changed.emit(self._config.enabled)
         logger.info(f"{self.__class__}: применены настройки детектора {config}")
 
@@ -84,6 +102,56 @@ class QrsDetector(QObject):
                 init_sec=2
             )
         logger.debug(f"{self.__class__}: детектор RR-пиков активирован")
+
+    def _get_hr_params(self) -> dict:
+        """ параметры расчёта ЧСС для текущего объекта исследования """
+        return HR_PARAMS.get(self._config.subject, HR_PARAMS[Subject.HUMAN])
+
+    def _configure_hr(self):
+        """ (пере)инициализация состояния расчёта ЧСС """
+        self._rr_buffer = deque(maxlen=self._get_hr_params()["n"])
+        self._last_peak_time = None
+        self._last_peak_wall = None
+        self._hr_valid = False
+        self._awaiting_recovery = True
+        self._last_heart_rate = None
+
+    def _on_peak(self, idx_peak: int):
+        """ обработка очередного R-пика и расчёт ЧСС """
+        t = idx_peak / self._fs
+        now = time.monotonic()
+
+        # восстановление после тайм-аута: первый пик только инициализирует отсчёт
+        if self._awaiting_recovery:
+            self._rr_buffer.clear()
+            self._last_peak_time = t
+            self._last_peak_wall = now
+            self._awaiting_recovery = False
+            self._hr_valid = False
+            return
+
+        if self._last_peak_time is not None:
+            rr = t - self._last_peak_time
+            if rr > 0:
+                self._rr_buffer.append(rr)
+
+        self._last_peak_time = t
+        self._last_peak_wall = now
+
+        if len(self._rr_buffer) >= self._get_hr_params()["min_rr"]:
+            mean_rr = sum(self._rr_buffer) / len(self._rr_buffer)
+            if mean_rr > 0:
+                self._last_heart_rate = int(round(60.0 / mean_rr))
+                self._hr_valid = True
+                logger.debug(f"hr value: {self._last_heart_rate}")
+
+    def _check_timeout(self):
+        """ проверка отсутствия R-пиков: заморозить и пометить ЧСС невалидной """
+        if self._last_peak_wall is None:
+            return
+        if time.monotonic() - self._last_peak_wall > self._get_hr_params()["timeout"]:
+            self._hr_valid = False
+            self._awaiting_recovery = True
 
     def update_params(self, params: SignalDatablock | None):
         if params is not None and params.type_signal == TypeSignal.ECG:
@@ -142,45 +210,18 @@ class QrsDetector(QObject):
                 return
             abs_idx_peaks = self._detector.process_packet(packet)
 
-        if len(abs_idx_peaks) == 0:
-            return
-        logger.debug(f"idx peaks: {abs_idx_peaks}")
+        if abs_idx_peaks:
+            logger.debug(f"idx peaks: {abs_idx_peaks}")
+            for idx_peak in abs_idx_peaks:
+                self._on_peak(idx_peak)
+                self.send_event({"type": "RPeakDetected", "data": idx_peak})
 
-
-        for idx_peak in abs_idx_peaks:
-            self._abs_idx_peaks.append(idx_peak)
-            self.send_event({"type": "RPeakDetected", "data": idx_peak})
-
-        # if len(self._abs_idx_peaks) > 2:
-        #     hr = self._get_heart_rate()
-        #     self.send_event({"type": "RPeakDetected", "value": hr, "counter": self._abs_idx_peaks[-1]})
-
-        # for p_abs in peaks_abs:
-        #     if p_abs - self._last_peak_abs < self._refractory:
-        #         continue
-        #
-        #     if p_abs > self._last_peak_abs:
-        #         self._last_peak_abs = p_abs
-        #         t = p_abs / self._fs
-        #         self._peak_times.append(t)
-        #         logger.debug(f"{self._peak_times=}")
-        #
-        #         if len(self._peak_times) >= 2:
-        #             self._rr_intervals.append(self._peak_times[-1] - self._peak_times[-2])
-        #
-        #         if len(self._peak_times) >= 3:
-        #             self._last_heart_rate = self._get_heart_rate()
-        #             self.send_event({"type":"HeartRate", "value": self._last_heart_rate, "counter": p_abs})
-
-    def _get_heart_rate(self) -> float | int:
-        """ расчёт чсс """
-        dt_rr = (self._abs_idx_peaks[-1] - self._abs_idx_peaks[-2]) / self._fs
-        a = 0.2
-        hr = int(a * (60 / dt_rr) + (1 - a) * self._last_heart_rate)
-        return hr
+        # проверка тайм-аута отсутствия пиков выполняется на каждом пакете
+        self._check_timeout()
 
     def process_start(self):
-        self.send_event({"type": "HeartRate", "value": self._last_heart_rate, "timestamp": 0})
+        """ подготовка к работе: сброс состояния расчёта ЧСС """
+        self._configure_hr()
 
     def process_output(self, data):
         """ метод для передачи обработанных данных в выходную очередь """
