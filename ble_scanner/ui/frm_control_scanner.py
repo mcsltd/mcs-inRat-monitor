@@ -7,3 +7,6 @@ class FrmControlScannerPane(QFrame, Ui_FrmControlScanner):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
+
+    def set_enabled(self, enable: bool):
+        self.pushButtonStart.setEnabled(enable)

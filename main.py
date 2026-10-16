@@ -101,6 +101,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.device.event.connect(self.process_event)
 
         self.scanner.signal_connect.connect(self.device.process_connect)
+        self.scanner.signal_scan_requested.connect(self.on_scan_requested)
         self.pushButtonConfig.clicked.connect(self.on_config_clicked)
 
         # ui elements
@@ -141,21 +142,39 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         elif event.type == "ConnectStop":
             self._waiting_connection_dlg.close()
             self.device.battery_pane.setVisible(True)
+        elif event.type == "ConnectError":
+            self._waiting_connection_dlg.close()
+            self.device.battery_pane.setVisible(False)
+            self.pushButtonConfig.setEnabled(False)
+            self.scanner.set_enabled(True)
+            self._offer_reconnect()
 
         # todo add event - ConnectionStart, ConnectionStop, ConnectionError, ConnectionLost, \
         if event.type == "AcquisitionStart":
             self.pushButtonConfig.setEnabled(False)
+            self.scanner.set_enabled(False)
         if event.type == "AcquisitionStop":
             self.pushButtonConfig.setEnabled(True)
+            self.scanner.set_enabled(True)
         if event.type == "Disconnect":
             self.device.stop()
             self.device.process_disconnect()
             self.pushButtonConfig.setEnabled(False)
             self._waiting_connection_dlg.close()
             self.device.battery_pane.setVisible(False)
-        if event.type == "ConnectionLost":
-            self.device.stop()
+        if event.type == "Disconnected":
+            self._waiting_connection_dlg.close()
+            self.device.battery_pane.setVisible(False)
             self.pushButtonConfig.setEnabled(False)
+            self.scanner.set_enabled(True)
+        if event.type == "ConnectionLost":
+            self.device.battery_pane.setVisible(False)
+            self.pushButtonConfig.setEnabled(False)
+            self.scanner.set_enabled(True)
+            QMessageBox.critical(
+                self, "Потеря соединения",
+                f"Потеряно соединение с устройством «{self.device.name}».",
+            )
 
     def enable_display_acc(self, state: bool):
         logger.debug("Активация окна отображения сигналов ЭКГ/ЭМГ")
@@ -194,6 +213,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def show_message_error(self, msg: str):
         QMessageBox.critical(self,"Ошибка", msg, QMessageBox.StandardButton.Ok)
 
+    def _offer_reconnect(self):
+        """ предложение повторить неудачное подключение """
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Warning)
+        box.setWindowTitle("Ошибка подключения")
+        box.setText(f"Не удалось подключиться к устройству «{self.device.name}».")
+        box.setInformativeText("Повторить попытку подключения?")
+        box.setStandardButtons(
+            QMessageBox.StandardButton.Retry | QMessageBox.StandardButton.Cancel
+        )
+        box.button(QMessageBox.StandardButton.Retry).setText("Повторить")
+        box.button(QMessageBox.StandardButton.Cancel).setText("Отмена")
+        if box.exec() == QMessageBox.StandardButton.Retry:
+            self.device.retry_connect()
+
     def closeEvent(self, event):
         self.scanner.stop()
         if self.device.is_running():
@@ -220,10 +254,51 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             pane_device.setParent(None)
             pane_detector.setParent(None)
 
+    def on_scan_requested(self):
+        """ обработка запроса поиска и подключения нового устройства """
+        if not self.device.is_connected():
+            self.scanner.start_scan()
+            return
+
+        if not self._confirm_disconnect_for_scan():
+            return
+
+        self._disconnect_then(self.scanner.start_scan)
+
+    def _confirm_disconnect_for_scan(self) -> bool:
+        """ подтверждение разрыва текущего соединения ради поиска нового устройства """
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Question)
+        box.setWindowTitle("Новое подключение")
+        box.setText(
+            f"Подключено устройство {self.device.name}. "
+            "Поиск нового устройства разорвёт текущее соединение. Продолжить?"
+        )
+        box.setStandardButtons(
+            QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel
+        )
+        box.button(QMessageBox.StandardButton.Ok).setText("Продолжить")
+        box.button(QMessageBox.StandardButton.Cancel).setText("Отмена")
+        return box.exec() == QMessageBox.StandardButton.Ok
+
+    def _disconnect_then(self, on_done):
+        """ отключение устройства с последующим вызовом on_done """
+        future = self.device.process_disconnect()
+        if future is None:
+            on_done()
+        else:
+            future.add_done_callback(lambda _: on_done())
+
 
 if __name__ == "__main__":
     app = QApplication([])
     loop = QtAsyncio.QAsyncioEventLoop(application=app)
+
+    try:
+        from bleak.backends.winrt.util import allow_sta
+        allow_sta()
+    except ImportError:
+        pass
 
     from config import BLE_KEY
     if BLE_KEY is None:

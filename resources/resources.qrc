@@ -6,5 +6,6 @@
     <file>images/settings.png</file>
     <file>images/start.png</file>
     <file>images/stop.png</file>
+    <file>images/camera.png</file>
 </qresource>
 </RCC>

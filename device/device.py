@@ -124,6 +124,7 @@ class inRatDevice(QObject):
 
         self._loop: AbstractEventLoop = loop
         self._inrat: inRat | None = None
+        self._last_device: BLEDevice | None = None
         self._property: DeviceProperty | None = None
         self._config: DeviceConfig | None = None
 
@@ -165,11 +166,24 @@ class inRatDevice(QObject):
             self._timer_check_conn.stop()
             self.stop()
             self.signal_error.emit(f"Потеряно соединение с {self._inrat.name}")
+            self.event.emit(DeviceEvent(
+                type="ConnectionLost",
+                desc=f"Потеряно соединение с {self._inrat.name}",
+            ))
             self.process_disconnect()
             self.signal_disconnected.emit()
 
     def is_running(self) -> bool:
         return self._running
+
+    def is_connected(self) -> bool:
+        """ признак активного соединения с устройством """
+        return self._inrat is not None and self._inrat.is_connected
+
+    @property
+    def name(self) -> str:
+        """ имя подключенного устройства """
+        return self._inrat.name if self._inrat else ""
 
     # ui widgets
     @property
@@ -264,7 +278,7 @@ class inRatDevice(QObject):
                 self._exg_datablock = SignalDatablock(
                     type_signal=cfg.type_signal, sample_rate=cfg.sample_rate,
                     counter_per_sample=Pkt.SamplesCountEcg, number_channels=Pkt.ChannelsCountEcg,
-                    channel_names=["ecg"], units="uV", physical_max=6000, physical_min=-6000
+                    channel_names=["ecg"], units="uV", physical_max=6000, physical_min=-6000,
                 )
                 self._inrat.sample_rate = cfg.sample_rate
                 self._inrat.hpf = cfg.hpf
@@ -298,16 +312,21 @@ class inRatDevice(QObject):
             self.signal_enable_temp.emit(True)
         else:
             self.signal_enable_temp.emit(False)
-        if "A" in self._config.events.type_events:
-            enabled_events |= EventType.ACTIVITY
-        if "O" in self._config.events.type_events:
-            enabled_events |= EventType.ORIENTATION
-        if "F" in self._config.events.type_events:
-            enabled_events |= EventType.FREEFALL
+        if self._exg_datablock:
+            if "A" in self._config.events.type_events:
+                enabled_events |= EventType.ACTIVITY
+                self._exg_datablock.event_markers.append("A")
+            if "O" in self._config.events.type_events:
+                enabled_events |= EventType.ORIENTATION
+                self._exg_datablock.event_markers.append("O")
+            if "F" in self._config.events.type_events:
+                enabled_events |= EventType.FREEFALL
+                self._exg_datablock.event_markers.append("F")
         self._inrat.enabled_events = enabled_events
 
     def process_connect(self, device: BLEDevice):
         """ обработка соединения с inRat """
+        self._last_device = device
         self._inrat = inRat(ble_device=device)
         future = asyncio.run_coroutine_threadsafe(self._inrat.connect(), self._loop)
         future.add_done_callback(self.on_device_connected)
@@ -318,6 +337,11 @@ class inRatDevice(QObject):
                 desc=f"{self._inrat.name} подсоединен"
             )
         )
+
+    def retry_connect(self):
+        """ повторное соединение с последним устройством """
+        if self._last_device is not None:
+            self.process_connect(self._last_device)
 
     def on_device_connected(self, future: Future):
         """ обработка результата соединения с устройством """
@@ -367,11 +391,20 @@ class inRatDevice(QObject):
             msg = (f"Не удалось соединиться с {self._inrat.name}!\n"
                    f"Повторите попытку")
             self.signal_error.emit(msg)
+            self.event.emit(
+                DeviceEvent(
+                    type="ConnectError",
+                    desc=f"Не удалось подключиться к {self._inrat.name}"
+                )
+            )
 
-    def process_disconnect(self):
-        """ обработка соединения с inRat """
+    def process_disconnect(self) -> Future | None:
+        """ обработка отсоединения от inRat """
+        if self._inrat is None:
+            return None
         future = asyncio.run_coroutine_threadsafe(self._inrat.disconnect(), self._loop)
         future.add_done_callback(self.on_device_disconnected)
+        return future
 
     def on_device_disconnected(self, future: Future):
         """ обработка результата отсоединения от устройства """
