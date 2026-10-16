@@ -15,7 +15,7 @@ class ConfigDetector:
     win_sec: int | float
     refractory_sec: int | float
     twave_sec: int | float = 0.15
-    enabled: bool = True
+    enabled: bool = False
     subject: Subject = Subject.HUMAN
 
 

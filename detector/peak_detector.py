@@ -25,6 +25,7 @@ class QrsDetector(QObject):
     """
     event = Signal(object)
     parentevent = Signal(object)
+    signal_enable_changed = Signal(bool)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -57,6 +58,7 @@ class QrsDetector(QObject):
     @enable.setter
     def enable(self, state: bool):
         self._config.enabled = state
+        self.signal_enable_changed.emit(state)
 
     @property
     def config_pane(self) -> FrmConfigDetectorPane | None:
@@ -70,6 +72,7 @@ class QrsDetector(QObject):
         # переинициализация детектора, если ЭКГ уже запущена
         if self._params is not None:
             self._init_detector()
+        self.signal_enable_changed.emit(self._config.enabled)
         logger.info(f"{self.__class__}: применены настройки детектора {config}")
 
     def _init_detector(self):

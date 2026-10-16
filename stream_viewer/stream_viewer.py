@@ -119,6 +119,7 @@ class StreamViewer(pg.PlotWidget):
         self.legend_ev.anchor(itemPos=(0, 1), parentPos=(0, 1), offset=(35, -35))
 
         self._legend_hr = None
+        self._hr_enabled = True
         # self._r_peak_lines = []
 
         self.setLabel("left", left_label, color="white")
@@ -189,10 +190,8 @@ class StreamViewer(pg.PlotWidget):
         if not params:
             return None
 
-        if self._sig_datablock.type_signal == TypeSignal.ECG and not self._legend_hr:
-            self._legend_hr = pg.LabelItem(text="ЧСС --", size="25pt", color="white")
-            self._legend_hr.setParentItem(self.graphicsItem())  # на сцену поверх графика
-            self._legend_hr.anchor(itemPos=(1, 0), parentPos=(1, 0), offset=(-10, 10))
+        if self._sig_datablock.type_signal == TypeSignal.ECG and self._hr_enabled and not self._legend_hr:
+            self._create_hr_legend()
 
         type_signal = self._sig_datablock.type_signal.value
         self.unit = self._sig_datablock.units
@@ -224,6 +223,28 @@ class StreamViewer(pg.PlotWidget):
 
         self._arrange_traces(pens)
         self._arrange_scatters()
+
+    def _create_hr_legend(self):
+        """ создание лейбла чсс на графике ЭКГ """
+        self._legend_hr = pg.LabelItem(text="ЧСС --", size="25pt", color="white")
+        self._legend_hr.setParentItem(self.graphicsItem())  # на сцену поверх графика
+        self._legend_hr.anchor(itemPos=(1, 0), parentPos=(1, 0), offset=(-10, 10))
+
+    def set_hr_enabled(self, enabled: bool):
+        """ показать/скрыть лейбл чсс при включении/отключении детектора R-пиков """
+        self._hr_enabled = enabled
+
+        if not enabled:
+            if self._legend_hr is not None:
+                self._legend_hr.setVisible(False)
+            return
+
+        if self._legend_hr is None:
+            if self._sig_datablock is not None and self._sig_datablock.type_signal == TypeSignal.ECG:
+                self._create_hr_legend()
+        else:
+            self._legend_hr.setText("ЧСС --")
+            self._legend_hr.setVisible(True)
 
     def _arrange_traces(self, pens: list):
         """ настройка объектов отображения сигнала под новое количество каналов """

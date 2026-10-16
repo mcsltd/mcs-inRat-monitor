@@ -60,6 +60,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                       ("±1 мВ", 1 * 1e-3), ("±1.5 мВ", 1.5 * 1e-3), ("±2 мВ", 2 * 1e-3)], default_idx_y=0,
         )
         self.display_sig = StreamViewer(TypeSignal.ECG.value)
+        self.display_sig.set_hr_enabled(self._detector.enable)
+        self._detector.signal_enable_changed.connect(self.display_sig.set_hr_enabled)
         self.control_pane_sig.signal_x_changed.connect(self.display_sig.set_x_range)
         self.control_pane_sig.signal_y_changed.connect(self.display_sig.set_y_range)
         self.layout_control_pane_exg.addStretch()
