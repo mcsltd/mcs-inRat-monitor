@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'dlg_configJDDJVr.ui'
+## Form generated from reading UI file 'dlg_confignWBBBc.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.12.0
 ##
@@ -17,12 +17,16 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QDialog, QGridLayout, QSizePolicy,
     QTabWidget, QVBoxLayout, QWidget)
+import resources.resources_rc
 
 class Ui_DlgConfig(object):
     def setupUi(self, DlgConfig):
         if not DlgConfig.objectName():
             DlgConfig.setObjectName(u"DlgConfig")
         DlgConfig.resize(756, 558)
+        icon = QIcon()
+        icon.addFile(u":/images/icon.ico", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        DlgConfig.setWindowIcon(icon)
         self.gridLayout = QGridLayout(DlgConfig)
         self.gridLayout.setObjectName(u"gridLayout")
         self.verticalLayout = QVBoxLayout()
