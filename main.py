@@ -15,6 +15,7 @@ from device.enums import TypeSignal
 from ble_scanner.scanner import BleScanner
 from events import DeviceEvent
 from stream_viewer.stream_viewer import StreamViewer, TempStreamViewer, FrmControlXYRange
+from ui.dlg_about import AboutDialog
 from ui.dlg_config import DlgConfig
 from utils.check_bluetooth import check_bluetooth_status
 from storage.storage import Storage
@@ -25,7 +26,7 @@ from widget import WaitingDialog
 # constants
 COMPANY_NAME = "Medical Computer Systems Ltd"
 APP_NAME = "inRat monitor"
-__version__ = "1.2.4"
+__version__ = "1.2.5"
 
 logger = logging.getLogger(__name__)
 
@@ -180,6 +181,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # ui elements
         self._waiting_connection_dlg = WaitingDialog(self)
 
+        self.actionAbout.triggered.connect(self._on_about_clicked)
         self.actionExit.triggered.connect(self.close)
 
         modules = [
@@ -471,6 +473,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             future.add_done_callback(lambda _: on_done())
 
+    def _on_about_clicked(self):
+        """ обработка нажатия на вкладку о Программе """
+        dlg = AboutDialog(version=__version__, parent=self)
+        dlg.show()
 
 if __name__ == "__main__":
     app = QApplication([])
