@@ -101,6 +101,25 @@ class Storage(QObject):
     def duration_min(self) -> int:
         return self._duration_min
 
+    def make_video_file_path(self) -> str | None:
+        """
+        путь для файла записи видео в папку текущей записи сигналов.
+
+        Имя файла согласовано с edf: то же время старта и номер файла
+        (video_{HH_MM_SS}_{cnt:03d}.mp4). Возвращает None, если папка
+        или имя устройства ещё не определены.
+        """
+        if not self._write_dir or not self._device_name:
+            logger.debug(f"{self.__class__}: путь для видео недоступен "
+                         f"(write_dir={self._write_dir}, device={self._device_name})")
+            return None
+
+        path_to_save = rf"{self._write_dir}\{self._device_name}"
+        os.makedirs(path_to_save, exist_ok=True)
+
+        start_time = (self._recording_start_time or datetime.datetime.now()).strftime("%H_%M_%S")
+        return rf"{path_to_save}\video_{start_time}_{self._cnt_file:03d}.mp4"
+
     def process_update(self, config: StorageConfig):
         """ обновление параметров из окна настроек """
         if config.write_dir:

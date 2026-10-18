@@ -285,6 +285,7 @@ class inRatDevice(QObject):
         if self._config.activated and not self._inrat.is_activated:
             _ = asyncio.run_coroutine_threadsafe(self._inrat.activate(True), self._loop)
 
+        device_name = self._property.name if self._property else None
         enabled_channels = EnabledChannels.NONE
         enabled_sig, enabled_acc = False, False
         self._exg_datablock, self._acc_datablock = None, None
@@ -294,6 +295,7 @@ class inRatDevice(QObject):
                     type_signal=cfg.type_signal, sample_rate=cfg.sample_rate,
                     counter_per_sample=Pkt.SamplesCountEcg, number_channels=Pkt.ChannelsCountEcg,
                     channel_names=["ecg"], units="uV", physical_max=6000, physical_min=-6000,
+                    device_name=device_name,
                 )
                 self._inrat.sample_rate = cfg.sample_rate
                 self._inrat.hpf = cfg.hpf
@@ -304,7 +306,8 @@ class inRatDevice(QObject):
                 self._acc_datablock = SignalDatablock(
                     type_signal=TypeSignal.ACC, sample_rate=100, counter_per_sample=Pkt.SamplesCountAcc,
                     number_channels=Pkt.ChannelsCountAcc, channel_names=["acc_x", "acc_y", "acc_z"],
-                    units="G", physical_max=16.0, physical_min=-16.0
+                    units="G", physical_max=16.0, physical_min=-16.0,
+                    device_name=device_name,
                 )
 
                 self._inrat.full_scale_accelerometer = cfg.scale
@@ -388,11 +391,6 @@ class inRatDevice(QObject):
                 self.parentevent.emit(DevicePropertyEvent(property=self._property))
             except Exception as err:
                 logger.error(f"{self.__class__}: ошибка формирования DeviceProperty - {err}")
-
-            if self._acc_datablock:
-                self._acc_datablock.device_name = self._inrat.name
-            if self._exg_datablock:
-                self._exg_datablock.device_name = self._inrat.name
 
             if self._inrat.firmware not in FIRMWARE_ACC_EXG:
                 title = "Новая версия прошивки"

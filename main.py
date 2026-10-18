@@ -143,6 +143,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.device.signal_enable_temp.connect(self.enable_display_temp)
 
         self.device.event.connect(self.process_event)
+        # DevicePropertyEvent от устройства → Storage (имя устройства для папки записей)
+        self.device.event.connect(self.storage.process_event)
 
         self.scanner.signal_connect.connect(self.device.process_connect)
         self.scanner.signal_scan_requested.connect(self.on_scan_requested)
@@ -161,6 +163,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.storage.config_pane.signal_apply.connect(self.storage.process_update)
         self._detector.config_pane.signal_apply.connect(self._detector.process_update)
         self.camera.config_pane.signal_apply.connect(self.camera.process_update)
+
+        # запись видео синхронна с записью сигналов (тот же старт/стоп/ролловер)
+        self.camera.set_video_file_provider(self.storage.make_video_file_path)
+        self.storage.signal_recording_started.connect(
+            lambda *_: self.camera.start_video_recording()
+        )
+        self.storage.signal_recording_new_file.connect(
+            lambda *_: self.camera.rotate_video_recording()
+        )
+        self.storage.signal_recording_stopped.connect(self.camera.stop_video_recording)
 
         # настройки доступны всегда: подключение/отключение устройства выполняется в них
         self.pushButtonConfig.setEnabled(True)
