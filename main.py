@@ -2,8 +2,11 @@ import logging
 import sys
 
 from PySide6 import QtAsyncio
-from PySide6.QtCore import QSettings, QTimer
-from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QHBoxLayout, QFrame
+from PySide6.QtCore import Qt, QSettings, QTimer
+from PySide6.QtWidgets import (
+    QMainWindow, QApplication, QMessageBox, QHBoxLayout, QVBoxLayout,
+    QFrame, QSplitter, QWidget,
+)
 
 from camera.camera import Camera
 from detector.peak_detector import QrsDetector
@@ -66,8 +69,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.control_pane_sig.signal_y_changed.connect(self.display_sig.set_y_range)
         self.layout_control_pane_exg.addStretch()
         self.layout_control_pane_exg.addWidget(self.control_pane_sig)
-        self.verticalLayoutDisplay.addLayout(self.layout_control_pane_exg)
-        self.verticalLayoutDisplay.addWidget(self.display_sig)
+        self.section_exg = QWidget()
+        self._fill_section(self.section_exg, self.layout_control_pane_exg, self.display_sig)
 
         # отображение сигнала акселерометра
         self.layout_control_pane_acc = QHBoxLayout()
@@ -83,29 +86,42 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.control_pane_acc.signal_y_changed.connect(self.display_acc.set_y_range)
         self.layout_control_pane_acc.addStretch()
         self.layout_control_pane_acc.addWidget(self.control_pane_acc)
-        self.verticalLayoutDisplay.addLayout(self.layout_control_pane_acc)
-        self.verticalLayoutDisplay.addWidget(self.display_acc)
+        self.section_acc = QWidget()
+        self._fill_section(self.section_acc, self.layout_control_pane_acc, self.display_acc)
 
         # отображение сигнала температуры
         self.display_temp = TempStreamViewer(left_label="temp", units="°C")
         self.device.add_receiver_data(self.storage)
-        self.verticalLayoutDisplay.addWidget(self.display_temp)
 
-        # отображение видео с камеры (левая колонка)
-        self.verticalLayoutCamera.addWidget(self.camera.output_pane)
+        # вертикальный сплиттер секций графиков (перетаскиваемая высота)
+        self.graphs_splitter = QSplitter(Qt.Orientation.Vertical)
+        self.graphs_splitter.addWidget(self.section_exg)
+        self.graphs_splitter.addWidget(self.section_acc)
+        self.graphs_splitter.addWidget(self.display_temp)
+        self.graphs_splitter.setSizes([260, 220, 140])
+        self.graphs_splitter.setStretchFactor(0, 1)
+        self.graphs_splitter.setStretchFactor(1, 1)
+        self.graphs_splitter.setStretchFactor(2, 1)
+        self.graphs_splitter.setChildrenCollapsible(False)
+        self.graphs_splitter.setHandleWidth(6)
 
-        # область графиков забирает свободное место, видимые графики растягиваются
-        self.verticalLayout.setStretchFactor(self.verticalLayoutDisplay, 1)
-        self.verticalLayoutDisplay.setStretchFactor(self.display_sig, 1)
-        self.verticalLayoutDisplay.setStretchFactor(self.display_acc, 1)
-        self.verticalLayoutDisplay.setStretchFactor(self.display_temp, 1)
+        # горизонтальный сплиттер: [графики | видео] (перетаскиваемая ширина)
+        self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.main_splitter.addWidget(self.graphs_splitter)
+        self.main_splitter.addWidget(self.camera.output_pane)
+        self.main_splitter.setSizes([600, 600])
+        self.main_splitter.setStretchFactor(0, 1)
+        self.main_splitter.setStretchFactor(1, 1)
+        self.main_splitter.setChildrenCollapsible(False)
+        self.main_splitter.setHandleWidth(6)
 
-        # убираем фиксированный отступ спейсера над строкой состояния
-        self.verticalSpacer.changeSize(
-            0, 0,
-            self.verticalSpacer.sizePolicy().horizontalPolicy(),
-            self.verticalSpacer.sizePolicy().verticalPolicy(),
-        )
+        # заменяем статичные layout'ы области отображения сплиттером
+        for _ in range(self.horizontalLayout_2.count()):
+            self.horizontalLayout_2.removeItem(self.horizontalLayout_2.itemAt(0))
+        self.horizontalLayout_2.addWidget(self.main_splitter)
+
+        # область графиков забирает свободное место
+        self.verticalLayout.setStretchFactor(self.horizontalLayout_2, 1)
 
         self.enable_display_sig(False)
         self.enable_display_acc(False)
@@ -130,8 +146,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.scanner.signal_connect.connect(self.device.process_connect)
         self.scanner.signal_scan_requested.connect(self.on_scan_requested)
-        self.scanner.signal_select_camera.connect(self.camera.set_camera_name)
+        self.scanner.signal_scan_finished.connect(self.on_scan_finished)
+        self.scanner.signal_found.connect(self.device.config_pane.add_device)
         self.pushButtonConfig.clicked.connect(self.on_config_clicked)
+
+        # управление подключением из окна настроек устройства
+        device_pane = self.device.config_pane
+        device_pane.signal_connect_requested.connect(self.on_device_connect_requested)
+        device_pane.signal_disconnect_requested.connect(self.on_device_disconnect_requested)
+        device_pane.signal_device_selected.connect(self.on_device_selected)
+
+        # применение настроек модулей (подключение один раз)
+        device_pane.signal_apply.connect(self.device.process_update)
+        self.storage.config_pane.signal_apply.connect(self.storage.process_update)
+        self._detector.config_pane.signal_apply.connect(self._detector.process_update)
+        self.camera.config_pane.signal_apply.connect(self.camera.process_update)
+
+        # настройки доступны всегда: подключение/отключение устройства выполняется в них
+        self.pushButtonConfig.setEnabled(True)
 
         # ui elements
         self._waiting_connection_dlg = WaitingDialog(self)
@@ -158,6 +190,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         line.setFrameShadow(QFrame.Shadow.Sunken)
         return line
 
+    @staticmethod
+    def _fill_section(section: QWidget, control_layout, plot) -> None:
+        """ наполнение секции сплиттера: строка управления + график """
+        layout = QVBoxLayout(section)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(4)
+        layout.addLayout(control_layout)
+        layout.addWidget(plot, 1)
+
 
     def process_event(self, event):
         """ обработка приходящих событий от модулей """
@@ -178,7 +219,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         elif event.type == "ConnectError":
             self._waiting_connection_dlg.close()
             self.device.battery_pane.setVisible(False)
-            self.pushButtonConfig.setEnabled(False)
+            self.pushButtonConfig.setEnabled(True)
             self.scanner.set_enabled(True)
             self._offer_reconnect()
 
@@ -191,17 +232,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if event.type == "Disconnect":
             self.device.stop()
             self.device.process_disconnect()
-            self.pushButtonConfig.setEnabled(False)
+            self.pushButtonConfig.setEnabled(True)
             self._waiting_connection_dlg.close()
             self.device.battery_pane.setVisible(False)
         if event.type == "Disconnected":
             self._waiting_connection_dlg.close()
             self.device.battery_pane.setVisible(False)
-            self.pushButtonConfig.setEnabled(False)
+            self.pushButtonConfig.setEnabled(True)
             self.scanner.set_enabled(True)
         if event.type == "ConnectionLost":
             self.device.battery_pane.setVisible(False)
-            self.pushButtonConfig.setEnabled(False)
+            self.pushButtonConfig.setEnabled(True)
             self.scanner.set_enabled(True)
             QMessageBox.critical(
                 self, "Потеря соединения",
@@ -212,12 +253,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         logger.debug(f"Окно отображения сигналов акселерометра: {state}")
         if state:
             self.device.add_receiver_acc(self.display_acc)
-            self.display_acc.setVisible(True)
-            self.control_pane_acc.setVisible(True)
+            self.section_acc.setVisible(True)
         else:
             self.device.remove_receiver_acc(self.display_acc)
-            self.display_acc.setVisible(False)
-            self.control_pane_acc.setVisible(False)
+            self.section_acc.setVisible(False)
 
     def enable_display_sig(self, state: bool):
         logger.debug(f"Окно отображения сигналов ЭКГ/ЭМГ: {state}")
@@ -226,14 +265,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.display_sig.add_receiver(self._detector)
             self.storage.add_receiver(self._detector)
 
-            self.display_sig.setVisible(True)
-            self.control_pane_sig.setVisible(True)
+            self.section_exg.setVisible(True)
         else:
             self.device.remove_receiver_sig(self.display_sig)
             self.display_sig.remove_receiver(self._detector)
             self.storage.remove_receiver(self._detector)
-            self.display_sig.setVisible(False)
-            self.control_pane_sig.setVisible(False)
+            self.section_exg.setVisible(False)
 
     def enable_display_temp(self, state: bool):
         logger.debug(f"Окно отображения сигнала температуры: {state}")
@@ -318,17 +355,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         pane_device = self.device.config_pane
         if pane_device:
-            pane_device.signal_apply.connect(self.device.process_update)
             dlg.add_pane(pane_device)
 
-        pane_detector = self._detector.config_pane
-        pane_detector.signal_apply.connect(self._detector.process_update)
-        dlg.add_pane(pane_detector)
-
         pane_storage = self.storage.config_pane
-        pane_storage.signal_apply.connect(self.storage.process_update)
         pane_storage.set_default()
         dlg.add_pane(pane_storage)
+
+        pane_detector = self._detector.config_pane
+        dlg.add_pane(pane_detector)
+
+        pane_camera = self.camera.config_pane
+        pane_camera.set_default(
+            self.camera.is_enabled, self.camera.camera_name
+        )
+        dlg.add_pane(pane_camera)
 
         try:
             dlg.exec()
@@ -337,6 +377,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 pane_device.setParent(None)
             pane_detector.setParent(None)
             pane_storage.setParent(None)
+            pane_camera.setParent(None)
 
     def on_scan_requested(self):
         """ обработка запроса поиска и подключения нового устройства """
@@ -349,15 +390,60 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self._disconnect_then(self.scanner.start_scan)
 
-    def _confirm_disconnect_for_scan(self) -> bool:
-        """ подтверждение разрыва текущего соединения ради поиска нового устройства """
+    def on_device_connect_requested(self):
+        """ включение устройства в настройках: запуск поиска устройств """
+        if self.device.is_connected():
+            return
+        self.scanner.start_scan()
+
+    def on_device_disconnect_requested(self):
+        """ отключение устройства в настройках """
+        if self.device.is_running():
+            self.device.stop()
+        if self.device.is_connected():
+            self.device.process_disconnect()
+        else:
+            self.device.config_pane.set_connection_state(False)
+
+    def on_device_selected(self, device):
+        """ подключение к устройству, выбранному в настройках """
+        if not device:
+            return
+
+        if self.device.is_connected():
+            if self.device.name == device.name:
+                return
+            if not self._confirm_disconnect_for_scan(new_name=device.name):
+                # выбор отменен - возврат к состоянию подключенного устройства
+                self.device.config_pane.set_connection_state(True, self.device.name)
+                return
+            self._disconnect_then(lambda: self.device.process_connect(device))
+            return
+
+        self.device.process_connect(device)
+
+    def on_scan_finished(self, selected: bool):
+        """ обработка результата окна поиска """
+        if not selected and not self.device.is_connected():
+            # поиск закрыт без выбора устройства - возврат статуса в настройках
+            self.device.config_pane.set_connection_state(False)
+
+    def _confirm_disconnect_for_scan(self, new_name: str | None = None) -> bool:
+        """ подтверждение разрыва текущего соединения ради нового подключения """
+        if new_name:
+            text = (
+                f"Подключено устройство {self.device.name}. "
+                f"Подключение к {new_name} разорвёт текущее соединение. Продолжить?"
+            )
+        else:
+            text = (
+                f"Подключено устройство {self.device.name}. "
+                "Поиск нового устройства разорвёт текущее соединение. Продолжить?"
+            )
         box = QMessageBox(self)
         box.setIcon(QMessageBox.Icon.Question)
         box.setWindowTitle("Новое подключение")
-        box.setText(
-            f"Подключено устройство {self.device.name}. "
-            "Поиск нового устройства разорвёт текущее соединение. Продолжить?"
-        )
+        box.setText(text)
         box.setStandardButtons(
             QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel
         )

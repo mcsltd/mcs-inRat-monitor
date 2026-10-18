@@ -13,7 +13,8 @@ class BleScanner(QObject):
     signal_found = Signal(object)
     signal_connect = Signal(object)
     signal_scan_requested = Signal()
-    signal_select_camera = Signal(object)  # название камеры (str) или None
+    # результат окна поиска: True - устройство выбрано, False - отмена
+    signal_scan_finished = Signal(bool)
 
     def __init__(self, loop: AbstractEventLoop):
         super().__init__()
@@ -26,6 +27,8 @@ class BleScanner(QObject):
         self._seen_names: set[str] = set()
         self._dlg_scan: DlgBleScan | None = None
         self._scan_future = None
+        # выбрано ли устройство в окне поиска
+        self._selected = False
 
         self._control_pane = FrmControlScannerPane()
         self._control_pane.pushButtonStart.clicked.connect(self.on_start_clicked)
@@ -38,13 +41,13 @@ class BleScanner(QObject):
     def start_scan(self):
         """ запуск поиска и открытие окна выбора устройства """
         self.run()
+        self._selected = False
 
         self._dlg_scan = DlgBleScan()
         self._dlg_scan.setWindowModality(Qt.WindowModality.ApplicationModal)
         self.signal_found.connect(self._dlg_scan.set_device)
         self._dlg_scan.signal_select.connect(self.on_open_clicked)
         self._dlg_scan.finished.connect(self._on_dlg_finished)
-        self._dlg_scan.signal_select_camera.connect(self.signal_select_camera.emit)
         self._dlg_scan.open()
 
     def _on_dlg_finished(self, result):
@@ -56,12 +59,14 @@ class BleScanner(QObject):
             except (RuntimeError, TypeError):
                 pass
             self._dlg_scan = None
+        self.signal_scan_finished.emit(self._selected)
 
     def on_open_clicked(self, device):
         """ обработка кнопки открытия устройства """
         self.stop()
         if not device:
             return
+        self._selected = True
         QTimer.singleShot(700, lambda: self.signal_connect.emit(device))
 
     @property

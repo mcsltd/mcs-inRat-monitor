@@ -4,16 +4,11 @@ from PySide6.QtCore import QObject
 from PySide6.QtMultimedia import (
     QCamera, QCameraDevice, QMediaCaptureSession, QMediaDevices
 )
-from PySide6.QtWidgets import QFrame
 
+from camera.config_pane import FrmConfigCamera
 from camera.video_pane import CameraVideoPane
 
-
-
 logger = logging.getLogger(__name__)
-
-
-
 
 class Camera(QObject):
     """ Класс для подключения и управления камерой """
@@ -24,18 +19,33 @@ class Camera(QObject):
         self._qcamera: QCamera | None = None
         self._session: QMediaCaptureSession | None = None
 
-        # панель вывода видео (добавляется в verticalLayoutCamera)
+        # панель вывода видео (добавляется в main_splitter окна)
         self._output_pane = CameraVideoPane()
         self._output_pane.closed.connect(self.close)
         self._output_pane.setVisible(False)
 
-        self._control_pane = ...
-        self._config_pane = ...
+        self._config_pane = FrmConfigCamera()
 
+    def process_update(self, camera_name: str | None = None):
+        """ включение/отключение камеры по сигналу из настроек """
+        if not camera_name:
+            self.close()
+            return
+        self.set_camera_name(camera_name)
 
     @property
-    def control_pane(self):
-        return self._control_pane
+    def config_pane(self):
+        return self._config_pane
+
+    @property
+    def is_enabled(self) -> bool:
+        """ признак включенной камеры """
+        return self._camera is not None
+
+    @property
+    def camera_name(self) -> str | None:
+        """ название текущей камеры """
+        return self._camera.description() if self._camera else None
 
     @property
     def output_pane(self) -> CameraVideoPane:

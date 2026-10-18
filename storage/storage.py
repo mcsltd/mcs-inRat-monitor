@@ -20,6 +20,10 @@ from storage.config_pane import FrmConfigStorage
 from storage.info_pane import FrmInfoRecording
 from storage.models import StorageConfig
 from storage.ui.frm_control_storage import FrmControlStorage
+try:
+    from events import DevicePropertyEvent
+except Exception:
+    DevicePropertyEvent = None
 
 logger = logging.getLogger(__name__)
 
@@ -608,10 +612,17 @@ class Storage(QObject):
 
     def process_event(self, event):
         """ обработка события от приёмников/родителей """
+        if DevicePropertyEvent is not None and isinstance(event, DevicePropertyEvent):
+            try:
+                self._device_name = event.property.name
+            except Exception as err:
+                logger.warning(f"{self.__class__}: не удалось установить имя устройства из DeviceProperty - {err}")
+            return
+
         if not self._recording:
             return
 
-        if event["type"] == "RPeakDetected":
+        if isinstance(event, dict) and event.get("type") == "RPeakDetected":
             timestamp = (event["data"] - self._exg_start_sample * self._exg_param.counter_per_sample) / self._exg_param.sample_rate
             self._ev_buffer.append((timestamp, "R"))
 

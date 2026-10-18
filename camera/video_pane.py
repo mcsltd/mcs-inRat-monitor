@@ -1,68 +1,19 @@
 import logging
 
-from PySide6.QtCore import QPoint, Qt, Signal
-from PySide6.QtGui import QColor, QMouseEvent, QPainter, QPen
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtMultimediaWidgets import QVideoWidget
 from PySide6.QtWidgets import (
-    QFrame, QHBoxLayout, QLabel, QSizePolicy, QToolButton, QVBoxLayout, QWidget
+    QFrame, QHBoxLayout, QLabel, QSizePolicy, QToolButton, QVBoxLayout
 )
 
 logger = logging.getLogger(__name__)
 
-# размеры панели с видео
-DEFAULT_WIDTH = 480
+# минимальная ширина панели с видео (при ресайзе сплиттером)
 MIN_WIDTH = 240
 
 
-class _ResizeHandle(QWidget):
-    """ уголок изменения ширины панели (перетаскивание по горизонтали) """
-
-    def __init__(self, target: "CameraVideoPane", parent=None):
-        super().__init__(parent)
-        self._target = target
-        self._start_pos = QPoint()
-        self._start_width = 0
-        self._dragging = False
-
-        self.setFixedSize(16, 16)
-        self.setCursor(Qt.CursorShape.SizeHorCursor)
-        self.setToolTip("Изменить ширину")
-        self.setAttribute(Qt.WidgetAttribute.WA_NoMousePropagation, True)
-
-    def mousePressEvent(self, event: QMouseEvent):
-        """ начало перетаскивания """
-        if event.button() != Qt.MouseButton.LeftButton:
-            return
-        self._dragging = True
-        self._start_pos = event.globalPosition().toPoint()
-        self._start_width = self._target.width()
-        event.accept()
-
-    def mouseMoveEvent(self, event: QMouseEvent):
-        """ изменение ширины панели при перетаскивании """
-        if not self._dragging:
-            return
-        delta = event.globalPosition().toPoint().x() - self._start_pos.x()
-        self._target.set_panel_width(self._start_width + delta)
-        event.accept()
-
-    def mouseReleaseEvent(self, event: QMouseEvent):
-        """ окончание перетаскивания """
-        if event.button() == Qt.MouseButton.LeftButton:
-            self._dragging = False
-            event.accept()
-
-    def paintEvent(self, _):
-        """ отрисовка точек уголка """
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        painter.setPen(QPen(QColor(255, 255, 255, 160), 2))
-        for x, y in ((13, 13), (9, 9), (5, 5)):
-            painter.drawPoint(x, y)
-
-
 class CameraVideoPane(QFrame):
-    """ панель отображения видео с выбранной камеры """
+    """ панель отображения видео с выбранной камерой """
 
     closed = Signal()  # закрытие панели по крестику
 
@@ -92,7 +43,7 @@ class CameraVideoPane(QFrame):
             """
         )
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
-        self.setFixedWidth(DEFAULT_WIDTH)
+        self.setMinimumWidth(MIN_WIDTH)
 
         # шапка: название камеры и кнопка закрытия
         self._label_title = QLabel("Камера")
@@ -125,9 +76,6 @@ class CameraVideoPane(QFrame):
         layout.addLayout(header)
         layout.addWidget(self._video, 1)
 
-        # уголок изменения ширины поверх видео в правом нижнем углу
-        self._handle = _ResizeHandle(self)
-
     def _on_close_clicked(self):
         """ обработка нажатия крестика """
         self.closed.emit()
@@ -145,21 +93,3 @@ class CameraVideoPane(QFrame):
     def set_title(self, text: str):
         """ установка текста в шапке панели """
         self._label_title.setText(text)
-
-    def set_panel_width(self, width: int):
-        """ фиксация ширины панели с ограничениями min/max """
-        window_width = self.window().width() if self.window() is not None else 0
-        max_width = max(MIN_WIDTH, window_width // 2)
-        value = max(MIN_WIDTH, min(int(width), max_width))
-
-        if value != self.width():
-            self.setFixedWidth(value)
-
-    def resizeEvent(self, event):
-        """ позиционирование уголка в правом нижнем углу """
-        super().resizeEvent(event)
-        margin = 3
-        self._handle.move(
-            self.width() - self._handle.width() - margin,
-            self.height() - self._handle.height() - margin,
-        )

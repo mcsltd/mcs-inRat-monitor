@@ -9,13 +9,23 @@ from device.res.frm_config_device import Ui_FrmConfigDevicePane
 class FrmConfigDevicePane(QFrame, Ui_FrmConfigDevicePane):
     """ Класс-фрейм для настроек inRat """
     signal_apply = Signal(object)
+    # запрос на подключение (открытие окна поиска устройств)
+    signal_connect_requested = Signal()
+    # запрос на отключение подключенного устройства
+    signal_disconnect_requested = Signal()
+    # выбор устройства из списка доступных
+    signal_device_selected = Signal(object)
 
     def __init__(self, config, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
         self.setWindowTitle("inRat")
 
+        # доступные устройства (имя -> BLEDevice)
+        self._devices: dict[str, object] = {}
+
         # setup combobox
+        self._setup_combobox_device_switch()
         self._setup_combobox_exg()
         self._setup_combobox_hpf()
         self._setup_combobox_gain()
@@ -26,15 +36,84 @@ class FrmConfigDevicePane(QFrame, Ui_FrmConfigDevicePane):
         self._config = config
         self.set_default()
 
+        self.comboBoxDeviceSwitch.currentIndexChanged.connect(self._on_device_switch_changed)
+        self.comboBoxDevices.currentIndexChanged.connect(self._on_device_selected)
         self.comboBoxAcc.currentIndexChanged.connect(self.on_acc_switched)
         self.comboBoxExg.currentIndexChanged.connect(self.on_exg_switched)
 
         self.pushButtonOk.clicked.connect(self._on_ok_clicked)
 
+    def _setup_combobox_device_switch(self):
+        """ настройка статуса подключения устройства """
+        data = [("Отключено", False), ("Включено", True)]
+        for text, value in data:
+            self.comboBoxDeviceSwitch.addItem(text, userData=value)
+
+    def update_config(self, config):
+        """ обновление конфигурации и перерисовка полей """
+        self._config = config
+        self.set_default()
+
+    def add_device(self, device):
+        """ добавление найденного устройства в список доступных """
+        name = getattr(device, "name", None)
+        if not name or name in self._devices:
+            return
+        self._devices[name] = device
+        # блокировка сигналов, чтобы добавление не приводило к авто-подключению
+        self.comboBoxDevices.blockSignals(True)
+        self.comboBoxDevices.addItem(name, name)
+        self.comboBoxDevices.blockSignals(False)
+
+    def set_connection_state(self, connected: bool, device_name: str | None = None):
+        """ синхронизация состояния переключателя с фактическим подключением """
+        self.comboBoxDeviceSwitch.blockSignals(True)
+        self.comboBoxDeviceSwitch.setCurrentIndex(
+            self.comboBoxDeviceSwitch.findData(connected)
+        )
+        self.comboBoxDeviceSwitch.blockSignals(False)
+        self.comboBoxDevices.setEnabled(connected)
+
+        if connected and device_name:
+            if device_name not in self._devices:
+                self.add_device(device_name)
+            idx = self.comboBoxDevices.findData(device_name)
+            if idx >= 0:
+                self.comboBoxDevices.blockSignals(True)
+                self.comboBoxDevices.setCurrentIndex(idx)
+                self.comboBoxDevices.blockSignals(False)
+
+    def _on_device_switch_changed(self, idx):
+        """ включение/отключение подключения к устройству """
+        enabled = bool(self.comboBoxDeviceSwitch.currentData())
+        self.comboBoxDevices.setEnabled(enabled)
+        if enabled:
+            self.signal_connect_requested.emit()
+        else:
+            self.signal_disconnect_requested.emit()
+
+    def _on_device_selected(self, idx):
+        """ подключение к выбранному устройству из списка """
+        if not self.comboBoxDevices.isEnabled():
+            return
+        device = self._devices.get(self.comboBoxDevices.currentData())
+        if device is not None:
+            self.signal_device_selected.emit(device)
+
     def set_default(self):
-        """ установка настроек по умолчанию """
-        if self._config.activated:
-            self.checkBoxActivated.setChecked(True)
+        """ установка настроек из конфигурации устройства """
+        self.checkBoxActivated.setChecked(bool(self._config.activated))
+
+        # сброс полей, заполняемых ниже по конфигурации
+        self.comboBoxExg.setCurrentIndex(0)
+        self.comboBoxExgGain.setCurrentIndex(0)
+        self.comboBoxExgHpf.setCurrentIndex(0)
+        self.comboBoxAcc.setCurrentIndex(0)
+        self.comboBoxAccScale.setCurrentIndex(0)
+        self.checkBoxTemp.setChecked(False)
+        self.checkBoxActivity.setChecked(False)
+        self.checkBoxOrientation.setChecked(False)
+        self.checkBoxFreefall.setChecked(False)
 
         for sig in self._config.signals:
             if isinstance(sig, ExgConfig):
@@ -48,22 +127,28 @@ class FrmConfigDevicePane(QFrame, Ui_FrmConfigDevicePane):
                 self.comboBoxExgHpf.setCurrentIndex(idx)
 
             elif isinstance(sig, AccConfig):
-                self.groupBoxEv.setEnabled(False)
                 idx = self.__find_sig_index(data=(sig.type_signal, sig.sample_rate), combobox=self.comboBoxAcc)
                 self.comboBoxAcc.setCurrentIndex(idx)
 
                 idx = self.comboBoxAccScale.findData(sig.scale)
                 self.comboBoxAccScale.setCurrentIndex(idx)
 
-        if "T" in self._config.events.type_events:
-            self.checkBoxTemp.setChecked(True)
+        if self._config.events:
+            if "T" in self._config.events.type_events:
+                self.checkBoxTemp.setChecked(True)
 
-        if self._config.events and self.groupBoxEv.isEnabled():
-            events = {"A": self.checkBoxActivity, "O": self.checkBoxOrientation, "F": self.checkBoxFreefall}
-            for key in events.keys():
-                if key in self._config.events.type_events:
-                    events[key].setChecked(True)
-            self.comboBoxAcEvThreshold.findData(data=self._config.events.thre)
+            if self.groupBoxEv.isEnabled():
+                events = {"A": self.checkBoxActivity, "O": self.checkBoxOrientation, "F": self.checkBoxFreefall}
+                for key in events.keys():
+                    if key in self._config.events.type_events:
+                        events[key].setChecked(True)
+                idx = self.comboBoxAcEvThreshold.findData(self._config.events.threshold)
+                if idx >= 0:
+                    self.comboBoxAcEvThreshold.setCurrentIndex(idx)
+
+        # синхронизация доступности групп с текущим выбором комбобоксов
+        self.on_acc_switched(0)
+        self.on_exg_switched(0)
 
     def on_acc_switched(self, idx):
         """ обработка переключения сигналов акселерометра """

@@ -22,9 +22,21 @@ from device.ui.control_pane import FrmControlDevicePane
 
 # ui
 from device.res.frm_battery_level import Ui_FrmBattery
-from events import DeviceEvent
+from events import DeviceEvent, DevicePropertyEvent
 
 logger = logging.getLogger(__name__)
+
+
+def make_default_config(activated: bool = False) -> DeviceConfig:
+    """ конфигурация устройства по умолчанию """
+    return DeviceConfig(
+        activated=activated,
+        signals=[
+            ExgConfig(type_signal=TypeSignal.ECG, sample_rate=1000, hpf=0.83, gain=1),
+            AccConfig(type_signal=TypeSignal.ACC, sample_rate=100, scale=2)
+        ],
+        events=EventConfig(type_events=["T",], threshold=2)
+    )
 
 class BatteryWidget(QFrame, Ui_FrmBattery):
     """ Виджет для отображения уровня заряда батареи."""
@@ -151,7 +163,8 @@ class inRatDevice(QObject):
         self._control_pane.pushButtonStop.clicked.connect(self.stop)
 
         # ui config
-        self._config_pane = None
+        self._config = make_default_config()
+        self._config_pane = FrmConfigDevicePane(self._config)
 
         self.battery_timer = 0
         self._battery_pane = BatteryWidget()
@@ -264,6 +277,10 @@ class inRatDevice(QObject):
         """ обновление параметров регистрации inRat """
         if config is None:
             raise ValueError("Не заданы параметры регистрации")
+        if self._inrat is None or not self._inrat.is_connected:
+            logger.debug(f"{self.__class__}: устройство не подключено, конфигурация сохранена")
+            self._config = config
+            return
         self._config = config
         if self._config.activated and not self._inrat.is_activated:
             _ = asyncio.run_coroutine_threadsafe(self._inrat.activate(True), self._loop)
@@ -342,14 +359,7 @@ class inRatDevice(QObject):
         except:
             pass
 
-        default_config = DeviceConfig(
-            activated=self._inrat.is_activated,
-            signals=[
-                ExgConfig(type_signal=TypeSignal.ECG, sample_rate=1000, hpf=0.83, gain=1),
-                AccConfig(type_signal=TypeSignal.ACC, sample_rate=100, scale=2)
-            ],
-            events=EventConfig(type_events=["T",], threshold=2)
-        )
+        default_config = make_default_config(activated=self._inrat.is_activated)
 
         if self._inrat.is_connected:
             self.event.emit(
@@ -366,6 +376,19 @@ class inRatDevice(QObject):
             self._control_pane.set_enabled(True)
             self.signal_connected.emit()
 
+            try:
+                self._property = DeviceProperty(
+                    name=self._inrat.name,
+                    serial=self._inrat.serial,
+                    model=self._inrat.model,
+                    hardware=self._inrat.hardware,
+                    firmware=self._inrat.firmware,
+                )
+                self.event.emit(DevicePropertyEvent(property=self._property))
+                self.parentevent.emit(DevicePropertyEvent(property=self._property))
+            except Exception as err:
+                logger.error(f"{self.__class__}: ошибка формирования DeviceProperty - {err}")
+
             if self._acc_datablock:
                 self._acc_datablock.device_name = self._inrat.name
             if self._exg_datablock:
@@ -377,8 +400,10 @@ class inRatDevice(QObject):
                 QMessageBox.warning(None, title, msg, QMessageBox.StandardButton.Ok)
 
             self.process_update(default_config)
-            self._config_pane = FrmConfigDevicePane(self._config)
+            self._config_pane.update_config(self._config)
+            self._config_pane.set_connection_state(True, self._inrat.name)
         else:
+            self._config_pane.set_connection_state(False)
             self.signal_disconnected.emit()
             msg = (f"Не удалось соединиться с {self._inrat.name}!\n"
                    f"Повторите попытку")
@@ -405,6 +430,7 @@ class inRatDevice(QObject):
         except Exception as exc:
             ...
 
+        self._config_pane.set_connection_state(False)
         self.event.emit(DeviceEvent(type="Disconnected", desc=f"{self._inrat.name} отсоединен!"))
         self.signal_disconnected.emit()
 

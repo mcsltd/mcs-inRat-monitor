@@ -15,9 +15,42 @@
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="0" column="0">
-    <layout class="QVBoxLayout" name="verticalLayout">
-     <item>
-      <widget class="QGroupBox" name="groupBoxInRat">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <widget class="QGroupBox" name="groupBoxConn">
+      <property name="title">
+       <string>Соединение</string>
+      </property>
+      <layout class="QFormLayout" name="formLayoutConn">
+       <item row="0" column="0">
+        <widget class="QLabel" name="labelDeviceSwitch">
+         <property name="text">
+          <string>Статус устройства:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QComboBox" name="comboBoxDeviceSwitch"/>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="labelDevices">
+         <property name="text">
+          <string>Доступные устройства:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QComboBox" name="comboBoxDevices">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QGroupBox" name="groupBoxInRat">
        <property name="title">
         <string>inRat</string>
        </property>
@@ -122,6 +155,14 @@
          <layout class="QGridLayout" name="gridLayoutTemp">
           <item row="0" column="1">
            <widget class="QLabel" name="labelInfoTemp">
+            <property name="toolTip">
+             <string>Событие &quot;Температура&quot;
+Единицы измерения: градусы Цельсия (°C)
+Формат записи: T {значение}</string>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QLabel { background-color: #0078D4; color: white; border-radius: 10px; font-weight: bold; padding: 2px;  }QLabel:hover { background-color: #106EBE; } </string>
+            </property>
             <property name="text">
              <string>?</string>
             </property>
@@ -129,6 +170,24 @@
           </item>
           <item row="0" column="0">
            <widget class="QCheckBox" name="checkBoxTemp">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>156</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>156</width>
+              <height>16777215</height>
+             </size>
+            </property>
             <property name="text">
              <string>Температура (Т)</string>
             </property>
@@ -189,6 +248,19 @@
           </item>
           <item row="2" column="1">
            <widget class="QLabel" name="labelInfoOrientation">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Событие &amp;quot;Смена ориентации&amp;quot;&lt;/p&gt;&lt;p&gt;Формат записи: O {code}&lt;/p&gt;&lt;p&gt;Коды ориентации:&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Courier New';&quot;&gt;- x+&lt;/span&gt; — датчик на левом боку&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Courier New';&quot;&gt;- x-&lt;/span&gt; — датчик на правом боку&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Courier New';&quot;&gt;- y+&lt;/span&gt; — датчик вертикально&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Courier New';&quot;&gt;- y-&lt;/span&gt; — датчик перевёрнут&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Courier New';&quot;&gt;- z+&lt;/span&gt; — датчик лицом вверх&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Courier New';&quot;&gt;- z-&lt;/span&gt; — датчик лицом вниз&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QLabel { background-color: #0078D4; color: white; border-radius: 10px; font-weight: bold; padding: 2px; }
+                                    QLabel:hover { background-color: #106EBE; } </string>
+            </property>
             <property name="text">
              <string>?</string>
             </property>
@@ -203,6 +275,13 @@
           </item>
           <item row="0" column="1">
            <widget class="QLabel" name="labelInfoActivity">
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Событие &amp;quot;Активность&amp;quot;&lt;/p&gt;&lt;p&gt;Условие срабатывания: превышение порога ускорения по одной из осей.&lt;br/&gt;Формат записи: A {x} {y} {z}&lt;/p&gt;&lt;p&gt; - ускорение в милли-g (mg) по осям X, Y, Z.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QLabel { background-color: #0078D4; color: white; border-radius: 10px; font-weight: bold; padding: 2px; }
+                                    QLabel:hover { background-color: #106EBE; } </string>
+            </property>
             <property name="text">
              <string>?</string>
             </property>
@@ -217,6 +296,13 @@
           </item>
           <item row="1" column="1">
            <widget class="QLabel" name="labelInfoFreefall">
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Событие &amp;quot;Прыжок&amp;quot;&lt;/p&gt;&lt;p&gt;Условие срабатывания: ускорение по осям X, Y, Z близко к 0.&lt;/p&gt;&lt;p&gt;Формат записи: &amp;quot;F&amp;quot;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QLabel { background-color: #0078D4; color: white; border-radius: 10px; font-weight: bold; padding: 2px; }
+                                    QLabel:hover { background-color: #106EBE; } </string>
+            </property>
             <property name="text">
              <string>?</string>
             </property>
@@ -224,6 +310,10 @@
           </item>
           <item row="3" column="1">
            <widget class="QLabel" name="labelInfoSens">
+            <property name="styleSheet">
+             <string notr="true">QLabel { background-color: #0078D4; color: white; border-radius: 10px; font-weight: bold; padding: 2px; }
+                                    QLabel:hover { background-color: #106EBE; } </string>
+            </property>
             <property name="text">
              <string>?</string>
             </property>
