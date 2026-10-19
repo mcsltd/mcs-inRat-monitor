@@ -176,7 +176,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.storage.signal_recording_stopped.connect(self.camera.stop_video_recording)
 
         # настройки доступны всегда: подключение/отключение устройства выполняется в них
-        self.pushButtonConfig.setEnabled(True)
+        # self.pushButtonConfig.setEnabled(True)
 
         # ui elements
         self._waiting_connection_dlg = WaitingDialog(self)
