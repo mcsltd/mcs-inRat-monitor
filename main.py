@@ -1,5 +1,7 @@
 import logging
 import sys
+import PySide6.QtOpenGL
+import PySide6.QtOpenGLWidgets
 
 from PySide6 import QtAsyncio
 from PySide6.QtCore import Qt, QSettings, QTimer
@@ -7,6 +9,7 @@ from PySide6.QtWidgets import (
     QMainWindow, QApplication, QMessageBox, QHBoxLayout, QVBoxLayout,
     QFrame, QSplitter, QWidget,
 )
+
 
 from camera.camera import Camera
 from detector.peak_detector import QrsDetector
@@ -26,7 +29,7 @@ from widget import WaitingDialog
 # constants
 COMPANY_NAME = "Medical Computer Systems Ltd"
 APP_NAME = "inRat monitor"
-__version__ = "1.2.5"
+__version__ = "1.2.5-rc"
 
 logger = logging.getLogger(__name__)
 
