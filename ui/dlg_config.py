@@ -1,3 +1,4 @@
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog, QFrame, QWidget, QGridLayout
 
 from resources.dlg_config import Ui_DlgConfig
@@ -8,6 +9,7 @@ class DlgConfig(QDialog, Ui_DlgConfig):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.setWindowModality(Qt.WindowModality.ApplicationModal)
         self.setupUi(self)
         self.panes = []
 
