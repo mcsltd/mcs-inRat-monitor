@@ -1,6 +1,6 @@
 from PySide6.QtGui import Qt, QFont
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QProgressBar, QSizePolicy
-
+from PySide6.QtWidgets import QStyleFactory
 
 class WaitingDialog(QDialog):
 
@@ -23,7 +23,7 @@ class WaitingDialog(QDialog):
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.label.setFont(font)
 
-        #  перенос слов для длинного текста
+        # перенос слов для длинного текста
         self.label.setWordWrap(True)
 
         # минимальная высота для метки
@@ -41,3 +41,4 @@ class WaitingDialog(QDialog):
         layout.addWidget(self.progress, stretch=0)  # прогресс-бар без растяжения
 
         self.setLayout(layout)
+        self.progress.setStyle(QStyleFactory.create("Fusion"))
