@@ -16,8 +16,8 @@ class BleScanner(QObject):
     # результат окна поиска: True - устройство выбрано, False - отмена
     signal_scan_finished = Signal(bool)
 
-    def __init__(self, loop: AbstractEventLoop):
-        super().__init__()
+    def __init__(self, loop: AbstractEventLoop, parent=None):
+        super().__init__(parent)
         self._loop = loop
 
         self.timer = None
@@ -43,8 +43,10 @@ class BleScanner(QObject):
         self.run()
         self._selected = False
 
-        self._dlg_scan = DlgBleScan()
+        self._dlg_scan = DlgBleScan(self.parent())
         self._dlg_scan.setWindowModality(Qt.WindowModality.ApplicationModal)
+        self._dlg_scan.setModal(True)
+        self._dlg_scan.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
         self.signal_found.connect(self._dlg_scan.set_device)
         self._dlg_scan.signal_select.connect(self.on_open_clicked)
         self._dlg_scan.signal_reset.connect(self._on_dlg_reset)
