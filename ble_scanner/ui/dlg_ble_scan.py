@@ -1,4 +1,4 @@
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, Qt
 from PySide6.QtWidgets import QDialog
 from bleak import BLEDevice
 
@@ -15,6 +15,7 @@ class DlgBleScan(QDialog, Ui_DlgBleScan):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
+        self.setWindowModality(Qt.WindowModality.ApplicationModal)
 
         self._founded_device = {}
 
