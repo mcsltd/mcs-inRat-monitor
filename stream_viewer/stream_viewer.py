@@ -226,7 +226,7 @@ class StreamViewer(pg.PlotWidget):
 
     def _create_hr_legend(self):
         """ создание лейбла чсс на графике ЭКГ """
-        self._legend_hr = pg.LabelItem(text="ЧСС --", size="30pt", color="white", bold=True)
+        self._legend_hr = pg.LabelItem(text="-- уд/мин", size="30pt", color="white", bold=True)
         self._legend_hr.setParentItem(self.graphicsItem())  # на сцену поверх графика
         self._legend_hr.anchor(itemPos=(1, 0.5), parentPos=(1, 0.5), offset=(-10, 0))
 
@@ -243,7 +243,7 @@ class StreamViewer(pg.PlotWidget):
             if self._sig_datablock is not None and self._sig_datablock.type_signal == TypeSignal.ECG:
                 self._create_hr_legend()
         else:
-            self._legend_hr.setText("ЧСС --")
+            self._legend_hr.setText("-- уд/мин")
             self._legend_hr.setVisible(True)
 
     def _arrange_traces(self, pens: list):
@@ -451,9 +451,9 @@ class StreamViewer(pg.PlotWidget):
         if self._legend_hr and event["type"] == "HeartRate":
             value = event["value"]
             if value is None:
-                self._legend_hr.setText("ЧСС --")
+                self._legend_hr.setText("-- уд/мин")
             else:
-                self._legend_hr.setText(f"ЧСС {int(value)}")
+                self._legend_hr.setText(f"{int(value)} уд/мин")
 
         # if event["type"] == "RPeakDetected":
         #     timestamp = event["data"] / self._sig_datablock.sample_rate
