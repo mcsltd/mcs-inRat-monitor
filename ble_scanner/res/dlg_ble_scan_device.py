@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'dlg_ble_scan_deviceihCwzl.ui'
+## Form generated from reading UI file 'dlg_ble_scan_deviceuNkIlD.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.12.0
 ##
@@ -24,6 +24,7 @@ class Ui_DlgBleScan(object):
     def setupUi(self, DlgBleScan):
         if not DlgBleScan.objectName():
             DlgBleScan.setObjectName(u"DlgBleScan")
+        DlgBleScan.setWindowModality(Qt.WindowModality.ApplicationModal)
         DlgBleScan.resize(486, 423)
         icon = QIcon()
         icon.addFile(u":/images/icon.ico", QSize(), QIcon.Mode.Normal, QIcon.State.Off)

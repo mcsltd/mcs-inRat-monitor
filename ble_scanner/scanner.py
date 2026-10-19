@@ -47,8 +47,13 @@ class BleScanner(QObject):
         self._dlg_scan.setWindowModality(Qt.WindowModality.ApplicationModal)
         self.signal_found.connect(self._dlg_scan.set_device)
         self._dlg_scan.signal_select.connect(self.on_open_clicked)
+        self._dlg_scan.signal_reset.connect(self._on_dlg_reset)
         self._dlg_scan.finished.connect(self._on_dlg_finished)
         self._dlg_scan.open()
+
+    def _on_dlg_reset(self):
+        """ очистка списка: сброс дедупликации для повторного поиска устройств """
+        self._seen_names = set()
 
     def _on_dlg_finished(self, result):
         """ очистка после закрытия окна поиска """
@@ -56,6 +61,10 @@ class BleScanner(QObject):
         if self._dlg_scan is not None:
             try:
                 self.signal_found.disconnect(self._dlg_scan.set_device)
+            except (RuntimeError, TypeError):
+                pass
+            try:
+                self._dlg_scan.signal_reset.disconnect(self._on_dlg_reset)
             except (RuntimeError, TypeError):
                 pass
             self._dlg_scan = None

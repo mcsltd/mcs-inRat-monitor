@@ -249,14 +249,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.pushButtonConfig.setEnabled(True)
             self._waiting_connection_dlg.close()
             self.device.battery_pane.setVisible(False)
+            self.pushButtonConfig.setEnabled(False)
         if event.type == "Disconnected":
             self._waiting_connection_dlg.close()
             self.device.battery_pane.setVisible(False)
-            self.pushButtonConfig.setEnabled(True)
+            self.pushButtonConfig.setEnabled(False)
             self.scanner.set_enabled(True)
         if event.type == "ConnectionLost":
             self.device.battery_pane.setVisible(False)
-            self.pushButtonConfig.setEnabled(True)
+            self.pushButtonConfig.setEnabled(False)
             self.scanner.set_enabled(True)
             QMessageBox.critical(
                 self, "Потеря соединения",

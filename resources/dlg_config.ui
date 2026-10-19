@@ -2,12 +2,15 @@
 <ui version="4.0">
  <class>DlgConfig</class>
  <widget class="QDialog" name="DlgConfig">
+  <property name="windowModality">
+   <enum>Qt::WindowModality::ApplicationModal</enum>
+  </property>
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>756</width>
-    <height>558</height>
+    <width>627</width>
+    <height>485</height>
    </rect>
   </property>
   <property name="windowTitle">

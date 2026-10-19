@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'dlg_confignWBBBc.ui'
+## Form generated from reading UI file 'dlg_configItQwdd.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.12.0
 ##
@@ -23,7 +23,8 @@ class Ui_DlgConfig(object):
     def setupUi(self, DlgConfig):
         if not DlgConfig.objectName():
             DlgConfig.setObjectName(u"DlgConfig")
-        DlgConfig.resize(756, 558)
+        DlgConfig.setWindowModality(Qt.WindowModality.ApplicationModal)
+        DlgConfig.resize(627, 485)
         icon = QIcon()
         icon.addFile(u":/images/icon.ico", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         DlgConfig.setWindowIcon(icon)

@@ -30,7 +30,7 @@ class FrmConfigCamera(QFrame, Ui_FrmConfigCamera):
     def _populate_cameras(self):
         """ наполнение списка доступных камер """
         self.comboBoxCameras.clear()
-        self.comboBoxCameras.addItem(UNDEFINED_CAMERA, None)
+        # self.comboBoxCameras.addItem(UNDEFINED_CAMERA, None)
         for cam in QMediaDevices.videoInputs():
             self.comboBoxCameras.addItem(cam.description(), cam.description())
 

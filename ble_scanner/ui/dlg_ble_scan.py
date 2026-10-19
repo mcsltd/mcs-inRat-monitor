@@ -9,6 +9,8 @@ class DlgBleScan(QDialog, Ui_DlgBleScan):
     """ Диалоговое окно для вывода устройств """
     signal_select = Signal(object)
     signal_select_camera = Signal(object)  # название камеры (str) или None
+    # очистка списка найденных устройств
+    signal_reset = Signal()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -40,6 +42,9 @@ class DlgBleScan(QDialog, Ui_DlgBleScan):
         """ обработка кнопки подключения устройства """
         self._founded_device.clear()
         self.listWidgetFoundDevice.clear()
+        self.pushButtonReset.setEnabled(False)
+        self.pushButtonOpen.setEnabled(False)
+        self.signal_reset.emit()
 
     def closeEvent(self, arg__1, /):
         """ обработка закрытия окна """
