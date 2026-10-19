@@ -1,0 +1,329 @@
+# -*- coding: utf-8 -*-
+
+################################################################################
+## Form generated from reading UI file 'frm_config_deviceFGPhts.ui'
+##
+## Created by: Qt User Interface Compiler version 6.12.0
+##
+## WARNING! All changes made in this file will be lost when recompiling UI file!
+################################################################################
+
+from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
+    QMetaObject, QObject, QPoint, QRect,
+    QSize, QTime, QUrl, Qt)
+from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
+    QFont, QFontDatabase, QGradient, QIcon,
+    QImage, QKeySequence, QLinearGradient, QPainter,
+    QPalette, QPixmap, QRadialGradient, QTransform)
+from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFormLayout,
+    QFrame, QGridLayout, QGroupBox, QHBoxLayout,
+    QLabel, QPushButton, QSizePolicy, QSpacerItem,
+    QVBoxLayout, QWidget)
+
+class Ui_FrmConfigDevicePane(object):
+    def setupUi(self, FrmConfigDevicePane):
+        if not FrmConfigDevicePane.objectName():
+            FrmConfigDevicePane.setObjectName(u"FrmConfigDevicePane")
+        FrmConfigDevicePane.resize(623, 596)
+        self.gridLayout = QGridLayout(FrmConfigDevicePane)
+        self.gridLayout.setObjectName(u"gridLayout")
+        self.verticalLayout = QVBoxLayout()
+        self.verticalLayout.setObjectName(u"verticalLayout")
+        self.groupBoxConn = QGroupBox(FrmConfigDevicePane)
+        self.groupBoxConn.setObjectName(u"groupBoxConn")
+        self.formLayoutConn = QFormLayout(self.groupBoxConn)
+        self.formLayoutConn.setObjectName(u"formLayoutConn")
+        self.labelDeviceSwitch = QLabel(self.groupBoxConn)
+        self.labelDeviceSwitch.setObjectName(u"labelDeviceSwitch")
+
+        self.formLayoutConn.setWidget(0, QFormLayout.ItemRole.LabelRole, self.labelDeviceSwitch)
+
+        self.comboBoxDeviceSwitch = QComboBox(self.groupBoxConn)
+        self.comboBoxDeviceSwitch.setObjectName(u"comboBoxDeviceSwitch")
+
+        self.formLayoutConn.setWidget(0, QFormLayout.ItemRole.FieldRole, self.comboBoxDeviceSwitch)
+
+        self.labelDevices = QLabel(self.groupBoxConn)
+        self.labelDevices.setObjectName(u"labelDevices")
+
+        self.formLayoutConn.setWidget(1, QFormLayout.ItemRole.LabelRole, self.labelDevices)
+
+        self.comboBoxDevices = QComboBox(self.groupBoxConn)
+        self.comboBoxDevices.setObjectName(u"comboBoxDevices")
+        self.comboBoxDevices.setEnabled(False)
+
+        self.formLayoutConn.setWidget(1, QFormLayout.ItemRole.FieldRole, self.comboBoxDevices)
+
+
+        self.verticalLayout.addWidget(self.groupBoxConn)
+
+        self.groupBoxInRat = QGroupBox(FrmConfigDevicePane)
+        self.groupBoxInRat.setObjectName(u"groupBoxInRat")
+        self.gridLayout_7 = QGridLayout(self.groupBoxInRat)
+        self.gridLayout_7.setObjectName(u"gridLayout_7")
+        self.gridLayoutInRat = QGridLayout()
+        self.gridLayoutInRat.setObjectName(u"gridLayoutInRat")
+        self.checkBoxActivated = QCheckBox(self.groupBoxInRat)
+        self.checkBoxActivated.setObjectName(u"checkBoxActivated")
+
+        self.gridLayoutInRat.addWidget(self.checkBoxActivated, 0, 0, 1, 1)
+
+
+        self.gridLayout_7.addLayout(self.gridLayoutInRat, 0, 0, 1, 1)
+
+
+        self.verticalLayout.addWidget(self.groupBoxInRat)
+
+        self.groupBoxExg = QGroupBox(FrmConfigDevicePane)
+        self.groupBoxExg.setObjectName(u"groupBoxExg")
+        self.gridLayout_2 = QGridLayout(self.groupBoxExg)
+        self.gridLayout_2.setObjectName(u"gridLayout_2")
+        self.formLayout = QFormLayout()
+        self.formLayout.setObjectName(u"formLayout")
+        self.labelExg = QLabel(self.groupBoxExg)
+        self.labelExg.setObjectName(u"labelExg")
+
+        self.formLayout.setWidget(0, QFormLayout.ItemRole.LabelRole, self.labelExg)
+
+        self.comboBoxExg = QComboBox(self.groupBoxExg)
+        self.comboBoxExg.setObjectName(u"comboBoxExg")
+
+        self.formLayout.setWidget(0, QFormLayout.ItemRole.FieldRole, self.comboBoxExg)
+
+        self.labelHpf = QLabel(self.groupBoxExg)
+        self.labelHpf.setObjectName(u"labelHpf")
+
+        self.formLayout.setWidget(1, QFormLayout.ItemRole.LabelRole, self.labelHpf)
+
+        self.comboBoxExgHpf = QComboBox(self.groupBoxExg)
+        self.comboBoxExgHpf.setObjectName(u"comboBoxExgHpf")
+
+        self.formLayout.setWidget(1, QFormLayout.ItemRole.FieldRole, self.comboBoxExgHpf)
+
+        self.labelGain = QLabel(self.groupBoxExg)
+        self.labelGain.setObjectName(u"labelGain")
+
+        self.formLayout.setWidget(2, QFormLayout.ItemRole.LabelRole, self.labelGain)
+
+        self.comboBoxExgGain = QComboBox(self.groupBoxExg)
+        self.comboBoxExgGain.setObjectName(u"comboBoxExgGain")
+
+        self.formLayout.setWidget(2, QFormLayout.ItemRole.FieldRole, self.comboBoxExgGain)
+
+
+        self.gridLayout_2.addLayout(self.formLayout, 1, 0, 1, 1)
+
+
+        self.verticalLayout.addWidget(self.groupBoxExg)
+
+        self.groupBoxAcc = QGroupBox(FrmConfigDevicePane)
+        self.groupBoxAcc.setObjectName(u"groupBoxAcc")
+        self.verticalLayout_3 = QVBoxLayout(self.groupBoxAcc)
+        self.verticalLayout_3.setObjectName(u"verticalLayout_3")
+        self.formLayoutAcc = QFormLayout()
+        self.formLayoutAcc.setObjectName(u"formLayoutAcc")
+        self.labelAcc = QLabel(self.groupBoxAcc)
+        self.labelAcc.setObjectName(u"labelAcc")
+
+        self.formLayoutAcc.setWidget(0, QFormLayout.ItemRole.LabelRole, self.labelAcc)
+
+        self.comboBoxAcc = QComboBox(self.groupBoxAcc)
+        self.comboBoxAcc.setObjectName(u"comboBoxAcc")
+
+        self.formLayoutAcc.setWidget(0, QFormLayout.ItemRole.FieldRole, self.comboBoxAcc)
+
+        self.labelAccScale = QLabel(self.groupBoxAcc)
+        self.labelAccScale.setObjectName(u"labelAccScale")
+
+        self.formLayoutAcc.setWidget(1, QFormLayout.ItemRole.LabelRole, self.labelAccScale)
+
+        self.comboBoxAccScale = QComboBox(self.groupBoxAcc)
+        self.comboBoxAccScale.setObjectName(u"comboBoxAccScale")
+
+        self.formLayoutAcc.setWidget(1, QFormLayout.ItemRole.FieldRole, self.comboBoxAccScale)
+
+
+        self.verticalLayout_3.addLayout(self.formLayoutAcc)
+
+
+        self.verticalLayout.addWidget(self.groupBoxAcc)
+
+        self.groupBoxTemp = QGroupBox(FrmConfigDevicePane)
+        self.groupBoxTemp.setObjectName(u"groupBoxTemp")
+        self.gridLayout_5 = QGridLayout(self.groupBoxTemp)
+        self.gridLayout_5.setObjectName(u"gridLayout_5")
+        self.gridLayoutTemp = QGridLayout()
+        self.gridLayoutTemp.setObjectName(u"gridLayoutTemp")
+        self.labelInfoTemp = QLabel(self.groupBoxTemp)
+        self.labelInfoTemp.setObjectName(u"labelInfoTemp")
+        self.labelInfoTemp.setStyleSheet(u"QLabel { background-color: #0078D4; color: white; border-radius: 10px; font-weight: bold; padding: 2px;  }QLabel:hover { background-color: #106EBE; } ")
+
+        self.gridLayoutTemp.addWidget(self.labelInfoTemp, 0, 1, 1, 1)
+
+        self.checkBoxTemp = QCheckBox(self.groupBoxTemp)
+        self.checkBoxTemp.setObjectName(u"checkBoxTemp")
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.checkBoxTemp.sizePolicy().hasHeightForWidth())
+        self.checkBoxTemp.setSizePolicy(sizePolicy)
+        self.checkBoxTemp.setMinimumSize(QSize(156, 0))
+        self.checkBoxTemp.setMaximumSize(QSize(156, 16777215))
+
+        self.gridLayoutTemp.addWidget(self.checkBoxTemp, 0, 0, 1, 1)
+
+        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.gridLayoutTemp.addItem(self.horizontalSpacer_2, 0, 2, 1, 1)
+
+
+        self.gridLayout_5.addLayout(self.gridLayoutTemp, 0, 0, 1, 1)
+
+
+        self.verticalLayout.addWidget(self.groupBoxTemp)
+
+        self.groupBoxEv = QGroupBox(FrmConfigDevicePane)
+        self.groupBoxEv.setObjectName(u"groupBoxEv")
+        self.gridLayout_4 = QGridLayout(self.groupBoxEv)
+        self.gridLayout_4.setObjectName(u"gridLayout_4")
+        self.gridLayoutEv = QGridLayout()
+        self.gridLayoutEv.setObjectName(u"gridLayoutEv")
+        self.checkBoxActivity = QCheckBox(self.groupBoxEv)
+        self.checkBoxActivity.setObjectName(u"checkBoxActivity")
+
+        self.gridLayoutEv.addWidget(self.checkBoxActivity, 0, 0, 1, 1)
+
+        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.gridLayoutEv.addItem(self.horizontalSpacer, 0, 2, 1, 1)
+
+        self.labelAcEvThreshold = QLabel(self.groupBoxEv)
+        self.labelAcEvThreshold.setObjectName(u"labelAcEvThreshold")
+
+        self.gridLayoutEv.addWidget(self.labelAcEvThreshold, 3, 0, 1, 1)
+
+        self.labelInfoOrientation = QLabel(self.groupBoxEv)
+        self.labelInfoOrientation.setObjectName(u"labelInfoOrientation")
+        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
+        sizePolicy1.setHorizontalStretch(0)
+        sizePolicy1.setVerticalStretch(0)
+        sizePolicy1.setHeightForWidth(self.labelInfoOrientation.sizePolicy().hasHeightForWidth())
+        self.labelInfoOrientation.setSizePolicy(sizePolicy1)
+        self.labelInfoOrientation.setStyleSheet(u"QLabel { background-color: #0078D4; color: white; border-radius: 10px; font-weight: bold; padding: 2px; }\n"
+"                                    QLabel:hover { background-color: #106EBE; } ")
+
+        self.gridLayoutEv.addWidget(self.labelInfoOrientation, 2, 1, 1, 1)
+
+        self.checkBoxOrientation = QCheckBox(self.groupBoxEv)
+        self.checkBoxOrientation.setObjectName(u"checkBoxOrientation")
+
+        self.gridLayoutEv.addWidget(self.checkBoxOrientation, 2, 0, 1, 1)
+
+        self.labelInfoActivity = QLabel(self.groupBoxEv)
+        self.labelInfoActivity.setObjectName(u"labelInfoActivity")
+        self.labelInfoActivity.setStyleSheet(u"QLabel { background-color: #0078D4; color: white; border-radius: 10px; font-weight: bold; padding: 2px; }\n"
+"                                    QLabel:hover { background-color: #106EBE; } ")
+
+        self.gridLayoutEv.addWidget(self.labelInfoActivity, 0, 1, 1, 1)
+
+        self.checkBoxFreefall = QCheckBox(self.groupBoxEv)
+        self.checkBoxFreefall.setObjectName(u"checkBoxFreefall")
+
+        self.gridLayoutEv.addWidget(self.checkBoxFreefall, 1, 0, 1, 1)
+
+        self.labelInfoFreefall = QLabel(self.groupBoxEv)
+        self.labelInfoFreefall.setObjectName(u"labelInfoFreefall")
+        self.labelInfoFreefall.setStyleSheet(u"QLabel { background-color: #0078D4; color: white; border-radius: 10px; font-weight: bold; padding: 2px; }\n"
+"                                    QLabel:hover { background-color: #106EBE; } ")
+
+        self.gridLayoutEv.addWidget(self.labelInfoFreefall, 1, 1, 1, 1)
+
+        self.labelInfoSens = QLabel(self.groupBoxEv)
+        self.labelInfoSens.setObjectName(u"labelInfoSens")
+        self.labelInfoSens.setStyleSheet(u"QLabel { background-color: #0078D4; color: white; border-radius: 10px; font-weight: bold; padding: 2px; }\n"
+"                                    QLabel:hover { background-color: #106EBE; } ")
+
+        self.gridLayoutEv.addWidget(self.labelInfoSens, 3, 1, 1, 1)
+
+        self.comboBoxAcEvThreshold = QComboBox(self.groupBoxEv)
+        self.comboBoxAcEvThreshold.setObjectName(u"comboBoxAcEvThreshold")
+
+        self.gridLayoutEv.addWidget(self.comboBoxAcEvThreshold, 3, 2, 1, 1)
+
+
+        self.gridLayout_4.addLayout(self.gridLayoutEv, 0, 0, 1, 1)
+
+
+        self.verticalLayout.addWidget(self.groupBoxEv)
+
+        self.horizontalLayout = QHBoxLayout()
+        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout.addItem(self.horizontalSpacer_3)
+
+        self.pushButtonOk = QPushButton(FrmConfigDevicePane)
+        self.pushButtonOk.setObjectName(u"pushButtonOk")
+
+        self.horizontalLayout.addWidget(self.pushButtonOk)
+
+
+        self.verticalLayout.addLayout(self.horizontalLayout)
+
+        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.verticalLayout.addItem(self.verticalSpacer)
+
+
+        self.gridLayout.addLayout(self.verticalLayout, 0, 0, 1, 1)
+
+
+        self.retranslateUi(FrmConfigDevicePane)
+
+        QMetaObject.connectSlotsByName(FrmConfigDevicePane)
+    # setupUi
+
+    def retranslateUi(self, FrmConfigDevicePane):
+        FrmConfigDevicePane.setWindowTitle(QCoreApplication.translate("FrmConfigDevicePane", u"Frame", None))
+        self.groupBoxConn.setTitle(QCoreApplication.translate("FrmConfigDevicePane", u"\u0421\u043e\u0435\u0434\u0438\u043d\u0435\u043d\u0438\u0435", None))
+        self.labelDeviceSwitch.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u0421\u0442\u0430\u0442\u0443\u0441 \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u0430:", None))
+        self.labelDevices.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u0414\u043e\u0441\u0442\u0443\u043f\u043d\u044b\u0435 \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u0430:", None))
+        self.groupBoxInRat.setTitle(QCoreApplication.translate("FrmConfigDevicePane", u"inRat", None))
+        self.checkBoxActivated.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u0410\u043a\u0442\u0438\u0432\u0438\u0440\u043e\u0432\u0430\u043d\u043e", None))
+        self.groupBoxExg.setTitle(QCoreApplication.translate("FrmConfigDevicePane", u"ExG (\u042d\u041a\u0413/\u042d\u042d\u0413)", None))
+        self.labelExg.setText(QCoreApplication.translate("FrmConfigDevicePane", u"ExG, \u0413\u0446", None))
+        self.labelHpf.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u0424\u0412\u0427", None))
+        self.labelGain.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u0423\u0441\u0438\u043b\u0435\u043d\u0438\u0435", None))
+        self.groupBoxAcc.setTitle(QCoreApplication.translate("FrmConfigDevicePane", u"\u0410\u043a\u0441\u0435\u043b\u0435\u0440\u043e\u043c\u0435\u0442\u0440", None))
+        self.labelAcc.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u0410\u043a\u0441\u0435\u043b\u0435\u0440\u043e\u043c\u0435\u0442\u0440", None))
+        self.labelAccScale.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u0414\u0438\u0430\u043f\u0430\u0437\u043e\u043d", None))
+        self.groupBoxTemp.setTitle(QCoreApplication.translate("FrmConfigDevicePane", u"\u0421\u043e\u0431\u044b\u0442\u0438\u044f \u0442\u0435\u043c\u043f\u0435\u0440\u0430\u0442\u0443\u0440\u044b", None))
+#if QT_CONFIG(tooltip)
+        self.labelInfoTemp.setToolTip(QCoreApplication.translate("FrmConfigDevicePane", u"\u0421\u043e\u0431\u044b\u0442\u0438\u0435 \"\u0422\u0435\u043c\u043f\u0435\u0440\u0430\u0442\u0443\u0440\u0430\"\n"
+"\u0415\u0434\u0438\u043d\u0438\u0446\u044b \u0438\u0437\u043c\u0435\u0440\u0435\u043d\u0438\u044f: \u0433\u0440\u0430\u0434\u0443\u0441\u044b \u0426\u0435\u043b\u044c\u0441\u0438\u044f (\u00b0C)\n"
+"\u0424\u043e\u0440\u043c\u0430\u0442 \u0437\u0430\u043f\u0438\u0441\u0438: T {\u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435}", None))
+#endif // QT_CONFIG(tooltip)
+        self.labelInfoTemp.setText(QCoreApplication.translate("FrmConfigDevicePane", u"?", None))
+        self.checkBoxTemp.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u0422\u0435\u043c\u043f\u0435\u0440\u0430\u0442\u0443\u0440\u0430 (\u0422)", None))
+        self.groupBoxEv.setTitle(QCoreApplication.translate("FrmConfigDevicePane", u"\u0421\u043e\u0431\u044b\u0442\u0438\u044f \u0444\u0438\u0437\u0438\u0447\u0435\u0441\u043a\u043e\u0439 \u0430\u043a\u0442\u0438\u0432\u043d\u043e\u0441\u0442\u0438", None))
+        self.checkBoxActivity.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u0410\u043a\u0442\u0438\u0432\u043d\u043e\u0441\u0442\u044c (\u0410)", None))
+        self.labelAcEvThreshold.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u0427\u0443\u0432\u0441\u0442\u0432\u0438\u0442\u0435\u043b\u044c\u043d\u043e\u0441\u0442\u044c \u0434\u0435\u0442\u0435\u043a\u0446\u0438\u0438 ", None))
+#if QT_CONFIG(tooltip)
+        self.labelInfoOrientation.setToolTip(QCoreApplication.translate("FrmConfigDevicePane", u"<html><head/><body><p>\u0421\u043e\u0431\u044b\u0442\u0438\u0435 &quot;\u0421\u043c\u0435\u043d\u0430 \u043e\u0440\u0438\u0435\u043d\u0442\u0430\u0446\u0438\u0438&quot;</p><p>\u0424\u043e\u0440\u043c\u0430\u0442 \u0437\u0430\u043f\u0438\u0441\u0438: O {code}</p><p>\u041a\u043e\u0434\u044b \u043e\u0440\u0438\u0435\u043d\u0442\u0430\u0446\u0438\u0438:</p><p><span style=\" font-family:'Courier New';\">- x+</span> \u2014 \u0434\u0430\u0442\u0447\u0438\u043a \u043d\u0430 \u043b\u0435\u0432\u043e\u043c \u0431\u043e\u043a\u0443</p><p><span style=\" font-family:'Courier New';\">- x-</span> \u2014 \u0434\u0430\u0442\u0447\u0438\u043a \u043d\u0430 \u043f\u0440\u0430\u0432\u043e\u043c \u0431\u043e\u043a\u0443</p><p><span style=\" font-family:'Courier New';\">- y+</span> \u2014 \u0434\u0430\u0442\u0447\u0438\u043a \u0432\u0435\u0440\u0442\u0438\u043a\u0430\u043b\u044c\u043d\u043e</p><p><span style=\" font-family:'Courier New';\">- y-</span> \u2014 \u0434\u0430\u0442\u0447\u0438\u043a \u043f\u0435\u0440\u0435\u0432\u0451\u0440"
+                        "\u043d\u0443\u0442</p><p><span style=\" font-family:'Courier New';\">- z+</span> \u2014 \u0434\u0430\u0442\u0447\u0438\u043a \u043b\u0438\u0446\u043e\u043c \u0432\u0432\u0435\u0440\u0445</p><p><span style=\" font-family:'Courier New';\">- z-</span> \u2014 \u0434\u0430\u0442\u0447\u0438\u043a \u043b\u0438\u0446\u043e\u043c \u0432\u043d\u0438\u0437</p></body></html>", None))
+#endif // QT_CONFIG(tooltip)
+        self.labelInfoOrientation.setText(QCoreApplication.translate("FrmConfigDevicePane", u"?", None))
+        self.checkBoxOrientation.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u041e\u0440\u0438\u0435\u043d\u0442\u0430\u0446\u0438\u044f (\u041e)", None))
+#if QT_CONFIG(tooltip)
+        self.labelInfoActivity.setToolTip(QCoreApplication.translate("FrmConfigDevicePane", u"<html><head/><body><p>\u0421\u043e\u0431\u044b\u0442\u0438\u0435 &quot;\u0410\u043a\u0442\u0438\u0432\u043d\u043e\u0441\u0442\u044c&quot;</p><p>\u0423\u0441\u043b\u043e\u0432\u0438\u0435 \u0441\u0440\u0430\u0431\u0430\u0442\u044b\u0432\u0430\u043d\u0438\u044f: \u043f\u0440\u0435\u0432\u044b\u0448\u0435\u043d\u0438\u0435 \u043f\u043e\u0440\u043e\u0433\u0430 \u0443\u0441\u043a\u043e\u0440\u0435\u043d\u0438\u044f \u043f\u043e \u043e\u0434\u043d\u043e\u0439 \u0438\u0437 \u043e\u0441\u0435\u0439.<br/>\u0424\u043e\u0440\u043c\u0430\u0442 \u0437\u0430\u043f\u0438\u0441\u0438: A {x} {y} {z}</p><p> - \u0443\u0441\u043a\u043e\u0440\u0435\u043d\u0438\u0435 \u0432 \u043c\u0438\u043b\u043b\u0438-g (mg) \u043f\u043e \u043e\u0441\u044f\u043c X, Y, Z.</p></body></html>", None))
+#endif // QT_CONFIG(tooltip)
+        self.labelInfoActivity.setText(QCoreApplication.translate("FrmConfigDevicePane", u"?", None))
+        self.checkBoxFreefall.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u041d\u0435\u0432\u0435\u0441\u043e\u043c\u043e\u0441\u0442\u044c (\u041d)", None))
+#if QT_CONFIG(tooltip)
+        self.labelInfoFreefall.setToolTip(QCoreApplication.translate("FrmConfigDevicePane", u"<html><head/><body><p>\u0421\u043e\u0431\u044b\u0442\u0438\u0435 &quot;\u041f\u0440\u044b\u0436\u043e\u043a&quot;</p><p>\u0423\u0441\u043b\u043e\u0432\u0438\u0435 \u0441\u0440\u0430\u0431\u0430\u0442\u044b\u0432\u0430\u043d\u0438\u044f: \u0443\u0441\u043a\u043e\u0440\u0435\u043d\u0438\u0435 \u043f\u043e \u043e\u0441\u044f\u043c X, Y, Z \u0431\u043b\u0438\u0437\u043a\u043e \u043a 0.</p><p>\u0424\u043e\u0440\u043c\u0430\u0442 \u0437\u0430\u043f\u0438\u0441\u0438: &quot;F&quot;</p></body></html>", None))
+#endif // QT_CONFIG(tooltip)
+        self.labelInfoFreefall.setText(QCoreApplication.translate("FrmConfigDevicePane", u"?", None))
+        self.labelInfoSens.setText(QCoreApplication.translate("FrmConfigDevicePane", u"?", None))
+        self.pushButtonOk.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u041f\u0440\u0438\u043c\u0435\u043d\u0438\u0442\u044c", None))
+    # retranslateUi
+

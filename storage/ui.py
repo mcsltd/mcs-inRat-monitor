@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QFrame
 
-from resources.frm_online_control_recording import Ui_FrmOnlineControlRecording
+from storage.res.frm_online_control_recording import Ui_FrmOnlineControlRecording
 
 
 def to_str_hhmmss(seconds) -> str:

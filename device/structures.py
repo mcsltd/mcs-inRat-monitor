@@ -51,3 +51,4 @@ class Status(ctypes.Structure):
         ("Vddio", ctypes.c_uint16),
         ("Usage", Usage)
     ]
+

@@ -1,3 +1,4 @@
+import copy
 import logging
 import queue
 import time
@@ -5,14 +6,14 @@ from threading import Thread
 
 import numpy as np
 import pyqtgraph as pg
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QFrame
-from pyqtgraph import mkPen, ScatterPlotItem, LegendItem, ItemSample, LabelItem
+from pyqtgraph import mkPen, ScatterPlotItem, LegendItem, InfiniteLine
 
 from device.device import SignalDatablock
 from device.enums import TypeSignal, EventType
-from resources.frm_control_xy_range import Ui_FrmControlXYRange
+from stream_viewer.frm_control_xy_range import Ui_FrmControlXYRange
 
 
 logger = logging.getLogger(__name__)
@@ -68,17 +69,18 @@ class FrmControlXYRange(QFrame, Ui_FrmControlXYRange):
 
 
 class StreamViewer(pg.PlotWidget):
-
     """ класс для отображения сигналов """
 
-    def __init__(
-            self,
-            left_label: str | None = None, *args, **kwargs
-    ):
+    event = Signal(object)
+    parentevent = Signal(object)
+
+    def __init__(self, left_label: str | None = None, *args, **kwargs):
         kwargs['axisItems'] = {'bottom': FormatterTimeAxisItem(orientation="bottom")}
         super().__init__(*args, **kwargs)
         self.setBackground((64, 64, 64))
         self.setDisabled(True)
+
+        self._receivers = []
 
         self._input_queue = queue.Queue()
         self._work = None
@@ -116,6 +118,10 @@ class StreamViewer(pg.PlotWidget):
         self.legend_ev.setParentItem(self.getPlotItem())
         self.legend_ev.anchor(itemPos=(0, 1), parentPos=(0, 1), offset=(35, -35))
 
+        self._legend_hr = None
+        self._hr_enabled = True
+        # self._r_peak_lines = []
+
         self.setLabel("left", left_label, color="white")
         self.setLabel("bottom", color="white") # "mm:ss",
         for ax in ["bottom", "left"]:
@@ -126,6 +132,30 @@ class StreamViewer(pg.PlotWidget):
             self.getAxis(ax).setTickFont(font)
 
         self.startTimer(16)
+
+    def add_receiver(self, receiver):
+        """ добавить объект приёмника акселерометра в коллекцию """
+        if self._running:
+            receiver.start()
+
+        if receiver not in self._receivers:
+            self._receivers.append(receiver)
+            receiver.update_params(params=self._sig_datablock)
+
+            receiver.event.connect(self.receiver_event, Qt.ConnectionType.QueuedConnection)
+            receiver.parentevent.connect(self.parent_event, Qt.ConnectionType.QueuedConnection)
+        else:
+            logger.warning(f"Попытка дублировать {receiver} в приёмниках акселерометра")
+    def remove_receiver(self, receiver):
+        """ удалить объект приёмника из коллекции акселерометра """
+        if receiver in self._receivers:
+            self._receivers.remove(receiver)
+            try:
+                receiver.event.disconnect(self.receiver_event)
+                receiver.parentevent.disconnect(self.parent_event)
+            except (RuntimeError, TypeError):
+                pass
+        receiver.stop()
 
     def set_x_range(self, value: float):
         """ установка окна отображения сигнала """
@@ -153,8 +183,15 @@ class StreamViewer(pg.PlotWidget):
         """ установка параметров для начала отображения сигналов """
         self._sig_datablock = params
 
+        # for l in self._r_peak_lines:
+        #     self.removeItem(l)
+        # self._r_peak_lines = []
+
         if not params:
             return None
+
+        if self._sig_datablock.type_signal == TypeSignal.ECG and self._hr_enabled and not self._legend_hr:
+            self._create_hr_legend()
 
         type_signal = self._sig_datablock.type_signal.value
         self.unit = self._sig_datablock.units
@@ -186,6 +223,28 @@ class StreamViewer(pg.PlotWidget):
 
         self._arrange_traces(pens)
         self._arrange_scatters()
+
+    def _create_hr_legend(self):
+        """ создание лейбла чсс на графике ЭКГ """
+        self._legend_hr = pg.LabelItem(text="-- уд/мин", size="30pt", color="white", bold=True)
+        self._legend_hr.setParentItem(self.graphicsItem())  # на сцену поверх графика
+        self._legend_hr.anchor(itemPos=(1, 0.5), parentPos=(1, 0.5), offset=(-10, 0))
+
+    def set_hr_enabled(self, enabled: bool):
+        """ показать/скрыть лейбл чсс при включении/отключении детектора R-пиков """
+        self._hr_enabled = enabled
+
+        if not enabled:
+            if self._legend_hr is not None:
+                self._legend_hr.setVisible(False)
+            return
+
+        if self._legend_hr is None:
+            if self._sig_datablock is not None and self._sig_datablock.type_signal == TypeSignal.ECG:
+                self._create_hr_legend()
+        else:
+            self._legend_hr.setText("-- уд/мин")
+            self._legend_hr.setVisible(True)
 
     def _arrange_traces(self, pens: list):
         """ настройка объектов отображения сигнала под новое количество каналов """
@@ -261,7 +320,7 @@ class StreamViewer(pg.PlotWidget):
             self.set_event_point(data)
             return
 
-        current_sample, signal = data["sample"], data["signal"]  # .shape = (1,32) for exg; .shape = (3,8) for acc
+        current_sample, signal = data["sample"], copy.deepcopy(data["signal"])  # .shape = (1,32) for exg; .shape = (3,8) for acc
 
         if self.unit == "uV":
             signal /= 1e6   # to V
@@ -335,10 +394,21 @@ class StreamViewer(pg.PlotWidget):
         while not self._input_queue.empty():
             self._input_queue.get_nowait()
 
+        try:
+            self.process_start()
+        except Exception as err:
+            logger.error(f"{__class__}: {err}")
+
         if not self._running:
             self._running = True
             self._work = Thread(target=self._worker_thread)
             self._work.start()
+
+    def process_start(self):
+        """ действия при запуске модуля """
+        for rec in self._receivers:
+            rec.update_params(self._sig_datablock)
+            rec.start()
 
     def stop(self):
         """ остановка модуля на прием и отображения сигнала """
@@ -356,9 +426,16 @@ class StreamViewer(pg.PlotWidget):
                 data = self._input_queue.get(False)
                 self.process_input(data)
             except queue.Empty:
-                pass
+                data = None
             except Exception as exc:
-                pass
+                data = None
+
+            if data:
+                try:
+                    for receiver in self._receivers:
+                        receiver._transmit_data(copy.deepcopy(data))
+                except Exception as err:
+                    logger.error(f"Возникла ошибка передачи данных в receiver_sig: {err}")
 
             time.sleep(0.001)
 
@@ -368,6 +445,37 @@ class StreamViewer(pg.PlotWidget):
             self._input_queue.put(data, False)
         except:
             pass
+
+    def process_event(self, event):
+        """ обработка события от приёмников/родителей """
+        if self._legend_hr and event["type"] == "HeartRate":
+            value = event["value"]
+            if value is None:
+                self._legend_hr.setText("-- уд/мин")
+            else:
+                self._legend_hr.setText(f"{int(value)} уд/мин")
+
+        # if event["type"] == "RPeakDetected":
+        #     timestamp = event["data"] / self._sig_datablock.sample_rate
+        #     line = InfiniteLine(pos=timestamp, angle=90, pen=mkPen("w", width=2))
+        #     self.addItem(line)
+        #     self._r_peak_lines.append(line)
+
+    def send_event(self, event):
+        """ отправить события во все связанные слоты(методы класса) """
+        logger.debug(f"Отправка события: {event}")
+        self.event.emit(event)
+        self.parentevent.emit(event)
+
+    def receiver_event(self, event):
+        """ получить события от приёмников (снизу-вверх) """
+        self.process_event(event)
+        self.event.emit(event)
+
+    def parent_event(self, event):
+        """ получить события от приёмников (сверху-вниз) """
+        self.process_event(event)
+        self.parentevent.emit(event)
 
 class TempStreamViewer(pg.PlotWidget):
     """ класс для отображения событий температуры """
@@ -388,9 +496,9 @@ class TempStreamViewer(pg.PlotWidget):
         self.temp_scatter = ScatterPlotItem(pen=pg.mkPen((255,255,0)), brush=pg.mkBrush('y'))
         self.addItem(self.temp_scatter)
 
-        self.label_temp = pg.LabelItem(text="--°C", size="25pt", color="white")
+        self.label_temp = pg.LabelItem(text="--°C", size="30pt", color="white", bold=True)
         self.label_temp.setParentItem(self.graphicsItem())  # на сцену поверх графика
-        self.label_temp.anchor(itemPos=(1, 0), parentPos=(1, 0), offset=(-10, 10))
+        self.label_temp.anchor(itemPos=(1, 0.5), parentPos=(1, 0.5), offset=(-10, 0))
 
         self.setLabel("left", left_label, units=units, color="white") # "°C",
         self.setLabel("bottom", color="white") # "Время", units="s",

@@ -73,7 +73,7 @@ class inRat:
         self._full_scale_accelerometer = ScaleAccelerometer.G_2
         self._enabled_events = EventType.NONE
         self._activity_threshold = 2
-        self._enabled_channels = EnabledChannels.ECG
+        self._enabled_channels = EnabledChannels.EXG
 
         # последние значение счётчиков пакетов
         self._lst_value_exg = np.ones((Pkt.ChannelsCountEcg, Pkt.SamplesCountEcg), dtype=np.float64)[:, 0]
@@ -383,7 +383,7 @@ class inRat:
                 await self._client.start_notify(self.UUID_CHARACTERISTIC_EVENT, event_handler)
                 logger.info(f"{self.name}: подписка на сервисы UUID_CHARACTERISTIC_EVENT")
 
-            if bool(self._enabled_channels & EnabledChannels.ECG):
+            if bool(self._enabled_channels & EnabledChannels.EXG):
                 await self._client.start_notify(self.UUID_CHARACTERISTIC_EXG, exg_handler)
                 logger.info(f"{self.name}: подписка на сервисы UUID_CHARACTERISTIC_EXG")
 

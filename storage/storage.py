@@ -8,7 +8,7 @@ import time
 import numpy as np
 
 from threading import Thread, Lock
-from PySide6.QtCore import QObject, QSettings
+from PySide6.QtCore import QObject, QSettings, Signal, Qt
 from PySide6.QtWidgets import QFileDialog
 from pyedflib import EdfWriter
 
@@ -16,22 +16,35 @@ from device.constants import Const
 from device.device import SignalDatablock
 from device.enums import EventType
 from device.utils import get_orientation
-from storage.ui import FrmOnlineControlRecording
+from storage.config_pane import FrmConfigStorage
+from storage.info_pane import FrmInfoRecording
+from storage.models import StorageConfig
+from storage.ui.frm_control_storage import FrmControlStorage
+try:
+    from events import DevicePropertyEvent
+except Exception:
+    DevicePropertyEvent = None
 
 logger = logging.getLogger(__name__)
 
-# todo
-# добавить восстановление acc из времени записи
-# добавить раздельное сохранение acc/exg
-# протестировать получение событий
 
 class Storage(QObject):
     """ класс для сохранения данных с устройства в EDF файл """
+
+    event = Signal(object)
+    parentevent = Signal(object)
+
+    signal_recording_started = Signal(int)
+    signal_recording_new_file = Signal(int)
+    signal_recording_stopped = Signal()
+    signal_file_count_changed = Signal(int)
+
     def __init__(self, settings: QSettings | None = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self._input_queue = queue.Queue()
         self._thlock_save = Lock()
+        self._receivers = []
 
         self._recording = False
         self._running = False
@@ -39,7 +52,8 @@ class Storage(QObject):
 
         # general recording params
         self._recording_start_time = None
-        self._sec_buffer_size = 1200
+        self._duration_min: int = 20
+        self._sec_buffer_size = self._duration_min * 60
         self._format = "edf"
         self._device_name = None
         self._object_name = None
@@ -49,23 +63,69 @@ class Storage(QObject):
         self._exg_param = None
         self._exg_buffer = None
         self._exg_start_sample = None
+        self._exg_last_sample = None
         # acc params recording
         self._acc_param = None
         self._acc_buffer = None
         self._acc_start_sample = None
+        self._acc_last_sample = None
         # event buffer
         self._ev_buffer = []
 
         # ui panels
-        self._control_pane = FrmOnlineControlRecording(self)
-        self._control_pane.pushButtonStartRecording.clicked.connect(self._prepare_recording)
-        self._control_pane.pushButtonStopRecording.clicked.connect(self._close_recording)
-        self._control_pane.pushButtonSelectSaveDir.clicked.connect(self._on_select_save_folder_clicked)
-        self._control_pane.pushButtonOpenArchive.clicked.connect(self._on_archive_clicked)
+        self._control_pane = FrmControlStorage()
+        self._control_pane.pushButtonStart.clicked.connect(self._on_start_recording)
+        self._control_pane.pushButtonStop.clicked.connect(self._on_stop_recording)
+
+        self._info_pane = FrmInfoRecording()
+        self.signal_recording_started.connect(self._info_pane.start)
+        self.signal_recording_new_file.connect(self._info_pane.new_file)
+        self.signal_recording_stopped.connect(self._info_pane.stop)
+        self.signal_file_count_changed.connect(self._info_pane.set_file_count)
 
         self._settings = settings
         if self._settings:
             self.load_settings()
+
+        self._config_pane = FrmConfigStorage(self)
+
+    @property
+    def config_pane(self):
+        return self._config_pane
+
+    @property
+    def write_dir(self) -> str | None:
+        return self._write_dir
+
+    @property
+    def duration_min(self) -> int:
+        return self._duration_min
+
+    def make_video_file_path(self) -> str | None:
+        """
+        путь для файла записи видео в папку текущей записи сигналов.
+
+        Имя файла согласовано с edf: то же время старта и номер файла
+        (video_{HH_MM_SS}_{cnt:03d}.mp4). Возвращает None, если папка
+        или имя устройства ещё не определены.
+        """
+        if not self._write_dir or not self._device_name:
+            logger.debug(f"{self.__class__}: путь для видео недоступен "
+                         f"(write_dir={self._write_dir}, device={self._device_name})")
+            return None
+
+        path_to_save = rf"{self._write_dir}\{self._device_name}"
+        os.makedirs(path_to_save, exist_ok=True)
+
+        start_time = (self._recording_start_time or datetime.datetime.now()).strftime("%H_%M_%S")
+        return rf"{path_to_save}\video_{start_time}_{self._cnt_file:03d}.mp4"
+
+    def process_update(self, config: StorageConfig):
+        """ обновление параметров из окна настроек """
+        if config.write_dir:
+            self._write_dir = config.write_dir
+        self._duration_min = max(1, min(30, int(config.duration_min)))
+        self._sec_buffer_size = self._duration_min * 60
 
     def load_settings(self):
         """ загрузка сохраненных настроек """
@@ -77,7 +137,7 @@ class Storage(QObject):
                 self._write_dir = None
             elif self._write_dir:
                 logger.info(f"Загружен путь к папке: {self._write_dir}")
-                self._control_pane.enable_archive(True)
+                # self._control_pane.enable_archive(True)
             else:
                 logger.info(f"Ключ 'write_dir' не найден в настройках")
             self._settings.endGroup()
@@ -101,6 +161,10 @@ class Storage(QObject):
     def control_pane(self):
         return self._control_pane
 
+    @property
+    def info_pane(self):
+        return self._info_pane
+
     def _on_select_save_folder_clicked(self):
         """ выбор места сохранения для записей edf """
         write_dir = QFileDialog.getExistingDirectory(
@@ -117,7 +181,6 @@ class Storage(QObject):
         if self._write_dir and self._device_name:
             path_to_archive = rf"{write_dir}/{self._device_name}"
             os.makedirs(path_to_archive, exist_ok=True)
-            self._control_pane.enable_archive(True)
 
     def _on_archive_clicked(self):
         """ метод для открытия папки с записями """
@@ -156,7 +219,6 @@ class Storage(QObject):
     def stop(self):
         """ остановка модуля """
         logger.debug(f"{self.__class__}: остановка модуля")
-        self._recording = False
         self._running = False
         if self._worker:
             self._worker.join(1.0)
@@ -165,7 +227,7 @@ class Storage(QObject):
         try:
             self.process_stop()
         except Exception as err:
-            pass
+            logger.error(f"{self.__class__}: ошибка остановки модуля - {err}")
 
     def _worker_thread(self):
         """ запуск рабочего потока """
@@ -202,6 +264,25 @@ class Storage(QObject):
         except Exception as err:
             logger.error(f"{self.__class__}: ошибка передачи данных в очередь - {err}")
 
+    def add_receiver(self, receiver):
+        """ добавить объект-источник событий в коллекцию """
+        if receiver not in self._receivers:
+            self._receivers.append(receiver)
+            receiver.event.connect(self.receiver_event, Qt.ConnectionType.QueuedConnection)
+            receiver.parentevent.connect(self.parent_event, Qt.ConnectionType.QueuedConnection)
+        else:
+            logger.warning(f"Попытка дублировать {receiver} в источниках событий хранилища")
+
+    def remove_receiver(self, receiver):
+        """ удалить объект-источник событий из коллекции """
+        if receiver in self._receivers:
+            self._receivers.remove(receiver)
+            try:
+                receiver.event.disconnect(self.receiver_event)
+                receiver.parentevent.disconnect(self.parent_event)
+            except (RuntimeError, TypeError):
+                pass
+
     def update_params(
             self,
             params_exg: SignalDatablock | None = None,
@@ -213,6 +294,7 @@ class Storage(QObject):
             self._acc_param = copy.copy(params_acc)
             self._device_name = self._acc_param.device_name
             self._acc_start_sample = None
+            self._acc_last_sample = None
             self._acc_buffer = np.zeros(
                 (
                     self._acc_param.number_channels,
@@ -224,6 +306,7 @@ class Storage(QObject):
             self._exg_param = copy.copy(params_exg)
             self._device_name = self._exg_param.device_name
             self._exg_start_sample = None
+            self._exg_last_sample = None
             self._exg_buffer = np.zeros(
                 (
                     self._exg_param.number_channels,
@@ -233,34 +316,57 @@ class Storage(QObject):
 
     def process_start(self):
         """ метод инициализации параметров перед стартом """
-        self._control_pane.set_enable()
-        self._control_pane.set_file_count(self._cnt_file)
-        self._control_pane.timebase = self._sec_buffer_size
+        self._control_pane.set_pause()
 
         if self._write_dir and self._device_name:
-            self._control_pane.enable_archive(True)
+            self._control_pane.set_enabled(True)
+            pass
 
     def process_stop(self):
         """ метод очистки после остановки """
-        if self._recording:
-            self._close_recording()
+        self.stop_recording()
+        self._control_pane.set_enabled(False)
 
-        self._control_pane.set_disable()
-        self._control_pane.enable_archive(True)
+    def _on_start_recording(self):
+        """ обработка запуска записи """
+        self._cnt_file = 0
+        self._prepare_recording()
+        self.signal_recording_started.emit(self._sec_buffer_size)
+
+    def _on_stop_recording(self):
+        """ обработка остановки записи по кнопке """
+        self.stop_recording()
+
+    def stop_recording(self):
+        """
+        единая точка остановки записи (кнопка записи и остановка устройства).
+
+        Метод идемпотентен и гарантирует, что индикатор записи будет скрыт,
+        даже если сохранение файла завершилось ошибкой.
+        """
+        if not self._recording:
+            return
+
+        try:
+            self._close_recording()
+        except Exception as err:
+            logger.error(f"{self.__class__}: ошибка при сохранении записи - {err}")
+        finally:
+            self._recording = False
+            self._control_pane.set_pause()
+            self.signal_recording_stopped.emit()
 
     def _prepare_recording(self):
         """ метод подготовки к записи """
         logger.debug(f"{self.__class__}: открытие на запись")
 
         if self._write_dir is None:
-            self._control_pane.pushButtonSelectSaveDir.click()
-
+            # self._control_pane.pushButtonSelectSaveDir.click()
+            pass
         self._recording = True
         self._recording_start_time = datetime.datetime.now()
 
-        self._control_pane.pushButtonStopRecording.setEnabled(True)
-        self._control_pane.pushButtonStartRecording.setEnabled(False)
-        self._control_pane.pushButtonSelectSaveDir.setEnabled(False)
+        self._control_pane.set_start()
 
     def _close_recording(self):
         """ метод закрытия записи и сохранения данных """
@@ -269,11 +375,9 @@ class Storage(QObject):
 
         self.__process_signals_for_save()
         self._cnt_file += 1
-        self._control_pane.set_file_count(self._cnt_file)
+        self.signal_file_count_changed.emit(self._cnt_file)
 
-        self._control_pane.pushButtonStartRecording.setEnabled(True)
-        self._control_pane.pushButtonStopRecording.setEnabled(False)
-        self._control_pane.pushButtonSelectSaveDir.setEnabled(True)
+        self._control_pane.set_pause()
 
     def __process_signals_for_save(self, ):
         """ обработка сигналов для сохранения в edf """
@@ -281,31 +385,43 @@ class Storage(QObject):
         acc_signal, exg_signal = None, None
 
         if self._acc_param:
-            idx_finish = (self._acc_last_sample - self._acc_start_sample) * self._acc_param.counter_per_sample
-            length_acc_sec = self._acc_buffer[:, :idx_finish].shape[1] / self._acc_param.sample_rate
-            acc_signal = self._acc_buffer[:, :idx_finish]
+            if self._acc_last_sample is not None and self._acc_start_sample is not None:
+                idx_finish = (self._acc_last_sample - self._acc_start_sample) * self._acc_param.counter_per_sample
+                if idx_finish > 0:
+                    length_acc_sec = self._acc_buffer[:, :idx_finish].shape[1] / self._acc_param.sample_rate
+                    acc_signal = self._acc_buffer[:, :idx_finish]
+                    logger.debug(f"Буфер acc очищен, было записано сигнала - {length_acc_sec} сек.")
 
             self._acc_buffer = np.zeros(
                 (self._acc_param.number_channels, self._acc_param.sample_rate * self._sec_buffer_size),
                 dtype=np.float32
             )
             self._acc_start_sample = None
-            logger.debug(f"Буфер acc очищен, было записано сигнала - {length_acc_sec} сек.")
+            self._acc_last_sample = None
 
         if self._exg_param:
-            idx_finish = (self._exg_last_sample - self._exg_start_sample) * self._exg_param.counter_per_sample
-            length_exg_sec = self._exg_buffer[:, :idx_finish].shape[1] / self._exg_param.sample_rate
-            exg_signal = self._exg_buffer[:, :idx_finish]
+            if self._exg_last_sample is not None and self._exg_start_sample is not None:
+                idx_finish = (self._exg_last_sample - self._exg_start_sample) * self._exg_param.counter_per_sample
+                if idx_finish > 0:
+                    length_exg_sec = self._exg_buffer[:, :idx_finish].shape[1] / self._exg_param.sample_rate
+                    exg_signal = self._exg_buffer[:, :idx_finish]
+                    logger.debug(f"Буфер exg очищен, было записано сигнала - {length_exg_sec} сек.")
 
             self._exg_buffer = np.zeros(
                 (self._exg_param.number_channels, self._exg_param.sample_rate * self._sec_buffer_size),
                 dtype=np.float32
             )
             self._exg_start_sample = None
-            logger.debug(f"Буфер exg очищен, было записано сигнала - {length_exg_sec} сек.")
+            self._exg_last_sample = None
+
+        # нечего сохранять (например, запись остановлена до прихода данных)
+        if acc_signal is None and exg_signal is None:
+            logger.debug(f"{self.__class__}: нет данных для сохранения, файл не создаётся")
+            self._ev_buffer = []
+            return
 
         # заполнение пропущенных отсчётов acc
-        if self._exg_param and self._acc_param:
+        if exg_signal is not None and acc_signal is not None:
             record_dur = exg_signal.shape[1] / self._exg_param.sample_rate
             lost = int(record_dur * self._acc_param.sample_rate - acc_signal.shape[1])
             logger.debug(f"Сигнал acc отстал на {lost} отсчётов; {lost / self._acc_param.sample_rate} c.")
@@ -443,9 +559,7 @@ class Storage(QObject):
         self._prepare_recording()
         self._thlock_save.release()
 
-        # увеличение счётчика записи
-        self._cnt_file += 1
-        self._control_pane.set_file_count(self._cnt_file)
+        self.signal_recording_new_file.emit(self._sec_buffer_size)
 
     @staticmethod
     def interpolate_missing_samples(signal: np.ndarray, lost_samples: int) -> np.ndarray:
@@ -511,6 +625,32 @@ class Storage(QObject):
         self._device_name = None
         self._object_name = None
         self._cnt_file = 0
-        self._control_pane.set_file_count(self._cnt_file)
-        self._control_pane.set_disable()
-        self._control_pane.enable_archive(False)
+        # self._control_pane.set_file_count(self._cnt_file)
+        # self._control_pane.set_disable()
+        # self._control_pane.enable_archive(False)
+
+    def process_event(self, event):
+        """ обработка события от приёмников/родителей """
+        if DevicePropertyEvent is not None and isinstance(event, DevicePropertyEvent):
+            try:
+                self._device_name = event.property.name
+            except Exception as err:
+                logger.warning(f"{self.__class__}: не удалось установить имя устройства из DeviceProperty - {err}")
+            return
+
+        if not self._recording:
+            return
+
+        if isinstance(event, dict) and event.get("type") == "RPeakDetected":
+            timestamp = (event["data"] - self._exg_start_sample * self._exg_param.counter_per_sample) / self._exg_param.sample_rate
+            self._ev_buffer.append((timestamp, "R"))
+
+    def receiver_event(self, event):
+        """ получить события от приёмников (снизу-вверх) """
+        self.process_event(event)
+        self.event.emit(event)
+
+    def parent_event(self, event):
+        """ получить события от приёмников (сверху-вниз) """
+        self.process_event(event)
+        self.parentevent.emit(event)

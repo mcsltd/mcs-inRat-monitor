@@ -30,7 +30,7 @@ class SampleRateEeg(IntEnum):
 
 class EnabledChannels(IntFlag):
     NONE = 0
-    ECG = auto()
+    EXG = auto()
     ACC_X = auto()
     ACC_Y = auto()
     ACC_Z = auto()

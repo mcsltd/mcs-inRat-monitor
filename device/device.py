@@ -14,14 +14,29 @@ from bleak import BLEDevice
 from device.constants import Pkt
 from device.enums import EnabledChannels, TypeSignal, EventType
 from device.inrat import inRat, FIRMWARE_ACC_EXG, FIRMWARE_V0
+from device.models import DeviceProperty, DeviceConfig, ExgConfig, EventConfig, AccConfig
 from device.structures import Event, Usage
 from device.ui.config_dialog import DlgConfigDevice
-from device.ui.control_pane import FrmControlPane
+from device.ui.config_pane import FrmConfigDevicePane
+from device.ui.control_pane import FrmControlDevicePane
 
 # ui
-from resources.frm_battery_level import Ui_FrmBattery
+from device.res.frm_battery_level import Ui_FrmBattery
+from events import DeviceEvent, DevicePropertyEvent
 
 logger = logging.getLogger(__name__)
+
+
+def make_default_config(activated: bool = False) -> DeviceConfig:
+    """ конфигурация устройства по умолчанию """
+    return DeviceConfig(
+        activated=activated,
+        signals=[
+            ExgConfig(type_signal=TypeSignal.ECG, sample_rate=1000, hpf=0.83, gain=1),
+            AccConfig(type_signal=TypeSignal.ACC, sample_rate=100, scale=2)
+        ],
+        events=EventConfig(type_events=["T",], threshold=2)
+    )
 
 class BatteryWidget(QFrame, Ui_FrmBattery):
     """ Виджет для отображения уровня заряда батареи."""
@@ -72,6 +87,8 @@ class SignalDatablock:
         класс, описывающий структуру передаваемого сигнала
         используется для настройки всех модулей
     """
+
+
     def __init__(
             self,
             type_signal: TypeSignal, sample_rate: int, counter_per_sample: int,
@@ -101,6 +118,10 @@ class SignalDatablock:
 
 
 class inRatDevice(QObject):
+    """ класс для работы с inRat """
+
+    event = Signal(object)
+    parentevent = Signal(object)
 
     signal_connected = Signal()
     signal_disconnected = Signal()
@@ -110,58 +131,40 @@ class inRatDevice(QObject):
     signal_enable_acc = Signal(bool)
     signal_enable_temp = Signal(bool)
 
-    """ класс для работы с inRat """
-
     def __init__(self, loop: asyncio.AbstractEventLoop | None = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self._loop: AbstractEventLoop = loop
         self._inrat: inRat | None = None
+        self._last_device: BLEDevice | None = None
+        self._property: DeviceProperty | None = None
+        self._config: DeviceConfig | None = None
 
         # очередь для передачи всех данных с устройства
         self._receivers_data = []
 
-        # ресурсы для обработки событий и биосигналов
-        self._last_exg_sample = -1
         self._work_sig: Thread | None = None
-        self._exg_datablock = SignalDatablock(
-            type_signal=TypeSignal.ECG, sample_rate=500,
-            counter_per_sample=Pkt.SamplesCountEcg,
-            number_channels=Pkt.ChannelsCountEcg,
-            channel_names=["ecg"],
-            units="uV",
-            physical_max=6000, physical_min=-6000
-        )
+        self._exg_datablock = None
         self._receivers_sig = []
-        # self._event_queue = asyncio.Queue()
         self._sig_queue = asyncio.Queue()
 
-        # ресурсы для обработки показаний акселерометра
-        self._last_acc_sample = -1
         self._work_acc: Thread | None = None
-        self._acc_datablock = SignalDatablock(
-            type_signal=TypeSignal.ACC, sample_rate=100,
-            counter_per_sample=Pkt.SamplesCountAcc,
-            number_channels=Pkt.ChannelsCountAcc,
-            channel_names=["acc_x", "acc_y", "acc_z"],
-            units="G",
-            physical_max=16.0,
-            physical_min=-16.0
-        )
+        self._acc_datablock = None
         self._receivers_acc = []
         self._acc_queue = asyncio.Queue()
-
         self._receiver_temp = None
 
         # флаг выполнения рабочего потока
         self._running: bool = False
 
-        # ui
-        self._control_pane = FrmControlPane()
+        # ui control
+        self._control_pane = FrmControlDevicePane()
         self._control_pane.pushButtonStart.clicked.connect(self.start)
         self._control_pane.pushButtonStop.clicked.connect(self.stop)
-        self._control_pane.pushButtonConfig.clicked.connect(self.on_config_clicked)
-        self._control_pane.checkBoxActivated.checkStateChanged.connect(self.on_state_activate_changed)
+
+        # ui config
+        self._config = make_default_config()
+        self._config_pane = FrmConfigDevicePane(self._config)
 
         self.battery_timer = 0
         self._battery_pane = BatteryWidget()
@@ -176,15 +179,32 @@ class inRatDevice(QObject):
             self._timer_check_conn.stop()
             self.stop()
             self.signal_error.emit(f"Потеряно соединение с {self._inrat.name}")
+            self.event.emit(DeviceEvent(
+                type="ConnectionLost",
+                desc=f"Потеряно соединение с {self._inrat.name}",
+            ))
             self.process_disconnect()
             self.signal_disconnected.emit()
 
     def is_running(self) -> bool:
         return self._running
 
+    def is_connected(self) -> bool:
+        """ признак активного соединения с устройством """
+        return self._inrat is not None and self._inrat.is_connected
+
     @property
-    def control_pane(self) -> FrmControlPane | None:
+    def name(self) -> str:
+        """ имя подключенного устройства """
+        return self._inrat.name if self._inrat else ""
+
+    # ui widgets
+    @property
+    def control_pane(self) -> FrmControlDevicePane | None:
         return self._control_pane
+    @property
+    def config_pane(self) -> FrmConfigDevicePane | None:
+        return self._config_pane
     @property
     def battery_pane(self) -> BatteryWidget | None:
         return self._battery_pane
@@ -195,6 +215,8 @@ class inRatDevice(QObject):
             receiver.start()
         if receiver not in self._receivers_data:
             self._receivers_data.append(receiver)
+            receiver.event.connect(self.receiver_event)
+            receiver.parentevent.connect(self.parent_event)
         else:
             logger.warning(f"Попытка дублировать {receiver} в приёмниках данных")
     def remove_receiver_data(self, receiver):
@@ -203,16 +225,17 @@ class inRatDevice(QObject):
             self._receivers_data.remove(receiver)
         receiver.stop()
 
-    def add_receiver_sig(self, receiver):
+    def add_receiver_exg(self, receiver):
         """ добавить объект приёмника в коллекцию биосигналов """
         if self._running:
             receiver.start()
-
         if receiver not in self._receivers_sig:
             self._receivers_sig.append(receiver)
-            receiver.update_params(params=self._exg_datablock)
+            receiver.event.connect(self.receiver_event, Qt.ConnectionType.QueuedConnection)
+            receiver.parentevent.connect(self.parent_event, Qt.ConnectionType.QueuedConnection)
         else:
             logger.warning(f"Попытка дублировать {receiver} в приёмниках сигналов ЭКГ/ЭМГ")
+        receiver.update_params(params=self._exg_datablock)
     def remove_receiver_sig(self, receiver):
         """ удалить объект приёмника биосигналов из коллекции """
         if receiver in self._receivers_sig:
@@ -225,9 +248,11 @@ class inRatDevice(QObject):
             receiver.start()
         if receiver not in self._receivers_acc:
             self._receivers_acc.append(receiver)
-            receiver.update_params(params=self._acc_datablock)
+            receiver.event.connect(self.receiver_event, Qt.ConnectionType.QueuedConnection)
+            receiver.parentevent.connect(self.parent_event, Qt.ConnectionType.QueuedConnection)
         else:
             logger.warning(f"Попытка дублировать {receiver} в приёмниках акселерометра")
+        receiver.update_params(params=self._acc_datablock)
     def remove_receiver_acc(self, receiver):
         """ удалить объект приёмника из коллекции акселерометра """
         if receiver in self._receivers_acc:
@@ -248,66 +273,153 @@ class inRatDevice(QObject):
         self._receiver_temp = None
         logger.info("Удален приёмник событий temp")
 
+    def process_update(self, config: DeviceConfig):
+        """ обновление параметров регистрации inRat """
+        if config is None:
+            raise ValueError("Не заданы параметры регистрации")
+        if self._inrat is None or not self._inrat.is_connected:
+            logger.debug(f"{self.__class__}: устройство не подключено, конфигурация сохранена")
+            self._config = config
+            return
+        self._config = config
+        if self._config.activated and not self._inrat.is_activated:
+            _ = asyncio.run_coroutine_threadsafe(self._inrat.activate(True), self._loop)
+
+        device_name = self._property.name if self._property else None
+        enabled_channels = EnabledChannels.NONE
+        enabled_sig, enabled_acc = False, False
+        self._exg_datablock, self._acc_datablock = None, None
+        for cfg in self._config.signals:
+            if isinstance(cfg, ExgConfig):
+                self._exg_datablock = SignalDatablock(
+                    type_signal=cfg.type_signal, sample_rate=cfg.sample_rate,
+                    counter_per_sample=Pkt.SamplesCountEcg, number_channels=Pkt.ChannelsCountEcg,
+                    channel_names=["ecg"], units="uV", physical_max=6000, physical_min=-6000,
+                    device_name=device_name,
+                )
+                self._inrat.sample_rate = cfg.sample_rate
+                self._inrat.hpf = cfg.hpf
+                self._inrat.gain = cfg.gain
+                enabled_channels |= EnabledChannels.EXG
+                enabled_sig = True
+            elif isinstance(cfg, AccConfig):
+                self._acc_datablock = SignalDatablock(
+                    type_signal=TypeSignal.ACC, sample_rate=100, counter_per_sample=Pkt.SamplesCountAcc,
+                    number_channels=Pkt.ChannelsCountAcc, channel_names=["acc_x", "acc_y", "acc_z"],
+                    units="G", physical_max=16.0, physical_min=-16.0,
+                    device_name=device_name,
+                )
+
+                self._inrat.full_scale_accelerometer = cfg.scale
+                enabled_channels |= (EnabledChannels.ACC_X | EnabledChannels.ACC_Y | EnabledChannels.ACC_Z)
+                enabled_acc = True
+        self._inrat.enabled_channels = enabled_channels
+
+        enabled_events = EventType.NONE
+        events = self._config.events
+        if events:
+            if "T" in events.type_events:
+                enabled_events |= EventType.TEMP
+            if self._exg_datablock:
+                if "A" in events.type_events:
+                    enabled_events |= EventType.ACTIVITY
+                    self._exg_datablock.type_events.append("activity")
+                if "O" in events.type_events:
+                    enabled_events |= EventType.ORIENTATION
+                    self._exg_datablock.type_events.append("orientation")
+                if "F" in events.type_events:
+                    enabled_events |= EventType.FREEFALL
+                    self._exg_datablock.type_events.append("freefall")
+        self._inrat.enabled_events = enabled_events
+
+        self.signal_enable_sig.emit(enabled_sig)
+        self.signal_enable_acc.emit(enabled_acc)
+        self.signal_enable_temp.emit(bool(enabled_events & EventType.TEMP))
+
     def process_connect(self, device: BLEDevice):
         """ обработка соединения с inRat """
+        self._last_device = device
         self._inrat = inRat(ble_device=device)
         future = asyncio.run_coroutine_threadsafe(self._inrat.connect(), self._loop)
         future.add_done_callback(self.on_device_connected)
+
+        self.event.emit(
+            DeviceEvent(
+                type="ConnectStart",
+                desc=f"{self._inrat.name} подсоединен"
+            )
+        )
+
+    def retry_connect(self):
+        """ повторное соединение с последним устройством """
+        if self._last_device is not None:
+            self.process_connect(self._last_device)
+
     def on_device_connected(self, future: Future):
         """ обработка результата соединения с устройством """
         try:
             future.result(timeout=10.0)
-        except Exception as err:
-            ...
+        except:
+            pass
+
+        default_config = make_default_config(activated=self._inrat.is_activated)
 
         if self._inrat.is_connected:
+            self.event.emit(
+                DeviceEvent(
+                    type="ConnectStop",
+                    desc=f"{self._inrat.name} подсоединен"
+                )
+            )
+
             # get and set battery level
             future = asyncio.run_coroutine_threadsafe(self._inrat.get_status(), self._loop)
             future.add_done_callback(self._on_status_received)
 
-            self._control_pane.state_connection()
+            self._control_pane.set_enabled(True)
             self.signal_connected.emit()
 
-            if self._inrat.is_activated:
-                self._control_pane.checkBoxActivated.setChecked(True)
+            try:
+                self._property = DeviceProperty(
+                    name=self._inrat.name,
+                    serial=self._inrat.serial,
+                    model=self._inrat.model,
+                    hardware=self._inrat.hardware,
+                    firmware=self._inrat.firmware,
+                )
+                self.event.emit(DevicePropertyEvent(property=self._property))
+                self.parentevent.emit(DevicePropertyEvent(property=self._property))
+            except Exception as err:
+                logger.error(f"{self.__class__}: ошибка формирования DeviceProperty - {err}")
 
-            if self._acc_datablock:
-                self._acc_datablock.device_name = self._inrat.name
-            if self._exg_datablock:
-                self._exg_datablock.device_name = self._inrat.name
+            if self._inrat.firmware not in FIRMWARE_ACC_EXG:
+                title = "Новая версия прошивки"
+                msg = f"Обнаружена новая версия прошивки {self._inrat.firmware}!"
+                QMessageBox.warning(None, title, msg, QMessageBox.StandardButton.Ok)
 
-            # настройка параметров inrat под версию firmware по умолчанию
-            if self._inrat.firmware == FIRMWARE_V0:
-                self._inrat.enabled_channels = EnabledChannels.ECG
-                self._inrat.sample_rate = 500
-                self._inrat.activity_threshold = 2
-
-                self.signal_enable_sig.emit(True)
-
-            else:
-                if self._inrat.firmware not in FIRMWARE_ACC_EXG:
-                    title = "Новая версия прошивки"
-                    msg = f"Обнаружена новая версия прошивки {self._inrat.firmware}!"
-                    QMessageBox.warning(None, title, msg, QMessageBox.StandardButton.Ok)
-
-                self._inrat.enabled_channels = EnabledChannels.ECG | EnabledChannels.ACC_X | EnabledChannels.ACC_Z | EnabledChannels.ACC_Y
-                self._inrat.sample_rate = 500
-                self._inrat.activity_threshold = 2
-
-                self.signal_enable_acc.emit(True)
-                self.signal_enable_sig.emit(True)
-
+            self.process_update(default_config)
+            self._config_pane.update_config(self._config)
+            self._config_pane.set_connection_state(True, self._inrat.name)
         else:
-            self._control_pane.state_disconnect()
+            self._config_pane.set_connection_state(False)
             self.signal_disconnected.emit()
             msg = (f"Не удалось соединиться с {self._inrat.name}!\n"
                    f"Повторите попытку")
             self.signal_error.emit(msg)
+            self.event.emit(
+                DeviceEvent(
+                    type="ConnectError",
+                    desc=f"Не удалось подключиться к {self._inrat.name}"
+                )
+            )
 
-    def process_disconnect(self):
-        """ обработка соединения с inRat """
+    def process_disconnect(self) -> Future | None:
+        """ обработка отсоединения от inRat """
+        if self._inrat is None:
+            return None
         future = asyncio.run_coroutine_threadsafe(self._inrat.disconnect(), self._loop)
         future.add_done_callback(self.on_device_disconnected)
+        return future
 
     def on_device_disconnected(self, future: Future):
         """ обработка результата отсоединения от устройства """
@@ -316,10 +428,13 @@ class inRatDevice(QObject):
         except Exception as exc:
             ...
 
+        self._config_pane.set_connection_state(False)
+        self.event.emit(DeviceEvent(type="Disconnected", desc=f"{self._inrat.name} отсоединен!"))
         self.signal_disconnected.emit()
 
         if not self._inrat.is_connected:
-            self._control_pane.state_disconnect()
+            self._control_pane.set_enabled(False)
+            pass
 
         self.signal_enable_acc.emit(False)
         self.signal_enable_sig.emit(False)
@@ -361,6 +476,13 @@ class inRatDevice(QObject):
                     receiver.update_params(params_acc=self._acc_datablock, params_exg=self._exg_datablock)
                     receiver.start()
 
+                self.event.emit(
+                    DeviceEvent(
+                        type="AcquisitionStart",
+                        desc=f"{self._inrat.name} запущен"
+                    )
+                )
+
                 if self._receiver_temp:
                     self._receiver_temp.clear_plot()
 
@@ -382,8 +504,16 @@ class inRatDevice(QObject):
 
     def process_start(self):
         """ обработка запуска устройства """
+
+        for rec in self._receivers_sig:
+            rec.update_params(self._exg_datablock)
+        for rec in self._receivers_acc:
+            rec.update_params(self._acc_datablock)
+        for rec in self._receivers_data:
+            rec.update_params(params_acc=self._acc_datablock, params_exg=self._exg_datablock)
+
         self.battery_timer = 0
-        self._control_pane.state_acquisition()
+        self._control_pane.set_start()
         self._timer_check_conn.start()
 
     def _worker_thread_exg(self):
@@ -474,9 +604,6 @@ class inRatDevice(QObject):
         for receiver in self._receivers_data:
             receiver.stop()
 
-        # if self._receiver_temp:
-        #     self._receiver_temp.clear_plot()
-
         if self._work_sig:
             self._work_sig.join(1.5)
             self._work_sig = None
@@ -490,78 +617,14 @@ class inRatDevice(QObject):
 
     def process_stop(self):
         """ обработка остановки устройства """
-        self._control_pane.state_connection()
+        self._control_pane.set_pause()
         self._timer_check_conn.stop()
-
-        self._last_exg_sample = -1
-
-    def on_config_clicked(self):
-        """ обработка нажатия окна конфигураций """
-        dlg = DlgConfigDevice(self._inrat)
-        dlg.exec()
-
-        # активация экг/ээг
-        if bool(self._inrat.enabled_channels & EnabledChannels.ECG):
-            self.signal_enable_sig.emit(True)
-
-            self._exg_datablock = SignalDatablock(
-                type_signal=self._inrat.mode,
-                sample_rate=self._inrat.sample_rate,
-                counter_per_sample=Pkt.SamplesCountEcg,
-                number_channels=Pkt.ChannelsCountEcg,
-                channel_names=[self._inrat.mode.value],  # list[str]
-                units="uV",
-                device_name=self._inrat.name,
-                physical_max=6000, physical_min=-6000
-            ) # todo: check it
-
-            # активация событий
-            if bool(self._inrat.enabled_events & EventType.TEMP):
-                self._exg_datablock.type_events.append("temp")
-            if bool(self._inrat.enabled_events & EventType.ORIENTATION):
-                self._exg_datablock.type_events.append("orientation")
-            if bool(self._inrat.enabled_events & EventType.ACTIVITY):
-                self._exg_datablock.type_events.append("activity")
-            if bool(self._inrat.enabled_events & EventType.FREEFALL):
-                self._exg_datablock.type_events.append("freefall")
-
-        else:
-            self.signal_enable_sig.emit(False)
-            self._exg_datablock = None
-
-        # активация акселерометра
-        if (
-                bool(self._inrat.enabled_channels & EnabledChannels.ACC_X) and
-                bool(self._inrat.enabled_channels & EnabledChannels.ACC_Y) and
-                bool(self._inrat.enabled_channels & EnabledChannels.ACC_Z)
-        ):
-            self.signal_enable_acc.emit(True)
-            self._acc_datablock = SignalDatablock(
-                type_signal=TypeSignal.ACC,
-                sample_rate=100,
-                counter_per_sample=Pkt.SamplesCountAcc,
-                number_channels=Pkt.ChannelsCountAcc,
-                channel_names=["acc_x", "acc_y", "acc_z"],
-                units="G",
-                device_name=self._inrat.name,
-                physical_max=16.0, physical_min=-16.0
+        self.event.emit(
+            DeviceEvent(
+                type="AcquisitionStop",
+                desc=f"{self._inrat.name} остановлен"
             )
-        else:
-            self.signal_enable_acc.emit(False)
-            self._acc_datablock = None
-
-        if bool(self._inrat.enabled_events & EventType.TEMP):
-            self.signal_enable_temp.emit(True)
-        else:
-            self.signal_enable_temp.emit(False)
-
-        # обновление параметров
-        for receiver in self._receivers_sig:
-            receiver.update_params(self._exg_datablock)
-        for receiver in self._receivers_acc:
-            receiver.update_params(self._acc_datablock)
-        for receiver in self._receivers_data:
-            receiver.update_params(params_acc=self._acc_datablock, params_exg=self._exg_datablock)
+        )
 
     def on_state_activate_changed(self, state: Qt.CheckState):
         """ обработка активации/деактивации устройства """
@@ -604,4 +667,22 @@ class inRatDevice(QObject):
             return 5
         return level
 
+    def process_event(self, event):
+        """ обработка события от приёмников/родителей """
+        pass
 
+    def send_event(self, event):
+        """ отправить события во все связанные слоты(методы класса) """
+        logger.debug(f"Отправка события: {event}")
+        self.event.emit(event)
+        self.parentevent.emit(event)
+
+    def receiver_event(self, event):
+        """ получить события от приёмников (снизу-вверх) """
+        self.process_event(event)
+        self.event.emit(event)
+
+    def parent_event(self, event):
+        """ получить события от приёмников (сверху-вниз) """
+        self.process_event(event)
+        self.parentevent.emit(event)
