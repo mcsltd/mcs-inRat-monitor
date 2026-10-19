@@ -16,6 +16,8 @@ class DlgBleScan(QDialog, Ui_DlgBleScan):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
         self.setWindowModality(Qt.WindowModality.ApplicationModal)
+        self.setModal(True)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
 
         self._founded_device = {}
 

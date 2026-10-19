@@ -53,7 +53,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # main classes
         self.device = inRatDevice(qt_loop)
-        self.scanner = BleScanner(qt_loop)
+        self.scanner = BleScanner(qt_loop, parent=self)
         self.storage = Storage(self.settings)
         self.camera = Camera()
         self._detector = QrsDetector()
@@ -369,7 +369,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def on_config_clicked(self):
         """ открытие окна настроек """
-        dlg = DlgConfig()
+        dlg = DlgConfig(self)
 
         pane_device = self.device.config_pane
         if pane_device:
