@@ -1,5 +1,5 @@
-from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QFrame, QComboBox
+from PySide6.QtCore import Signal, Qt
+from PySide6.QtWidgets import QFrame, QComboBox, QMessageBox
 
 from device.enums import TypeSignal
 from device.models import ExgConfig, AccConfig, DeviceConfig, EventConfig
@@ -20,6 +20,8 @@ class FrmConfigDevicePane(QFrame, Ui_FrmConfigDevicePane):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
         self.setWindowTitle("inRat")
+        # показывать tooltip даже для заблокированной кнопки Применить
+        self.pushButtonOk.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, True)
 
         # доступные устройства (имя -> BLEDevice)
         self._devices: dict[str, object] = {}
@@ -108,15 +110,35 @@ class FrmConfigDevicePane(QFrame, Ui_FrmConfigDevicePane):
             self.comboBoxAcEvThreshold.setEnabled(False)
             self.comboBoxAccScale.setEnabled(True)
 
+        self._update_ok_button()
+
     def on_exg_switched(self, idx):
         """ обработка переключения сигналов exg """
         value = self.comboBoxExg.currentData()
         if value is None:
             self.comboBoxExgGain.setEnabled(False)
             self.comboBoxExgHpf.setEnabled(False)
+            self.checkBoxTemp.setChecked(False)
+            checkboxes = [self.checkBoxTemp, self.checkBoxFreefall, self.checkBoxActivity, self.checkBoxOrientation]
+            for box in checkboxes:
+                box.setEnabled(False)
+                box.setChecked(False)
         else:
             self.comboBoxExgGain.setEnabled(True)
             self.comboBoxExgHpf.setEnabled(True)
+            checkboxes = [self.checkBoxTemp, self.checkBoxFreefall, self.checkBoxActivity, self.checkBoxOrientation]
+            for box in checkboxes:
+                box.setEnabled(True)
+
+        self._update_ok_button()
+
+    def _update_ok_button(self):
+        """ блокировка кнопки применения, если exg и acc отключены """
+        exg = self.comboBoxExg.currentData()
+        acc = self.comboBoxAcc.currentData()
+        enabled = exg is not None or acc is not None
+        self.pushButtonOk.setEnabled(enabled)
+        self.pushButtonOk.setToolTip("" if enabled else "Выберите ExG или Акселерометр")
 
     def _setup_combobox_acc(self):
         # настройка акселерометра
@@ -227,6 +249,9 @@ class FrmConfigDevicePane(QFrame, Ui_FrmConfigDevicePane):
         acc_config = self._get_acc_config()
         ev_config = self._get_event_config()
 
+        if exg_config is None and acc_config is None:
+            return None
+
         config = DeviceConfig(
             activated=self.checkBoxActivated.isChecked(),
             signals=[exg_config, acc_config],
@@ -237,4 +262,8 @@ class FrmConfigDevicePane(QFrame, Ui_FrmConfigDevicePane):
     def _on_ok_clicked(self):
         """ обработка нажатия кнопки применить """
         config = self._get_config()
+
+        if config is None:
+            return
+
         self.signal_apply.emit(config)

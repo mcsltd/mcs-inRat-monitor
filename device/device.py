@@ -495,13 +495,16 @@ class inRatDevice(QObject):
 
     def process_start(self):
         """ обработка запуска устройства """
-
         for rec in self._receivers_sig:
             rec.update_params(self._exg_datablock)
         for rec in self._receivers_acc:
             rec.update_params(self._acc_datablock)
         for rec in self._receivers_data:
             rec.update_params(params_acc=self._acc_datablock, params_exg=self._exg_datablock)
+
+        # очистка графика температуры при старте
+        if self._receiver_temp:
+            self._receiver_temp.clear_plot()
 
         self.battery_timer = 0
         self._control_pane.set_start()
@@ -542,7 +545,7 @@ class inRatDevice(QObject):
                     if self._exg_datablock and self._receiver_temp and data["type"]== "ev":
                         if data["signal"].Type == EventType.TEMP.bit_length() - 1:
                             ev_temp: Event = data["signal"]
-                            t = ev_temp.Counter * (1 / self._exg_datablock.sample_rate)
+                            t = data["counter"] * (1 / self._exg_datablock.sample_rate)
                             temp = round(ev_temp.Data / 1000, 1)
                             self._receiver_temp.set_temperature(t=t, value=temp)
                 except Exception as err:
