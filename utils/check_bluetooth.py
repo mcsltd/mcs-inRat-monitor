@@ -2,13 +2,20 @@ from PySide6.QtBluetooth import QBluetoothLocalDevice
 from PySide6.QtWidgets import QApplication
 
 
-def check_bluetooth_status():
+def get_bluetooth_error() -> str | None:
+    """ текст ошибки Bluetooth или None, если Bluetooth доступен и включён """
     local_device = QBluetoothLocalDevice()
-    if local_device.isValid():
-        if local_device.hostMode() == QBluetoothLocalDevice.HostMode.HostPoweredOff:
-            raise ValueError("Bluetooth is turned off.")
-    else:
-        raise ValueError("Bluetooth not available.")
+    if not local_device.isValid():
+        return "Bluetooth-адаптер не найден."
+    if local_device.hostMode() == QBluetoothLocalDevice.HostMode.HostPoweredOff:
+        return "Bluetooth выключен."
+    return None
+
+
+def check_bluetooth_status():
+    error = get_bluetooth_error()
+    if error is not None:
+        raise ValueError(error)
 
 
 if __name__ == "__main__":

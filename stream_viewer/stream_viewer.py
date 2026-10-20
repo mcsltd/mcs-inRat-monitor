@@ -1,4 +1,3 @@
-import copy
 import logging
 import queue
 import time
@@ -14,6 +13,7 @@ from pyqtgraph import mkPen, ScatterPlotItem, LegendItem, InfiniteLine
 from device.device import SignalDatablock
 from device.enums import TypeSignal, EventType
 from stream_viewer.frm_control_xy_range import Ui_FrmControlXYRange
+from utils.copies import copy_packet
 
 
 logger = logging.getLogger(__name__)
@@ -74,6 +74,9 @@ class StreamViewer(pg.PlotWidget):
     event = Signal(object)
     parentevent = Signal(object)
 
+    # минимальный интервал между сжатиями диапазона оси Y в режиме АРУ, с
+    _AUTO_Y_SHRINK_DELAY: float = 3.0
+
     def __init__(self, left_label: str | None = None, *args, **kwargs):
         kwargs['axisItems'] = {'bottom': FormatterTimeAxisItem(orientation="bottom")}
         super().__init__(*args, **kwargs)
@@ -105,6 +108,14 @@ class StreamViewer(pg.PlotWidget):
         self.scatters: dict = {}
         self.point_scatters: dict ={}
         self.update_display: bool = False
+
+        # режим АРУ по оси Y: собственная реализация с гистерезисом вместо
+        # enableAutoRange (непрерывный пересчёт диапазона pyqtgraph каждый кадр)
+        self._auto_y: bool = True
+        # состояние АРУ: последний применённый диапазон и момент его изменения
+        self._last_y_range: tuple | None = None
+        self._last_y_change: float = 0.0
+        self.enableAutoRange(enable=False)
 
         pen = mkPen("w")
         font = QFont("Arial", 9)
@@ -167,8 +178,9 @@ class StreamViewer(pg.PlotWidget):
     def set_y_range(self, value: float | None):
         """ установка ограничения выводимого сигнала """
         if value is None:
-            self._y_min, self._y_min = None, None
-            self.enableAutoRange(axis='y', enable=True)
+            self._y_min, self._y_max = None, None
+            self._auto_y = True
+            self._last_y_range = None
             logger.info("Установлено АРУ")
             return
 
@@ -177,6 +189,8 @@ class StreamViewer(pg.PlotWidget):
             return
         self._y_min = -value
         self._y_max = value
+        self._auto_y = False
+        self._last_y_range = None
         logger.info(f"Установлен диапазон отображения по оси y - ({-self._y_min};{self._y_max};)")
 
     def update_params(self, params: SignalDatablock | None):
@@ -220,6 +234,8 @@ class StreamViewer(pg.PlotWidget):
         self._buffer_filled = False  # флаг заполнения буфера
         self.current_position = 0  # текущая позиция для заполнения буфера
         self.update_display: bool = False
+        self._last_y_range = None
+        self._last_y_change = 0.0
 
         self._arrange_traces(pens)
         self._arrange_scatters()
@@ -259,7 +275,16 @@ class StreamViewer(pg.PlotWidget):
             if len(pens) == self._sig_datablock.number_channels:
                 pen = pens[ch]
 
-            plot = self.plot(pen=pen, name=self._sig_datablock.channel_names[ch])
+            # connect='all' + skipFiniteCheck: данные конечны всегда,
+            # убирает проверку np.isfinite и упрощает построение кривой
+            plot = self.plot(
+                pen=pen, name=self._sig_datablock.channel_names[ch],
+                connect='all', skipFiniteCheck=True,
+            )
+            # даунсэмплинг 'peak' при окнах 30/60 с: рисуем ~по точке на пиксель,
+            # пики-всплески сохраняются; clipToView ограничивает обработку видимым окном
+            plot.setDownsampling(auto=True, method='peak')
+            plot.setClipToView(True)
             self.traces.append(plot)
             self.legend_sig.addItem(item=plot, name=self._sig_datablock.channel_names[ch])
 
@@ -320,7 +345,7 @@ class StreamViewer(pg.PlotWidget):
             self.set_event_point(data)
             return
 
-        current_sample, signal = data["sample"], copy.deepcopy(data["signal"])  # .shape = (1,32) for exg; .shape = (3,8) for acc
+        current_sample, signal = data["sample"], np.array(data["signal"], dtype=np.float32, copy=True)  # .shape = (1,32) for exg; .shape = (3,8) for acc
 
         if self.unit == "uV":
             signal /= 1e6   # to V
@@ -361,24 +386,67 @@ class StreamViewer(pg.PlotWidget):
         for ch in range(self._sig_datablock.number_channels):
             self.traces[ch].setData(visible_time, self._signal_buffer[ch, start_idx: end_idx])
 
-            # for test
-            v_min = self._signal_buffer[ch, start_idx:end_idx].min()
-            v_max = self._signal_buffer[ch, start_idx:end_idx].max()
-
         # подстройка по оси времени
         if not self._buffer_filled and end_idx <= self._timebase * self._sig_datablock.sample_rate:
-            self.setXRange(0, self._timebase, padding=0)
+            x_range = (0.0, float(self._timebase))
         else:
             current_time = visible_time[-1] if len(visible_time) > 0 else 0
-            self.setXRange(current_time - self._timebase, current_time, padding=0)
+            x_range = (current_time - self._timebase, current_time)
+        if not self._x_applied(x_range):
+            self.setXRange(*x_range, padding=0)
 
         # self.setYRange(self.y_min, self.y_max)
         self.release_event_points()
 
-        if self._y_min and self._y_max:
+        if self._auto_y:
+            self._auto_range_y(start_idx, end_idx)
+        elif not self._fixed_y_applied():
             self.setYRange(self._y_min, self._y_max, padding=0.1)
 
         self.update_display = False
+
+    def _x_applied(self, x_range: tuple) -> bool:
+        """ совпадает ли текущий видимый диапазон оси X с требуемым (padding=0) """
+        current = self.viewRange()[0]
+        return float(current[0]) == float(x_range[0]) and float(current[1]) == float(x_range[1])
+
+    def _auto_range_y(self, start_idx: int, end_idx: int):
+        """ собственная АРУ по оси Y: мин/макс по видимому окну с гистерезисом.
+
+        В отличие от enableAutoRange pyqtgraph диапазон пересчитывается один раз
+        за кадр по данным видимого окна, а не по каждому элементу на каждом кадре:
+        расширение — сразу при выходе данных за текущий диапазон (всплески видны),
+        сжатие — только когда диапазон завышен в 2 раза и не чаще раза в 3 с
+        (гистерезис защищает от прыжков оси на повторяющихся всплесках).
+        """
+        visible = self._signal_buffer[:, start_idx:end_idx]
+        if visible.size == 0:
+            return
+        data_min = float(visible.min())
+        data_max = float(visible.max())
+        if not data_max > data_min:
+            return
+
+        now = time.monotonic()
+        if self._last_y_range is not None:
+            cur_min, cur_max = self._last_y_range
+            if cur_min <= data_min and data_max <= cur_max:
+                inflated = (data_max - data_min) * 2.0 < (cur_max - cur_min)
+                recent = (now - self._last_y_change) < self._AUTO_Y_SHRINK_DELAY
+                if not inflated or recent:
+                    return
+
+        self.setYRange(data_min, data_max, padding=0.05)
+        self._last_y_range = (data_min, data_max)
+        self._last_y_change = now
+
+    def _fixed_y_applied(self) -> bool:
+        """ совпадает ли текущий видимый диапазон оси Y с зафиксированным (с учётом padding) """
+        span = self._y_max - self._y_min
+        padding = span * 0.1
+        expected = (self._y_min - padding, self._y_max + padding)
+        current = self.viewRange()[1]
+        return float(current[0]) == expected[0] and float(current[1]) == expected[1]
 
     def release_event_points(self):
         """ отрисовка точек событий на графике"""
@@ -433,7 +501,7 @@ class StreamViewer(pg.PlotWidget):
             if data:
                 try:
                     for receiver in self._receivers:
-                        receiver._transmit_data(copy.deepcopy(data))
+                        receiver._transmit_data(copy_packet(data))
                 except Exception as err:
                     logger.error(f"Возникла ошибка передачи данных в receiver_sig: {err}")
 

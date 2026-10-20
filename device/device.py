@@ -1,5 +1,4 @@
 import asyncio
-import copy
 import logging
 import time
 from asyncio import AbstractEventLoop
@@ -23,6 +22,7 @@ from device.ui.control_pane import FrmControlDevicePane
 # ui
 from device.res.frm_device_status import Ui_FrmDeviceStatus
 from events import DeviceEvent, DevicePropertyEvent
+from utils.copies import copy_packet
 
 logger = logging.getLogger(__name__)
 
@@ -531,13 +531,13 @@ class inRatDevice(QObject):
 
                 try:
                     for receiver in self._receivers_sig:
-                        receiver._transmit_data(copy.deepcopy(data))
+                        receiver._transmit_data(copy_packet(data))
                 except Exception as err:
                     logger.error(f"Возникла ошибка передачи данных в receiver_sig: {err}")
 
                 try:
                     for receiver in self._receivers_data:
-                        receiver._transmit_data(copy.deepcopy(data))
+                        receiver._transmit_data(copy_packet(data))
                 except Exception as err:
                     logger.error(f"Возникла ошибка передачи данных в receiver_data: {err}")
 
@@ -572,10 +572,10 @@ class inRatDevice(QObject):
 
             if acc:
                 for receiver in self._receivers_acc:
-                    receiver._transmit_data(copy.deepcopy(acc))
+                    receiver._transmit_data(copy_packet(acc))
 
                 for receiver in self._receivers_data:
-                    receiver._transmit_data(copy.deepcopy(acc))
+                    receiver._transmit_data(copy_packet(acc))
 
             try:
                 self.process_output()
