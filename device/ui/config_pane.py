@@ -1,5 +1,5 @@
-from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QFrame, QComboBox
+from PySide6.QtCore import Signal, Qt
+from PySide6.QtWidgets import QFrame, QComboBox, QMessageBox
 
 from device.enums import TypeSignal
 from device.models import ExgConfig, AccConfig, DeviceConfig, EventConfig
@@ -20,12 +20,13 @@ class FrmConfigDevicePane(QFrame, Ui_FrmConfigDevicePane):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
         self.setWindowTitle("inRat")
+        # показывать tooltip даже для заблокированной кнопки Применить
+        self.pushButtonOk.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, True)
 
         # доступные устройства (имя -> BLEDevice)
         self._devices: dict[str, object] = {}
 
         # setup combobox
-        self._setup_combobox_device_switch()
         self._setup_combobox_exg()
         self._setup_combobox_hpf()
         self._setup_combobox_gain()
@@ -36,69 +37,16 @@ class FrmConfigDevicePane(QFrame, Ui_FrmConfigDevicePane):
         self._config = config
         self.set_default()
 
-        self.comboBoxDeviceSwitch.currentIndexChanged.connect(self._on_device_switch_changed)
-        self.comboBoxDevices.currentIndexChanged.connect(self._on_device_selected)
         self.comboBoxAcc.currentIndexChanged.connect(self.on_acc_switched)
         self.comboBoxExg.currentIndexChanged.connect(self.on_exg_switched)
 
         self.pushButtonOk.clicked.connect(self._on_ok_clicked)
-
-    def _setup_combobox_device_switch(self):
-        """ настройка статуса подключения устройства """
-        data = [("Отключено", False), ("Включено", True)]
-        for text, value in data:
-            self.comboBoxDeviceSwitch.addItem(text, userData=value)
 
     def update_config(self, config):
         """ обновление конфигурации и перерисовка полей """
         self._config = config
         self.set_default()
 
-    def add_device(self, device):
-        """ добавление найденного устройства в список доступных """
-        name = getattr(device, "name", None)
-        if not name or name in self._devices:
-            return
-        self._devices[name] = device
-        # блокировка сигналов, чтобы добавление не приводило к авто-подключению
-        self.comboBoxDevices.blockSignals(True)
-        self.comboBoxDevices.addItem(name, name)
-        self.comboBoxDevices.blockSignals(False)
-
-    def set_connection_state(self, connected: bool, device_name: str | None = None):
-        """ синхронизация состояния переключателя с фактическим подключением """
-        self.comboBoxDeviceSwitch.blockSignals(True)
-        self.comboBoxDeviceSwitch.setCurrentIndex(
-            self.comboBoxDeviceSwitch.findData(connected)
-        )
-        self.comboBoxDeviceSwitch.blockSignals(False)
-        self.comboBoxDevices.setEnabled(connected)
-
-        if connected and device_name:
-            if device_name not in self._devices:
-                self.add_device(device_name)
-            idx = self.comboBoxDevices.findData(device_name)
-            if idx >= 0:
-                self.comboBoxDevices.blockSignals(True)
-                self.comboBoxDevices.setCurrentIndex(idx)
-                self.comboBoxDevices.blockSignals(False)
-
-    def _on_device_switch_changed(self, idx):
-        """ включение/отключение подключения к устройству """
-        enabled = bool(self.comboBoxDeviceSwitch.currentData())
-        self.comboBoxDevices.setEnabled(enabled)
-        if enabled:
-            self.signal_connect_requested.emit()
-        else:
-            self.signal_disconnect_requested.emit()
-
-    def _on_device_selected(self, idx):
-        """ подключение к выбранному устройству из списка """
-        if not self.comboBoxDevices.isEnabled():
-            return
-        device = self._devices.get(self.comboBoxDevices.currentData())
-        if device is not None:
-            self.signal_device_selected.emit(device)
 
     def set_default(self):
         """ установка настроек из конфигурации устройства """
@@ -162,15 +110,37 @@ class FrmConfigDevicePane(QFrame, Ui_FrmConfigDevicePane):
             self.comboBoxAcEvThreshold.setEnabled(False)
             self.comboBoxAccScale.setEnabled(True)
 
+        self._update_ok_button()
+
     def on_exg_switched(self, idx):
         """ обработка переключения сигналов exg """
         value = self.comboBoxExg.currentData()
         if value is None:
             self.comboBoxExgGain.setEnabled(False)
             self.comboBoxExgHpf.setEnabled(False)
+            self.checkBoxTemp.setChecked(False)
+            checkboxes = [self.checkBoxTemp, self.checkBoxFreefall, self.checkBoxActivity, self.checkBoxOrientation]
+            for box in checkboxes:
+                box.setEnabled(False)
+                box.setChecked(False)
+            self.comboBoxAcEvThreshold.setEnabled(False)
         else:
             self.comboBoxExgGain.setEnabled(True)
             self.comboBoxExgHpf.setEnabled(True)
+            checkboxes = [self.checkBoxTemp, self.checkBoxFreefall, self.checkBoxActivity, self.checkBoxOrientation]
+            for box in checkboxes:
+                box.setEnabled(True)
+            self.comboBoxAcEvThreshold.setEnabled(True)
+
+        self._update_ok_button()
+
+    def _update_ok_button(self):
+        """ блокировка кнопки применения, если exg и acc отключены """
+        exg = self.comboBoxExg.currentData()
+        acc = self.comboBoxAcc.currentData()
+        enabled = exg is not None or acc is not None
+        self.pushButtonOk.setEnabled(enabled)
+        self.pushButtonOk.setToolTip("" if enabled else "Выберите ExG или Акселерометр")
 
     def _setup_combobox_acc(self):
         # настройка акселерометра
@@ -281,6 +251,9 @@ class FrmConfigDevicePane(QFrame, Ui_FrmConfigDevicePane):
         acc_config = self._get_acc_config()
         ev_config = self._get_event_config()
 
+        if exg_config is None and acc_config is None:
+            return None
+
         config = DeviceConfig(
             activated=self.checkBoxActivated.isChecked(),
             signals=[exg_config, acc_config],
@@ -291,4 +264,8 @@ class FrmConfigDevicePane(QFrame, Ui_FrmConfigDevicePane):
     def _on_ok_clicked(self):
         """ обработка нажатия кнопки применить """
         config = self._get_config()
+
+        if config is None:
+            return
+
         self.signal_apply.emit(config)

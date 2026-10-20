@@ -21,7 +21,7 @@ from device.ui.config_pane import FrmConfigDevicePane
 from device.ui.control_pane import FrmControlDevicePane
 
 # ui
-from device.res.frm_battery_level import Ui_FrmBattery
+from device.res.frm_device_status import Ui_FrmDeviceStatus
 from events import DeviceEvent, DevicePropertyEvent
 
 logger = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ def make_default_config(activated: bool = False) -> DeviceConfig:
         events=EventConfig(type_events=["T",], threshold=2)
     )
 
-class BatteryWidget(QFrame, Ui_FrmBattery):
+class BatteryWidget(QFrame, Ui_FrmDeviceStatus):
     """ Виджет для отображения уровня заряда батареи."""
 
     def __init__(self, parent=None):
@@ -81,6 +81,10 @@ class BatteryWidget(QFrame, Ui_FrmBattery):
                     margin: 1px;
                 }
             """)
+
+    def set_device_name(self, name: str) -> None:
+        """ установка названия подключенного устройства """
+        self.labelDeviceName.setText(name)
 
 class SignalDatablock:
     """
@@ -342,13 +346,7 @@ class inRatDevice(QObject):
         self._inrat = inRat(ble_device=device)
         future = asyncio.run_coroutine_threadsafe(self._inrat.connect(), self._loop)
         future.add_done_callback(self.on_device_connected)
-
-        self.event.emit(
-            DeviceEvent(
-                type="ConnectStart",
-                desc=f"{self._inrat.name} подсоединен"
-            )
-        )
+        self.event.emit(DeviceEvent(type="ConnectStart",desc=f"{self._inrat.name} подсоединен"))
 
     def retry_connect(self):
         """ повторное соединение с последним устройством """
@@ -365,12 +363,8 @@ class inRatDevice(QObject):
         default_config = make_default_config(activated=self._inrat.is_activated)
 
         if self._inrat.is_connected:
-            self.event.emit(
-                DeviceEvent(
-                    type="ConnectStop",
-                    desc=f"{self._inrat.name} подсоединен"
-                )
-            )
+            self._battery_pane.set_device_name(self._inrat.name)
+            self.event.emit(DeviceEvent(type="ConnectStop", desc=f"{self._inrat.name} подсоединен"))
 
             # get and set battery level
             future = asyncio.run_coroutine_threadsafe(self._inrat.get_status(), self._loop)
@@ -399,9 +393,7 @@ class inRatDevice(QObject):
 
             self.process_update(default_config)
             self._config_pane.update_config(self._config)
-            self._config_pane.set_connection_state(True, self._inrat.name)
         else:
-            self._config_pane.set_connection_state(False)
             self.signal_disconnected.emit()
             msg = (f"Не удалось соединиться с {self._inrat.name}!\n"
                    f"Повторите попытку")
@@ -428,7 +420,6 @@ class inRatDevice(QObject):
         except Exception as exc:
             ...
 
-        self._config_pane.set_connection_state(False)
         self.event.emit(DeviceEvent(type="Disconnected", desc=f"{self._inrat.name} отсоединен!"))
         self.signal_disconnected.emit()
 
@@ -504,13 +495,16 @@ class inRatDevice(QObject):
 
     def process_start(self):
         """ обработка запуска устройства """
-
         for rec in self._receivers_sig:
             rec.update_params(self._exg_datablock)
         for rec in self._receivers_acc:
             rec.update_params(self._acc_datablock)
         for rec in self._receivers_data:
             rec.update_params(params_acc=self._acc_datablock, params_exg=self._exg_datablock)
+
+        # очистка графика температуры при старте
+        if self._receiver_temp:
+            self._receiver_temp.clear_plot()
 
         self.battery_timer = 0
         self._control_pane.set_start()
@@ -551,7 +545,7 @@ class inRatDevice(QObject):
                     if self._exg_datablock and self._receiver_temp and data["type"]== "ev":
                         if data["signal"].Type == EventType.TEMP.bit_length() - 1:
                             ev_temp: Event = data["signal"]
-                            t = ev_temp.Counter * (1 / self._exg_datablock.sample_rate)
+                            t = data["counter"] * (1 / self._exg_datablock.sample_rate)
                             temp = round(ev_temp.Data / 1000, 1)
                             self._receiver_temp.set_temperature(t=t, value=temp)
                 except Exception as err:

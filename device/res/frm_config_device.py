@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'frm_config_deviceFGPhts.ui'
+## Form generated from reading UI file 'frm_config_deviceoGhNhw.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.12.0
 ##
@@ -24,39 +24,11 @@ class Ui_FrmConfigDevicePane(object):
     def setupUi(self, FrmConfigDevicePane):
         if not FrmConfigDevicePane.objectName():
             FrmConfigDevicePane.setObjectName(u"FrmConfigDevicePane")
-        FrmConfigDevicePane.resize(623, 596)
+        FrmConfigDevicePane.resize(617, 590)
         self.gridLayout = QGridLayout(FrmConfigDevicePane)
         self.gridLayout.setObjectName(u"gridLayout")
         self.verticalLayout = QVBoxLayout()
         self.verticalLayout.setObjectName(u"verticalLayout")
-        self.groupBoxConn = QGroupBox(FrmConfigDevicePane)
-        self.groupBoxConn.setObjectName(u"groupBoxConn")
-        self.formLayoutConn = QFormLayout(self.groupBoxConn)
-        self.formLayoutConn.setObjectName(u"formLayoutConn")
-        self.labelDeviceSwitch = QLabel(self.groupBoxConn)
-        self.labelDeviceSwitch.setObjectName(u"labelDeviceSwitch")
-
-        self.formLayoutConn.setWidget(0, QFormLayout.ItemRole.LabelRole, self.labelDeviceSwitch)
-
-        self.comboBoxDeviceSwitch = QComboBox(self.groupBoxConn)
-        self.comboBoxDeviceSwitch.setObjectName(u"comboBoxDeviceSwitch")
-
-        self.formLayoutConn.setWidget(0, QFormLayout.ItemRole.FieldRole, self.comboBoxDeviceSwitch)
-
-        self.labelDevices = QLabel(self.groupBoxConn)
-        self.labelDevices.setObjectName(u"labelDevices")
-
-        self.formLayoutConn.setWidget(1, QFormLayout.ItemRole.LabelRole, self.labelDevices)
-
-        self.comboBoxDevices = QComboBox(self.groupBoxConn)
-        self.comboBoxDevices.setObjectName(u"comboBoxDevices")
-        self.comboBoxDevices.setEnabled(False)
-
-        self.formLayoutConn.setWidget(1, QFormLayout.ItemRole.FieldRole, self.comboBoxDevices)
-
-
-        self.verticalLayout.addWidget(self.groupBoxConn)
-
         self.groupBoxInRat = QGroupBox(FrmConfigDevicePane)
         self.groupBoxInRat.setObjectName(u"groupBoxInRat")
         self.gridLayout_7 = QGridLayout(self.groupBoxInRat)
@@ -270,10 +242,6 @@ class Ui_FrmConfigDevicePane(object):
 
         self.verticalLayout.addLayout(self.horizontalLayout)
 
-        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-
-        self.verticalLayout.addItem(self.verticalSpacer)
-
 
         self.gridLayout.addLayout(self.verticalLayout, 0, 0, 1, 1)
 
@@ -285,9 +253,6 @@ class Ui_FrmConfigDevicePane(object):
 
     def retranslateUi(self, FrmConfigDevicePane):
         FrmConfigDevicePane.setWindowTitle(QCoreApplication.translate("FrmConfigDevicePane", u"Frame", None))
-        self.groupBoxConn.setTitle(QCoreApplication.translate("FrmConfigDevicePane", u"\u0421\u043e\u0435\u0434\u0438\u043d\u0435\u043d\u0438\u0435", None))
-        self.labelDeviceSwitch.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u0421\u0442\u0430\u0442\u0443\u0441 \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u0430:", None))
-        self.labelDevices.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u0414\u043e\u0441\u0442\u0443\u043f\u043d\u044b\u0435 \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u0430:", None))
         self.groupBoxInRat.setTitle(QCoreApplication.translate("FrmConfigDevicePane", u"inRat", None))
         self.checkBoxActivated.setText(QCoreApplication.translate("FrmConfigDevicePane", u"\u0410\u043a\u0442\u0438\u0432\u0438\u0440\u043e\u0432\u0430\u043d\u043e", None))
         self.groupBoxExg.setTitle(QCoreApplication.translate("FrmConfigDevicePane", u"ExG (\u042d\u041a\u0413/\u042d\u042d\u0413)", None))

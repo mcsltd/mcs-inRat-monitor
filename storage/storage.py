@@ -8,7 +8,7 @@ import time
 import numpy as np
 
 from threading import Thread, Lock
-from PySide6.QtCore import QObject, QSettings, Signal, Qt
+from PySide6.QtCore import QObject, QSettings, QStandardPaths, Signal, Qt
 from PySide6.QtWidgets import QFileDialog
 from pyedflib import EdfWriter
 
@@ -127,23 +127,39 @@ class Storage(QObject):
         self._duration_min = max(1, min(30, int(config.duration_min)))
         self._sec_buffer_size = self._duration_min * 60
 
+    @staticmethod
+    def _default_write_dir() -> str:
+        """ папка по умолчанию для записи данных """
+        base = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)
+        if not base:
+            base = os.path.expanduser("~")
+        return os.path.join(base, "inRat monitor")
+
+    def _ensure_write_dir(self, write_dir: str | None) -> str | None:
+        """ проверка и создание папки сохранения; None -> папка по умолчанию """
+        if write_dir and os.path.exists(write_dir):
+            return write_dir
+        if write_dir:
+            logger.warning(f"Сохраненный путь не существует: {write_dir}")
+        default_dir = self._default_write_dir()
+        try:
+            os.makedirs(default_dir, exist_ok=True)
+            logger.info(f"Папка для сохранения записей: {default_dir}")
+            return default_dir
+        except OSError as err:
+            logger.error(f"Не удалось создать папку по умолчанию {default_dir}: {err}")
+            return write_dir
+
     def load_settings(self):
         """ загрузка сохраненных настроек """
         try:
             self._settings.beginGroup("storage")
             self._write_dir = self._settings.value("write_dir", None, type=str)
-            if self._write_dir and not os.path.exists(self._write_dir):
-                logger.warning(f"Сохраненный путь не существует: {self._write_dir}")
-                self._write_dir = None
-            elif self._write_dir:
-                logger.info(f"Загружен путь к папке: {self._write_dir}")
-                # self._control_pane.enable_archive(True)
-            else:
-                logger.info(f"Ключ 'write_dir' не найден в настройках")
             self._settings.endGroup()
+            self._write_dir = self._ensure_write_dir(self._write_dir)
         except Exception as err:
             logger.warning(f"Возникла ошибка загрузки настроек: {err}")
-            self._write_dir = None
+            self._write_dir = self._ensure_write_dir(None)
 
     def save_settings(self):
         """ сохранение настроек """

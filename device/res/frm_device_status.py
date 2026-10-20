@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'frm_battery_levelXaHwrD.ui'
+## Form generated from reading UI file 'frm_battery_leveldpGAvk.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.11.2
+## Created by: Qt User Interface Compiler version 6.12.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -18,16 +18,24 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
 from PySide6.QtWidgets import (QApplication, QFrame, QHBoxLayout, QLabel,
     QProgressBar, QSizePolicy, QWidget)
 
-class Ui_FrmBattery(object):
-    def setupUi(self, FrmBattery):
-        if not FrmBattery.objectName():
-            FrmBattery.setObjectName(u"FrmBattery")
-        FrmBattery.resize(137, 65)
-        self.horizontalLayout_3 = QHBoxLayout(FrmBattery)
+class Ui_FrmDeviceStatus(object):
+    def setupUi(self, FrmDeviceStatus):
+        if not FrmDeviceStatus.objectName():
+            FrmDeviceStatus.setObjectName(u"FrmDeviceStatus")
+        FrmDeviceStatus.resize(175, 69)
+        self.horizontalLayout_3 = QHBoxLayout(FrmDeviceStatus)
         self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
-        self.progressBarBatteryLevel = QProgressBar(FrmBattery)
+        self.labelDeviceName = QLabel(FrmDeviceStatus)
+        self.labelDeviceName.setObjectName(u"labelDeviceName")
+        font = QFont()
+        font.setPointSize(11)
+        self.labelDeviceName.setFont(font)
+
+        self.horizontalLayout.addWidget(self.labelDeviceName)
+
+        self.progressBarBatteryLevel = QProgressBar(FrmDeviceStatus)
         self.progressBarBatteryLevel.setObjectName(u"progressBarBatteryLevel")
         sizePolicy = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -41,7 +49,7 @@ class Ui_FrmBattery(object):
 
         self.horizontalLayout.addWidget(self.progressBarBatteryLevel)
 
-        self.labelBatteryLevel = QLabel(FrmBattery)
+        self.labelBatteryLevel = QLabel(FrmDeviceStatus)
         self.labelBatteryLevel.setObjectName(u"labelBatteryLevel")
         self.labelBatteryLevel.setMinimumSize(QSize(30, 0))
         self.labelBatteryLevel.setMaximumSize(QSize(30, 16777215))
@@ -52,13 +60,14 @@ class Ui_FrmBattery(object):
         self.horizontalLayout_3.addLayout(self.horizontalLayout)
 
 
-        self.retranslateUi(FrmBattery)
+        self.retranslateUi(FrmDeviceStatus)
 
-        QMetaObject.connectSlotsByName(FrmBattery)
+        QMetaObject.connectSlotsByName(FrmDeviceStatus)
     # setupUi
 
-    def retranslateUi(self, FrmBattery):
-        FrmBattery.setWindowTitle(QCoreApplication.translate("FrmBattery", u"Frame", None))
-        self.labelBatteryLevel.setText(QCoreApplication.translate("FrmBattery", u"10%", None))
+    def retranslateUi(self, FrmDeviceStatus):
+        FrmDeviceStatus.setWindowTitle(QCoreApplication.translate("FrmDeviceStatus", u"Frame", None))
+        self.labelDeviceName.setText(QCoreApplication.translate("FrmDeviceStatus", u"inRat-1", None))
+        self.labelBatteryLevel.setText(QCoreApplication.translate("FrmDeviceStatus", u"10%", None))
     # retranslateUi
 
