@@ -9,7 +9,7 @@ from threading import Thread, Lock
 from PySide6.QtCore import QObject, Signal, Qt
 
 from detector.detector import RealTimeRPeakDetector
-from detector.models import CONFIG_HUMAN, ConfigDetector, Subject
+from detector.models import CONFIG_RAT, ConfigDetector, Subject
 from detector.ui.config_pane import FrmConfigDetectorPane
 from device.device import SignalDatablock
 from device.enums import TypeSignal
@@ -35,7 +35,7 @@ class QrsDetector(QObject):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._config = copy.deepcopy(CONFIG_HUMAN)
+        self._config = copy.deepcopy(CONFIG_RAT)
         self._receivers = []
         self._input_queue: Queue = Queue()
         self._running: bool = False
