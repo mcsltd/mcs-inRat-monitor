@@ -153,7 +153,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.scanner.signal_connect.connect(self.device.process_connect)
         self.scanner.signal_scan_requested.connect(self.on_scan_requested)
         self.scanner.signal_scan_finished.connect(self.on_scan_finished)
-        self.scanner.signal_found.connect(self.device.config_pane.add_device)
         self.pushButtonConfig.clicked.connect(self.on_config_clicked)
 
         # управление подключением из окна настроек устройства
