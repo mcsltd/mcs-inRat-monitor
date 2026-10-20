@@ -123,12 +123,14 @@ class FrmConfigDevicePane(QFrame, Ui_FrmConfigDevicePane):
             for box in checkboxes:
                 box.setEnabled(False)
                 box.setChecked(False)
+            self.comboBoxAcEvThreshold.setEnabled(False)
         else:
             self.comboBoxExgGain.setEnabled(True)
             self.comboBoxExgHpf.setEnabled(True)
             checkboxes = [self.checkBoxTemp, self.checkBoxFreefall, self.checkBoxActivity, self.checkBoxOrientation]
             for box in checkboxes:
                 box.setEnabled(True)
+            self.comboBoxAcEvThreshold.setEnabled(True)
 
         self._update_ok_button()
 
