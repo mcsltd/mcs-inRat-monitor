@@ -20,7 +20,7 @@ from events import DeviceEvent
 from stream_viewer.stream_viewer import StreamViewer, TempStreamViewer, FrmControlXYRange
 from ui.dlg_about import AboutDialog
 from ui.dlg_config import DlgConfig
-from utils.check_bluetooth import check_bluetooth_status
+from utils.check_bluetooth import get_bluetooth_error
 from storage.storage import Storage
 from resources.main_window_v1 import Ui_MainWindow
 from widget import WaitingDialog
@@ -507,24 +507,22 @@ if __name__ == "__main__":
         app.quit()
         sys.exit(1)
 
-    try:
-        check_bluetooth_status()
-    except Exception as exc:
-        info = QMessageBox().information(
+    bt_error = get_bluetooth_error()
+    if bt_error is not None:
+        QMessageBox.warning(
             None,
-            "Bluetooth error",
-            f"Bluetooth error\n\nInfo:\n{exc}",
-            QMessageBox.StandardButton.Ok
+            "Bluetooth",
+            f"{bt_error}\n\n"
+            "Приложение продолжит работу, но поиск устройств будет недоступен."
         )
-        app.quit()
-    else:
-        window = MainWindow(loop)
-        window.showMaximized()
 
-        try:
-            loop.run_forever()
-        except Exception as err:
-            logger.error(f"Ошибка в цикле событий: {err}")
-        finally:
-            if loop.is_running():
-                loop.stop()
+    window = MainWindow(loop)
+    window.showMaximized()
+
+    try:
+        loop.run_forever()
+    except Exception as err:
+        logger.error(f"Ошибка в цикле событий: {err}")
+    finally:
+        if loop.is_running():
+            loop.stop()

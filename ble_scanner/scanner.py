@@ -2,10 +2,12 @@ import asyncio
 from asyncio import AbstractEventLoop
 
 from PySide6.QtCore import QObject, QTimer, Qt, Signal
+from PySide6.QtWidgets import QMessageBox
 from bleak import BleakScanner
 
 from ble_scanner.ui.dlg_ble_scan import DlgBleScan
 from ble_scanner.ui.frm_control_scanner import FrmControlScannerPane
+from utils.check_bluetooth import get_bluetooth_error
 from utils.scanner import NAME_TEMPLATE
 
 
@@ -40,6 +42,16 @@ class BleScanner(QObject):
 
     def start_scan(self):
         """ запуск поиска и открытие окна выбора устройства """
+        bt_error = get_bluetooth_error()
+        if bt_error is not None:
+            QMessageBox.warning(
+                self.parent(),
+                "Bluetooth",
+                f"{bt_error}\n\n"
+                "Включите Bluetooth и повторите попытку поиска."
+            )
+            return
+
         self.run()
         self._selected = False
 
