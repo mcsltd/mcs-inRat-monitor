@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>999</width>
-    <height>575</height>
+    <width>1005</width>
+    <height>588</height>
    </rect>
   </property>
   <property name="font">
@@ -208,7 +208,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>999</width>
+     <width>1005</width>
      <height>33</height>
     </rect>
    </property>
@@ -222,6 +222,7 @@
     <property name="title">
      <string>Помощь</string>
     </property>
+    <addaction name="actionDeviceInfo"/>
     <addaction name="actionAbout"/>
    </widget>
    <addaction name="menu"/>
@@ -234,7 +235,15 @@
   </action>
   <action name="actionAbout">
    <property name="text">
-    <string>О программе</string>
+    <string>О программе...</string>
+   </property>
+  </action>
+  <action name="actionDeviceInfo">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Информация об устройстве</string>
    </property>
   </action>
  </widget>

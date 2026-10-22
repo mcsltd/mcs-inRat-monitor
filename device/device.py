@@ -9,11 +9,12 @@ import numpy as np
 from PySide6.QtCore import QObject, Signal, Qt, QTimer
 from PySide6.QtWidgets import QMessageBox, QFrame
 from bleak import BLEDevice
+from fontTools.subset import usage
 
 from device.constants import Pkt
 from device.enums import EnabledChannels, TypeSignal, EventType
 from device.inrat import inRat, FIRMWARE_ACC_EXG, FIRMWARE_V0
-from device.models import DeviceProperty, DeviceConfig, ExgConfig, EventConfig, AccConfig
+from device.models import DeviceProperty, DeviceConfig, ExgConfig, EventConfig, AccConfig, DeviceUsage
 from device.structures import Event, Usage
 from device.ui.config_dialog import DlgConfigDevice
 from device.ui.config_pane import FrmConfigDevicePane
@@ -143,6 +144,7 @@ class inRatDevice(QObject):
         self._last_device: BLEDevice | None = None
         self._property: DeviceProperty | None = None
         self._config: DeviceConfig | None = None
+        self._usage: DeviceUsage | None = None
 
         # очередь для передачи всех данных с устройства
         self._receivers_data = []
@@ -212,6 +214,12 @@ class inRatDevice(QObject):
     @property
     def battery_pane(self) -> BatteryWidget | None:
         return self._battery_pane
+    @property
+    def info(self) -> DeviceProperty | None:
+        return self._property
+    @property
+    def usage(self) -> DeviceUsage | None:
+        return self._usage
 
     def add_receiver_data(self, receiver):
         """ добавление объекта-приёмник всех данных  """
@@ -643,6 +651,11 @@ class inRatDevice(QObject):
         try:
             status = future.result()
             usage = status.Usage
+            self._usage = DeviceUsage(
+                power_on_count=usage.PowerOnCount,
+                advertising_sec=usage.AdvertisingSeconds, connection_sec=usage.ConnectionSeconds, data_sec=usage.DataSendSeconds,
+            )
+
             level = self.__get_battery_level(usage)
             logger.debug(f"{self.__class__}: t_adv={usage.AdvertisingSeconds}; t_con={usage.ConnectionSeconds}; t_data={usage.DataSendSeconds};")
             self._battery_pane.set_level(level)
@@ -652,7 +665,7 @@ class inRatDevice(QObject):
     @staticmethod
     def __get_battery_level(usage: Usage) -> int:
         """ расчёт уровня батареи в процентах """
-        q_mas = 504_000 # 140mAh
+        q_mas = 504_000 * 0.7 # 140mAh, 0.7 - вычислен из технической документации
         i_adv, i_con, i_data = 0.023, 0.06, 0.6
         t_adv, t_con, t_data = usage.AdvertisingSeconds, usage.ConnectionSeconds, usage.DataSendSeconds
         level = int((q_mas - (i_adv * t_adv + i_con * t_con + i_data * t_data)) / q_mas * 100)

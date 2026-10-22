@@ -20,9 +20,10 @@ from events import DeviceEvent
 from stream_viewer.stream_viewer import StreamViewer, TempStreamViewer, FrmControlXYRange
 from ui.dlg_about import AboutDialog
 from ui.dlg_config import DlgConfig
+from ui.dlg_info import DlgDeviceInfo
 from utils.check_bluetooth import get_bluetooth_error
 from storage.storage import Storage
-from resources.main_window_v1 import Ui_MainWindow
+from resources.main_window import Ui_MainWindow
 from widget import WaitingDialog
 
 
@@ -184,6 +185,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._waiting_connection_dlg = WaitingDialog(self)
 
         self.actionAbout.triggered.connect(self._on_about_clicked)
+        self.actionDeviceInfo.triggered.connect(self.show_device_info)
         self.actionExit.triggered.connect(self.close)
 
         modules = [
@@ -215,6 +217,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         layout.addLayout(control_layout)
         layout.addWidget(plot, 1)
 
+    def show_device_info(self):
+        """ открытие диалогового окна с выводом информации об устройстве """
+        dlg = DlgDeviceInfo(
+            device_property=self.device.info,
+            working_time=self.device.usage
+        )
+        dlg.exec()
 
     def process_event(self, event):
         """ обработка приходящих событий от модулей """
@@ -232,12 +241,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         elif event.type == "ConnectStop":
             self._waiting_connection_dlg.close()
             self.device.battery_pane.setVisible(True)
+            self.actionDeviceInfo.setEnabled(True)
         elif event.type == "ConnectError":
             self._waiting_connection_dlg.close()
             self.device.battery_pane.setVisible(False)
             self.pushButtonConfig.setEnabled(True)
             self.scanner.set_enabled(True)
             self._offer_reconnect()
+            self.actionDeviceInfo.setEnabled(False)
 
         if event.type == "AcquisitionStart":
             self.pushButtonConfig.setEnabled(False)
@@ -252,15 +263,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self._waiting_connection_dlg.close()
             self.device.battery_pane.setVisible(False)
             self.pushButtonConfig.setEnabled(False)
+            self.actionDeviceInfo.setEnabled(False)
         if event.type == "Disconnected":
             self._waiting_connection_dlg.close()
             self.device.battery_pane.setVisible(False)
             self.pushButtonConfig.setEnabled(False)
             self.scanner.set_enabled(True)
+            self.actionDeviceInfo.setEnabled(False)
         if event.type == "ConnectionLost":
             self.device.battery_pane.setVisible(False)
             self.pushButtonConfig.setEnabled(False)
             self.scanner.set_enabled(True)
+            self.actionDeviceInfo.setEnabled(False)
             QMessageBox.critical(
                 self, "Потеря соединения",
                 f"Потеряно соединение с устройством «{self.device.name}».",

@@ -40,3 +40,11 @@ class DeviceProperty:
     model: str
     hardware: str
     firmware: str
+
+@dataclass
+class DeviceUsage:
+    """ информация об использовании устройства """
+    power_on_count: int
+    advertising_sec: int
+    connection_sec: int
+    data_sec: int
